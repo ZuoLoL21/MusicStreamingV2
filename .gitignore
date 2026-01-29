@@ -1,7 +1,2 @@
 /.idea
-/backend
-/bandit_data_warehouse
-/database
-/docker-compose.yml
-/file_storage
-/frontend
+.env
