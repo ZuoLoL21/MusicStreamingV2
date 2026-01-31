@@ -18,8 +18,13 @@ func streamAudio(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "audio/mpeg")
 	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file)
 }
-
 func saveAudio(w http.ResponseWriter, r *http.Request) {
+
+}
+func updateAudio(w http.ResponseWriter, r *http.Request) {
+
+}
+func deleteAudio(w http.ResponseWriter, r *http.Request) {
 
 }
 
@@ -30,8 +35,11 @@ func (h *MusicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		streamAudio(w, r)
 	case http.MethodPost:
+		updateAudio(w, r)
 	case http.MethodPut:
+		saveAudio(w, r)
 	case http.MethodDelete:
+		deleteAudio(w, r)
 	default:
 	}
 
