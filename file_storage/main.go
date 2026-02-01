@@ -41,6 +41,6 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	fmt.Println("Server is up and running")
+	fmt.Println("Server is up and running!")
 	log.Fatal(srv.ListenAndServe())
 }
