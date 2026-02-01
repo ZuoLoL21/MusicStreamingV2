@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"mime/multipart"
 	"music-streaming/file-storage/helpers"
 	"net/http"
 	"os"
@@ -18,7 +19,9 @@ func StreamAudio(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
 
 	stat, _ := file.Stat()
 
@@ -33,7 +36,9 @@ func SaveAudio(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), errCode)
 		return
 	}
-	defer part.Close()
+	defer func(part *multipart.Part) {
+		_ = part.Close()
+	}(part)
 
 	baseDir := helpers.GetDataFolder("music")
 	destPath := filepath.Join(baseDir, id)

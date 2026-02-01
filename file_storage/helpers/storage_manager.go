@@ -39,7 +39,9 @@ func SaveToFile(filePart *multipart.Part, location string) (int64, error, int) {
 	if err != nil {
 		return 0, errors.New("failed to create file"), http.StatusInternalServerError
 	}
-	defer destFile.Close()
+	defer func(destFile *os.File) {
+		_ = destFile.Close()
+	}(destFile)
 
 	// Stream directly to file
 	written, err := io.Copy(destFile, filePart)
