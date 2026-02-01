@@ -14,7 +14,7 @@ import (
 func StreamAudio(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	baseDir := helpers.GetDataFolder("music")
-	file, err := os.Open(filepath.Join(baseDir, vars["id"]))
+	file, err := os.Open(filepath.Join(baseDir, vars["id"]+".mp3"))
 	if err != nil {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
@@ -41,7 +41,7 @@ func SaveAudio(w http.ResponseWriter, r *http.Request) {
 	}(part)
 
 	baseDir := helpers.GetDataFolder("music")
-	destPath := filepath.Join(baseDir, id)
+	destPath := filepath.Join(baseDir, id+".mp3")
 
 	writtenBytes, err, errCode := helpers.SaveToFile(part, destPath)
 	if err != nil {
@@ -54,9 +54,51 @@ func SaveAudio(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateAudio(w http.ResponseWriter, r *http.Request) {
+	id, part, err, errCode := helpers.ParseAudioFromRequest(r)
 
+	if err != nil {
+		http.Error(w, err.Error(), errCode)
+		return
+	}
+	defer func(part *multipart.Part) {
+		_ = part.Close()
+	}(part)
+
+	baseDir := helpers.GetDataFolder("music")
+	destPath := filepath.Join(baseDir, id+".mp3")
+
+	// Check if file exists
+	if _, err := os.Stat(destPath); os.IsNotExist(err) {
+		http.Error(w, "Audio file not found", http.StatusNotFound)
+		return
+	}
+
+	writtenBytes, err, errCode := helpers.SaveToFile(part, destPath)
+	if err != nil {
+		http.Error(w, err.Error(), errCode)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = fmt.Fprintf(w, "Audio file %s updated successfully with (%d bytes)", id, writtenBytes)
 }
 
 func DeleteAudio(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	baseDir := helpers.GetDataFolder("music")
+	destPath := filepath.Join(baseDir, vars["id"]+".mp3")
 
+	if _, err := os.Stat(destPath); os.IsNotExist(err) {
+		http.Error(w, "audio file not found", http.StatusNotFound)
+		return
+	}
+
+	err := os.Remove(destPath)
+	if err != nil {
+		http.Error(w, "failed to delete audio file", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = fmt.Fprintf(w, "Audio file %s deleted successfully", vars["id"])
 }

@@ -11,7 +11,7 @@ import (
 
 func ParseAudioFromRequest(r *http.Request) (string, *multipart.Part, error, int) {
 	vars := mux.Vars(r)
-	id := vars["id"] + ".mp3"
+	id := vars["id"]
 
 	// Get audio file
 	reader, err := r.MultipartReader()
