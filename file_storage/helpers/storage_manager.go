@@ -1,11 +1,15 @@
 package helpers
 
 import (
+	"errors"
+	"io"
+	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
 )
 
-func Get_data_folder(name string) string {
+func GetDataFolder(name string) string {
 	cwd, err := os.Getwd()
 	if err != nil {
 		panic(err)
@@ -27,4 +31,23 @@ func Get_data_folder(name string) string {
 	}
 
 	return filepath.Join(projectRoot, "file_storage", "data", name)
+}
+
+func SaveToFile(filePart *multipart.Part, location string) (int64, error, int) {
+	// Create the destination file
+	destFile, err := os.Create(location)
+	if err != nil {
+		return 0, errors.New("failed to create file"), http.StatusInternalServerError
+	}
+	defer destFile.Close()
+
+	// Stream directly to file
+	written, err := io.Copy(destFile, filePart)
+	if err != nil {
+		_ = destFile.Close()
+		_ = os.Remove(location)
+
+		return 0, errors.New("failed to save file"), http.StatusInternalServerError
+	}
+	return written, nil, http.StatusOK
 }
