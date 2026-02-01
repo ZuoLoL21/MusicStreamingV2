@@ -30,12 +30,15 @@ func StreamAudio(w http.ResponseWriter, r *http.Request) {
 }
 
 func SaveAudio(w http.ResponseWriter, r *http.Request) {
-	id, part, err, errCode := helpers.ParseAudioFromRequest(r)
+	response, err := helpers.ParseAudioFromRequest(r)
 
 	if err != nil {
-		http.Error(w, err.Error(), errCode)
+		http.Error(w, err.Message, err.Status)
 		return
 	}
+	id := response.ID
+	part := response.Data
+
 	defer func(part *multipart.Part) {
 		_ = part.Close()
 	}(part)
@@ -43,9 +46,9 @@ func SaveAudio(w http.ResponseWriter, r *http.Request) {
 	baseDir := helpers.GetDataFolder("music")
 	destPath := filepath.Join(baseDir, id+".mp3")
 
-	writtenBytes, err, errCode := helpers.SaveToFile(part, destPath)
+	writtenBytes, err := helpers.SaveToFile(part, destPath)
 	if err != nil {
-		http.Error(w, err.Error(), errCode)
+		http.Error(w, err.Message, err.Status)
 		return
 	}
 
@@ -54,12 +57,15 @@ func SaveAudio(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateAudio(w http.ResponseWriter, r *http.Request) {
-	id, part, err, errCode := helpers.ParseAudioFromRequest(r)
+	response, err := helpers.ParseAudioFromRequest(r)
 
 	if err != nil {
-		http.Error(w, err.Error(), errCode)
+		http.Error(w, err.Message, err.Status)
 		return
 	}
+	id := response.ID
+	part := response.Data
+
 	defer func(part *multipart.Part) {
 		_ = part.Close()
 	}(part)
@@ -73,9 +79,9 @@ func UpdateAudio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writtenBytes, err, errCode := helpers.SaveToFile(part, destPath)
+	writtenBytes, err := helpers.SaveToFile(part, destPath)
 	if err != nil {
-		http.Error(w, err.Error(), errCode)
+		http.Error(w, err.Message, err.Status)
 		return
 	}
 

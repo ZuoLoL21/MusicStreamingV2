@@ -9,31 +9,36 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func ParseAudioFromRequest(r *http.Request) (string, *multipart.Part, error, int) {
+type AudioResult struct {
+	ID   string
+	Data *multipart.Part
+}
+
+func ParseAudioFromRequest(r *http.Request) (*AudioResult, *ErrorResult) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
 	// Get audio file
 	reader, err := r.MultipartReader()
 	if err != nil {
-		return "", nil, errors.New("failed to read multipart data"), http.StatusBadRequest
+		return nil, &ErrorResult{Message: "failed to read multipart data", Status: http.StatusBadRequest}
 	}
 	part, err := reader.NextPart()
 	if err != nil {
-		return "", nil, errors.New("failed to get file part"), http.StatusBadRequest
+		return nil, &ErrorResult{Message: "failed to get file part", Status: http.StatusBadRequest}
 	}
 
 	if part.FormName() != "audio" {
 		_ = part.Close()
-		return "", nil, errors.New("expected 'audio' field"), http.StatusBadRequest
+		return nil, &ErrorResult{Message: "expected 'audio' field", Status: http.StatusBadRequest}
 	}
 	err = testIfMP3(part)
 	if err != nil {
 		_ = part.Close()
-		return "", nil, err, http.StatusBadRequest
+		return nil, &ErrorResult{Message: err.Error(), Status: http.StatusBadRequest}
 	}
 
-	return id, part, nil, http.StatusOK
+	return &AudioResult{ID: id, Data: part}, nil
 }
 
 func testIfMP3(filePart *multipart.Part) error {

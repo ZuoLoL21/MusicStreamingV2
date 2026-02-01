@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -33,11 +32,11 @@ func GetDataFolder(name string) string {
 	return filepath.Join(projectRoot, "file_storage", "data", name)
 }
 
-func SaveToFile(filePart *multipart.Part, location string) (int64, error, int) {
+func SaveToFile(filePart *multipart.Part, location string) (int64, *ErrorResult) {
 	// Create the destination file
 	destFile, err := os.Create(location)
 	if err != nil {
-		return 0, errors.New("failed to create file"), http.StatusInternalServerError
+		return 0, &ErrorResult{Message: "failed to create file", Status: http.StatusInternalServerError}
 	}
 	defer func(destFile *os.File) {
 		_ = destFile.Close()
@@ -49,7 +48,7 @@ func SaveToFile(filePart *multipart.Part, location string) (int64, error, int) {
 		_ = destFile.Close()
 		_ = os.Remove(location)
 
-		return 0, errors.New("failed to save file"), http.StatusInternalServerError
+		return 0, &ErrorResult{Message: "failed to save file", Status: http.StatusInternalServerError}
 	}
-	return written, nil, http.StatusOK
+	return written, nil
 }

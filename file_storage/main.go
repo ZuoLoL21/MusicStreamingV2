@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func defaultEndpoint(w http.ResponseWriter, r *http.Request) {
+func defaultEndpoint(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	_, err := fmt.Fprintf(w, "Hello World")
 	if err != nil {
@@ -30,7 +30,7 @@ func main() {
 	sProfile := r.PathPrefix("/{id}").Subrouter()
 	sProfile.HandleFunc("/{id}", handlers.GetProfile).Methods("GET")
 	sProfile.HandleFunc("/{id}", handlers.UpdateProfile).Methods("POST")
-	sProfile.HandleFunc("/{id}", handlers.UpdateProfile).Methods("PUT")
+	sProfile.HandleFunc("/{id}", handlers.CreateDefaultProfile).Methods("PUT")
 
 	r.HandleFunc("/", defaultEndpoint)
 
