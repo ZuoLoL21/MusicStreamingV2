@@ -2,17 +2,45 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"music-streaming/file-storage/handlers"
 	"net/http"
+	"time"
+
+	"github.com/gorilla/mux"
 )
 
-func main() {
-	mux := http.NewServeMux()
-	mux.Handle("/music", &handlers.MusicHandler{})
-	mux.Handle("/profile", &handlers.ProfileHandler{})
-
-	err := http.ListenAndServe(":8080", mux)
+func defaultEndpoint(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	_, err := fmt.Fprintf(w, "Hello World")
 	if err != nil {
-		fmt.Println(err.Error())
+		panic(err)
 	}
+}
+
+func main() {
+	r := mux.NewRouter()
+
+	sMusic := r.PathPrefix("/music").Subrouter()
+	sMusic.HandleFunc("/{id}", handlers.StreamAudio).Methods("GET")
+	sMusic.HandleFunc("/{id}", handlers.SaveAudio).Methods("PUT")
+	sMusic.HandleFunc("/{id}", handlers.DeleteAudio).Methods("DELETE")
+	sMusic.HandleFunc("/{id}", handlers.UpdateAudio).Methods("POST")
+
+	sProfile := r.PathPrefix("/{id}").Subrouter()
+	sProfile.HandleFunc("/{id}", handlers.GetProfile).Methods("GET")
+	sProfile.HandleFunc("/{id}", handlers.UpdateProfile).Methods("POST")
+	sProfile.HandleFunc("/{id}", handlers.UpdateProfile).Methods("PUT")
+
+	r.HandleFunc("/", defaultEndpoint)
+
+	srv := &http.Server{
+		Handler:      r,
+		Addr:         "127.0.0.1:8000",
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
+	fmt.Println("Server is up and running")
+	log.Fatal(srv.ListenAndServe())
 }
