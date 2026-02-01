@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -32,25 +31,25 @@ func ParseAudioFromRequest(r *http.Request) (*AudioResult, *ErrorResult) {
 		_ = part.Close()
 		return nil, &ErrorResult{Message: "expected 'audio' field", Status: http.StatusBadRequest}
 	}
-	err = testIfMP3(part)
-	if err != nil {
+	err2 := testIfMP3(part)
+	if err2 != nil {
 		_ = part.Close()
-		return nil, &ErrorResult{Message: err.Error(), Status: http.StatusBadRequest}
+		return nil, err2
 	}
 
 	return &AudioResult{ID: id, Data: part}, nil
 }
 
-func testIfMP3(filePart *multipart.Part) error {
+func testIfMP3(filePart *multipart.Part) *ErrorResult {
 	header := make([]byte, 3)
 	n, err := io.ReadFull(filePart, header)
 	if err != nil || n != 3 {
-		return errors.New("Failed to read file header")
+		return &ErrorResult{Message: "Failed to read file header", Status: http.StatusBadRequest}
 	}
 	isID3 := header[0] == 0x49 && header[1] == 0x44 && header[2] == 0x33
 	isMPEG := header[0] == 0xFF && (header[1]&0xE0) == 0xE0
 	if !isID3 && !isMPEG {
-		return errors.New("Invalid MP3 file format")
+		return &ErrorResult{Message: "Invalid MP3 file format", Status: http.StatusBadRequest}
 	}
 	return nil
 }
