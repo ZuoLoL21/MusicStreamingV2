@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/nfnt/resize"
 	_ "golang.org/x/image/webp"
 )
 
@@ -20,7 +21,7 @@ type FileResult struct {
 }
 
 const MaxImageSize = 10 << 20 // 10MB
-const MaxImageDimension = 10000
+const ImageDimension = 640
 
 func ParseImageFromRequest(r *http.Request) (*FileResult, *ErrorResult) {
 	vars := mux.Vars(r)
@@ -80,8 +81,11 @@ func ParseImageFromRequest(r *http.Request) (*FileResult, *ErrorResult) {
 
 	// Check size
 	bounds := img.Bounds()
-	if bounds.Dx() > MaxImageDimension || bounds.Dy() > MaxImageDimension {
-		return nil, &ErrorResult{Message: "image dimensions too large", Status: http.StatusBadRequest}
+	if bounds.Dx() != bounds.Dy() {
+		return nil, &ErrorResult{Message: "image must be square", Status: http.StatusBadRequest}
+	}
+	if bounds.Dx() != ImageDimension || bounds.Dy() != ImageDimension {
+		img = resize.Resize(ImageDimension, ImageDimension, img, resize.Lanczos3)
 	}
 
 	// Convert to JPEG
