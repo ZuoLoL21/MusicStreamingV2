@@ -52,7 +52,7 @@ func ParseImageFromRequest(r *http.Request) (*FileResult, *ErrorResult) {
 	}
 
 	// Limit reader to prevent memory exhaustion
-	limitedReader := io.LimitReader(part, MaxImageSize)
+	limitedReader := io.LimitReader(part, int64(MaxImageSize)+1)
 	imgData, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, &ErrorResult{Message: "failed to read image data", Status: http.StatusBadRequest}

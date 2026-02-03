@@ -30,7 +30,7 @@ func init() {
 
 func GetDataFolder(name string) string {
 	dataDirectory := os.Getenv("DATA_LOCATION")
-	filepath.Clean(dataDirectory)
+	dataDirectory = filepath.Clean(dataDirectory)
 
 	return filepath.Join(dataDirectory, name)
 }
