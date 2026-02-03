@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 )
 
 func defaultEndpoint(w http.ResponseWriter, _ *http.Request) {
@@ -21,10 +20,6 @@ func defaultEndpoint(w http.ResponseWriter, _ *http.Request) {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file: %s", err)
-	}
 	fmt.Println("Data location set to " + helpers.GetDataFolder(""))
 
 	r := mux.NewRouter()

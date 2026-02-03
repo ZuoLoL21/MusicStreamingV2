@@ -2,14 +2,36 @@ package helpers
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/joho/godotenv"
 )
+
+var possibleStorages = [4]string{"default", "music", "music_pictures", "profile_pictures"}
+
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %s", err)
+	}
+
+	for _, storage := range possibleStorages {
+		directory := GetDataFolder(storage)
+		err := os.MkdirAll(directory, os.ModePerm)
+		if err != nil {
+			log.Fatalf("Error creating directory: %v", err)
+		}
+	}
+
+}
 
 func GetDataFolder(name string) string {
 	dataDirectory := os.Getenv("DATA_LOCATION")
 	filepath.Clean(dataDirectory)
+
 	return filepath.Join(dataDirectory, name)
 }
 
