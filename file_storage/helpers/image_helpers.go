@@ -7,7 +7,6 @@ import (
 	"image/jpeg"
 	_ "image/png"
 	"io"
-	"mime/multipart"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -41,9 +40,6 @@ func ParseImageFromRequest(r *http.Request) (*FileResult, *ErrorResult) {
 	if err != nil {
 		return nil, &ErrorResult{Message: "failed to get file part", Status: http.StatusBadRequest}
 	}
-	defer func(part *multipart.Part) {
-		_ = part.Close()
-	}(part)
 
 	if part.FormName() != "image" {
 		return nil, &ErrorResult{Message: "expected 'image' field", Status: http.StatusBadRequest}

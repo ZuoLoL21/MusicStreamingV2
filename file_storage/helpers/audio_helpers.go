@@ -14,6 +14,8 @@ type AudioResult struct {
 	Data io.Reader
 }
 
+const MaxAudioSize = 10 << 20 // 10MB
+
 func ParseAudioFromRequest(r *http.Request) (*AudioResult, *ErrorResult) {
 	vars := mux.Vars(r)
 	validated := ValidateUUID(vars["id"])
@@ -37,6 +39,25 @@ func ParseAudioFromRequest(r *http.Request) (*AudioResult, *ErrorResult) {
 		_ = part.Close()
 		return nil, &ErrorResult{Message: "expected 'audio' field", Status: http.StatusBadRequest}
 	}
+
+	// Validate filename exists
+	filename := part.FileName()
+	if filename == "" {
+		return nil, &ErrorResult{Message: "missing filename", Status: http.StatusBadRequest}
+	}
+
+	// Limit reader to prevent memory exhaustion
+	limitedReader := io.LimitReader(part, MaxImageSize)
+	audioData, err := io.ReadAll(limitedReader)
+	if err != nil {
+		return nil, &ErrorResult{Message: "failed to read audio data", Status: http.StatusBadRequest}
+	}
+
+	// Check if size limit was exceeded
+	if len(audioData) == MaxAudioSize {
+		return nil, &ErrorResult{Message: "audio exceeds maximum size", Status: http.StatusRequestEntityTooLarge}
+	}
+
 	combined, err2 := testIfMP3(part)
 	if err2 != nil {
 		_ = part.Close()
