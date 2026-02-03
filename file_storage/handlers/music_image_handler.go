@@ -15,6 +15,12 @@ const defaultImageName = "default_music.jpeg"
 func GetMusicImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	baseDir := helpers.GetDataFolder("music_pictures")
+	validated := helpers.ValidateUUID(vars["id"])
+	if !validated {
+		http.Error(w, "Invalid id provided", http.StatusBadRequest)
+		return
+	}
+
 	file, err := os.Open(filepath.Join(baseDir, vars["id"]+".jpeg"))
 	if err != nil {
 		http.Error(w, "File not found", http.StatusNotFound)

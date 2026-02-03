@@ -15,6 +15,11 @@ type AudioResult struct {
 
 func ParseAudioFromRequest(r *http.Request) (*AudioResult, *ErrorResult) {
 	vars := mux.Vars(r)
+	validated := ValidateUUID(vars["id"])
+	if !validated {
+		return nil, &ErrorResult{Message: "Invalid id provided", Status: http.StatusBadRequest}
+	}
+
 	id := vars["id"]
 
 	// Get audio file

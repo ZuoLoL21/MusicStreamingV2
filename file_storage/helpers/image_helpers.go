@@ -25,6 +25,11 @@ const ImageDimension = 640
 
 func ParseImageFromRequest(r *http.Request) (*FileResult, *ErrorResult) {
 	vars := mux.Vars(r)
+	validated := ValidateUUID(vars["id"])
+	if !validated {
+		return nil, &ErrorResult{Message: "Invalid id provided", Status: http.StatusBadRequest}
+	}
+
 	id := vars["id"]
 
 	// Get image file

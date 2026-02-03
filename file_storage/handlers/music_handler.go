@@ -14,6 +14,12 @@ import (
 func StreamAudio(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	baseDir := helpers.GetDataFolder("music")
+	validated := helpers.ValidateUUID(vars["id"])
+	if !validated {
+		http.Error(w, "Invalid id provided", http.StatusBadRequest)
+		return
+	}
+
 	file, err := os.Open(filepath.Join(baseDir, vars["id"]+".mp3"))
 	if err != nil {
 		http.Error(w, "File not found", http.StatusNotFound)
@@ -96,6 +102,12 @@ func UpdateAudio(w http.ResponseWriter, r *http.Request) {
 func DeleteAudio(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	baseDir := helpers.GetDataFolder("music")
+	validated := helpers.ValidateUUID(vars["id"])
+	if !validated {
+		http.Error(w, "Invalid id provided", http.StatusBadRequest)
+		return
+	}
+
 	destPath := filepath.Join(baseDir, vars["id"]+".mp3")
 
 	if _, err := os.Stat(destPath); os.IsNotExist(err) {
