@@ -46,25 +46,17 @@ func ParseAudioFromRequest(r *http.Request) (*AudioResult, *ErrorResult) {
 		return nil, &ErrorResult{Message: "missing filename", Status: http.StatusBadRequest}
 	}
 
-	// Limit reader to prevent memory exhaustion
-	limitedReader := io.LimitReader(part, MaxImageSize)
-	audioData, err := io.ReadAll(limitedReader)
-	if err != nil {
-		return nil, &ErrorResult{Message: "failed to read audio data", Status: http.StatusBadRequest}
-	}
-
-	// Check if size limit was exceeded
-	if len(audioData) == MaxAudioSize {
-		return nil, &ErrorResult{Message: "audio exceeds maximum size", Status: http.StatusRequestEntityTooLarge}
-	}
-
+	// Validate MP3 format by peeking at the header
 	combined, err2 := testIfMP3(part)
 	if err2 != nil {
 		_ = part.Close()
 		return nil, err2
 	}
 
-	return &AudioResult{ID: id, Data: combined}, nil
+	// Limit to MaxAudioSize+1 so the handler can detect overflow after writing
+	limitedReader := io.LimitReader(combined, int64(MaxAudioSize)+1)
+
+	return &AudioResult{ID: id, Data: limitedReader}, nil
 }
 
 func testIfMP3(filePart *multipart.Part) (io.Reader, *ErrorResult) {

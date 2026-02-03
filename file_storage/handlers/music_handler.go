@@ -57,6 +57,12 @@ func SaveAudio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if writtenBytes > helpers.MaxAudioSize {
+		_ = os.Remove(destPath)
+		http.Error(w, "audio exceeds maximum size", http.StatusRequestEntityTooLarge)
+		return
+	}
+
 	w.WriteHeader(http.StatusCreated)
 	_, _ = fmt.Fprintf(w, "Audio file %s saved successfully with (%d bytes)", id, writtenBytes)
 }
@@ -83,6 +89,12 @@ func UpdateAudio(w http.ResponseWriter, r *http.Request) {
 	writtenBytes, err := helpers.SaveToFile(part, destPath)
 	if err != nil {
 		http.Error(w, err.Message, err.Status)
+		return
+	}
+
+	if writtenBytes > helpers.MaxAudioSize {
+		_ = os.Remove(destPath)
+		http.Error(w, "audio exceeds maximum size", http.StatusRequestEntityTooLarge)
 		return
 	}
 
