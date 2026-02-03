@@ -8,27 +8,9 @@ import (
 )
 
 func GetDataFolder(name string) string {
-	cwd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-
-	projectRoot := cwd
-	for {
-		fileStoragePath := filepath.Join(projectRoot, "file_storage")
-		if _, err := os.Stat(fileStoragePath); err == nil {
-			break
-		}
-
-		// Move up one directory
-		parent := filepath.Dir(projectRoot)
-		if parent == projectRoot {
-			break
-		}
-		projectRoot = parent
-	}
-
-	return filepath.Join(projectRoot, "file_storage", "data", name)
+	dataDirectory := os.Getenv("DATA_LOCATION")
+	filepath.Clean(dataDirectory)
+	return filepath.Join(dataDirectory, name)
 }
 
 func SaveToFile(filePart io.Reader, location string) (int64, *ErrorResult) {
