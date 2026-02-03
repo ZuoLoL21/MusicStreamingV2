@@ -8,6 +8,9 @@ import (
 	_ "image/png"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/nfnt/resize"
@@ -17,6 +20,12 @@ import (
 type FileResult struct {
 	ID   string
 	Data []byte
+}
+
+type RetrievalResult struct {
+	Name    string
+	ModTime time.Time
+	File    *os.File
 }
 
 const MaxImageSize = 10 << 20 // 10MB
@@ -105,4 +114,25 @@ func encodeToJPEG(img image.Image) ([]byte, *ErrorResult) {
 		return nil, &ErrorResult{Message: "failed to encode as JPEG", Status: http.StatusInternalServerError}
 	}
 	return buf.Bytes(), nil
+}
+
+func RetrieveImage(id string, baseDir string) (*RetrievalResult, *ErrorResult) {
+	validated := ValidateUUID(id)
+	if !validated {
+		return nil, &ErrorResult{Message: "Invalid id provided", Status: http.StatusBadRequest}
+	}
+
+	file, err := os.Open(filepath.Join(baseDir, id+".jpeg"))
+	if err != nil {
+		return nil, &ErrorResult{Message: "failed to open file", Status: http.StatusNotFound}
+	}
+
+	stat, err := file.Stat()
+	if err != nil {
+		_ = file.Close()
+		return nil, &ErrorResult{Message: "failed to stat file", Status: http.StatusInternalServerError}
+	}
+
+	return &RetrievalResult{Name: stat.Name(), ModTime: stat.ModTime(), File: file}, nil
+
 }

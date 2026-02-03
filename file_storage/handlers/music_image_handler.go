@@ -15,29 +15,19 @@ const defaultImageName = "default_music.jpeg"
 func GetMusicImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	baseDir := helpers.GetDataFolder("music_pictures")
-	validated := helpers.ValidateUUID(vars["id"])
-	if !validated {
-		http.Error(w, "Invalid id provided", http.StatusBadRequest)
-		return
-	}
 
-	file, err := os.Open(filepath.Join(baseDir, vars["id"]+".jpeg"))
+	details, err := helpers.RetrieveImage(vars["id"], baseDir)
 	if err != nil {
-		http.Error(w, "File not found", http.StatusNotFound)
+		http.Error(w, err.Error(), err.Status)
 		return
 	}
+	file := details.File
 	defer func(file *os.File) {
 		_ = file.Close()
 	}(file)
 
-	stat, err := file.Stat()
-	if err != nil {
-		http.Error(w, "Stat failed", http.StatusInternalServerError)
-		return
-	}
-
 	w.Header().Set("Content-Type", "image/jpeg")
-	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file)
+	http.ServeContent(w, r, details.Name, details.ModTime, file)
 }
 func GetDefaultMusicImage(w http.ResponseWriter, r *http.Request) {
 	baseDir := helpers.GetDataFolder("default")
