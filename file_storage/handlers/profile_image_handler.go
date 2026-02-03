@@ -17,7 +17,7 @@ func GetProfileImage(w http.ResponseWriter, r *http.Request) {
 	baseDir := helpers.GetDataFolder("profile_pictures")
 	details, err := helpers.RetrieveImage(vars["id"], baseDir)
 	if err != nil {
-		http.Error(w, err.Error(), err.Status)
+		http.Error(w, err.Message, err.Status)
 		return
 	}
 	file := details.File
@@ -29,24 +29,18 @@ func GetProfileImage(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, details.Name, details.ModTime, file)
 }
 func GetDefaultProfileImage(w http.ResponseWriter, r *http.Request) {
-	baseDir := helpers.GetDataFolder("default")
-	file, err := os.Open(filepath.Join(baseDir, defaultProfileName))
+	details, err := helpers.RetrieveDefaultImage(defaultProfileName)
 	if err != nil {
-		http.Error(w, "Default not found", http.StatusNotFound)
+		http.Error(w, err.Message, err.Status)
 		return
 	}
+	file := details.File
 	defer func(file *os.File) {
 		_ = file.Close()
 	}(file)
 
-	stat, err := file.Stat()
-	if err != nil {
-		http.Error(w, "Stat failed", http.StatusInternalServerError)
-		return
-	}
-
 	w.Header().Set("Content-Type", "image/jpeg")
-	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file)
+	http.ServeContent(w, r, details.Name, details.ModTime, file)
 }
 
 func UpdateProfileImage(w http.ResponseWriter, r *http.Request) {

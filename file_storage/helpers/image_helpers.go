@@ -22,12 +22,6 @@ type FileResult struct {
 	Data []byte
 }
 
-type RetrievalResult struct {
-	Name    string
-	ModTime time.Time
-	File    *os.File
-}
-
 const MaxImageSize = 10 << 20 // 10MB
 const ImageDimension = 640
 
@@ -116,6 +110,12 @@ func encodeToJPEG(img image.Image) ([]byte, *ErrorResult) {
 	return buf.Bytes(), nil
 }
 
+type RetrievalResult struct {
+	Name    string
+	ModTime time.Time
+	File    *os.File
+}
+
 func RetrieveImage(id string, baseDir string) (*RetrievalResult, *ErrorResult) {
 	validated := ValidateUUID(id)
 	if !validated {
@@ -135,4 +135,20 @@ func RetrieveImage(id string, baseDir string) (*RetrievalResult, *ErrorResult) {
 
 	return &RetrievalResult{Name: stat.Name(), ModTime: stat.ModTime(), File: file}, nil
 
+}
+
+func RetrieveDefaultImage(id string) (*RetrievalResult, *ErrorResult) {
+	baseDir := GetDataFolder("default")
+	file, err := os.Open(filepath.Join(baseDir, id))
+	if err != nil {
+		return nil, &ErrorResult{Message: "Default not found", Status: http.StatusNotFound}
+	}
+
+	stat, err := file.Stat()
+	if err != nil {
+		_ = file.Close()
+		return nil, &ErrorResult{Message: "Stat failed", Status: http.StatusInternalServerError}
+	}
+
+	return &RetrievalResult{Name: stat.Name(), ModTime: stat.ModTime(), File: file}, nil
 }

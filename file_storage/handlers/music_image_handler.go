@@ -30,24 +30,18 @@ func GetMusicImage(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, details.Name, details.ModTime, file)
 }
 func GetDefaultMusicImage(w http.ResponseWriter, r *http.Request) {
-	baseDir := helpers.GetDataFolder("default")
-	file, err := os.Open(filepath.Join(baseDir, defaultImageName))
+	details, err := helpers.RetrieveDefaultImage(defaultImageName)
 	if err != nil {
-		http.Error(w, "Default not found", http.StatusNotFound)
+		http.Error(w, err.Message, err.Status)
 		return
 	}
+	file := details.File
 	defer func(file *os.File) {
 		_ = file.Close()
 	}(file)
 
-	stat, err := file.Stat()
-	if err != nil {
-		http.Error(w, "Stat failed", http.StatusInternalServerError)
-		return
-	}
-
 	w.Header().Set("Content-Type", "image/jpeg")
-	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file)
+	http.ServeContent(w, r, details.Name, details.ModTime, file)
 }
 
 func UpdateMusicImage(w http.ResponseWriter, r *http.Request) {
