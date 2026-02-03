@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"io"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,7 +31,7 @@ func GetDataFolder(name string) string {
 	return filepath.Join(projectRoot, "file_storage", "data", name)
 }
 
-func SaveToFile(filePart *multipart.Part, location string) (int64, *ErrorResult) {
+func SaveToFile(filePart io.Reader, location string) (int64, *ErrorResult) {
 	// Create the destination file
 	destFile, err := os.Create(location)
 	if err != nil {
