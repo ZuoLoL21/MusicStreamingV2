@@ -28,10 +28,10 @@ func main() {
 	sMusic.HandleFunc("/{id}", handlers.UpdateAudio).Methods("POST")
 
 	sProfile := r.PathPrefix("/profile").Subrouter()
-	sProfile.HandleFunc("/{id}", handlers.GetProfile).Methods("GET")
-	sProfile.HandleFunc("/{id}", handlers.UpdateProfile).Methods("POST")
-	sProfile.HandleFunc("/{id}", handlers.CreateDefaultProfile).Methods("PUT")
-	sProfile.HandleFunc("/", handlers.GetDefaultProfile).Methods("GET")
+	sProfile.HandleFunc("/{id}", handlers.GetProfileImage).Methods("GET")
+	sProfile.HandleFunc("/{id}", handlers.UpdateProfileImage).Methods("POST")
+	sProfile.HandleFunc("/{id}", handlers.CreateDefaultProfileImage).Methods("PUT")
+	sProfile.HandleFunc("/", handlers.GetDefaultProfileImage).Methods("GET")
 
 	r.HandleFunc("/", defaultEndpoint)
 

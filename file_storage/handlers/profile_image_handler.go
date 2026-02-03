@@ -13,7 +13,7 @@ import (
 
 const defaultProfileName = "default.jpeg"
 
-func GetProfile(w http.ResponseWriter, r *http.Request) {
+func GetProfileImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	baseDir := helpers.GetDataFolder("profile_pictures")
 	file, err := os.Open(filepath.Join(baseDir, vars["id"]+".jpeg"))
@@ -34,7 +34,7 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/jpeg")
 	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file)
 }
-func GetDefaultProfile(w http.ResponseWriter, r *http.Request) {
+func GetDefaultProfileImage(w http.ResponseWriter, r *http.Request) {
 	baseDir := helpers.GetDataFolder("default")
 	file, err := os.Open(filepath.Join(baseDir, defaultProfileName))
 	if err != nil {
@@ -55,7 +55,7 @@ func GetDefaultProfile(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file)
 }
 
-func UpdateProfile(w http.ResponseWriter, r *http.Request) {
+func UpdateProfileImage(w http.ResponseWriter, r *http.Request) {
 	response, err := helpers.ParseImageFromRequest(r)
 
 	if err != nil {
@@ -78,7 +78,7 @@ func UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "Profile picture %s saved successfully with (%d bytes)", id, writtenBytes)
 }
 
-func CreateDefaultProfile(w http.ResponseWriter, r *http.Request) {
+func CreateDefaultProfileImage(w http.ResponseWriter, r *http.Request) {
 	baseDirDefault := helpers.GetDataFolder("default")
 	source, err := os.Open(filepath.Join(baseDirDefault, defaultProfileName))
 	if err != nil {
