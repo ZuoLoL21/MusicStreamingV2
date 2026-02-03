@@ -23,7 +23,11 @@ func StreamAudio(w http.ResponseWriter, r *http.Request) {
 		_ = file.Close()
 	}(file)
 
-	stat, _ := file.Stat()
+	stat, err := file.Stat()
+	if err != nil {
+		http.Error(w, "Stat failed", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "audio/mpeg")
 	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file)
