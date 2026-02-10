@@ -90,8 +90,8 @@ CREATE TABLE "Follows" (
     to_user UUID REFERENCES "User"(uuid) ON DELETE CASCADE,
     to_artist UUID REFERENCES "Artist"(uuid) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CHECK ((to_user IS NULL) != (to_artist IS NULL))
-    UNIQUE(from_user, to_user)
+    CHECK ((to_user IS NULL) != (to_artist IS NULL)),
+    UNIQUE(from_user, to_user),
     UNIQUE(from_user, to_artist)
 );
 

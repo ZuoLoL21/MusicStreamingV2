@@ -5,6 +5,6 @@ sql:
     schema: "sql/schema.sql"
     gen:
       go:
-        package: "tutorial"
-        out: "tutorial"
+        package: "sql_handler"
+        out: "./sql/sqlc"
         sql_package: "pgx/v5"

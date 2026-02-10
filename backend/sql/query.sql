@@ -4,7 +4,7 @@ WHERE UUID = $1 LIMIT 1;
 
 -- name: GetArtists :many
 SELECT * FROM "Artist"
-ORDER BY artist_name
+ORDER BY artist_name;
 
 -- name: GetAlbumsByNew :many
 SELECT * FROM "Album"
