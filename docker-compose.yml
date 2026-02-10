@@ -11,7 +11,7 @@ services:
             - "${POSTGRES_PORT}:5432"
         volumes:
             - postgres_data:/var/lib/postgresql/data
-            - ./backend/sql/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+            - ./backend/sql/query.sql:/docker-entrypoint-initdb.d/query.sql
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U postgres"]
             interval: 10s
