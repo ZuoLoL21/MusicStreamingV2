@@ -22,6 +22,7 @@ type FileResult struct {
 	Data []byte
 }
 
+// io.fs
 const MaxImageSize = 10 << 20 // 10MB
 const ImageDimension = 640
 
