@@ -1,42 +1,42 @@
 --------------- Users -----------------
 ------ GET
 -- name: GetPublicUser :one
-SELECT * FROM "PublicUser"
+SELECT * FROM public_user
 WHERE uuid = $1 LIMIT 1;
 
 -- name: GetHashPassword :one
-SELECT hashed_password FROM "User"
+SELECT hashed_password FROM users
 WHERE uuid = $1;
 
 ------ POST
 -- name: UpdatePassword :exec
-UPDATE "User"
+UPDATE users
 SET hashed_password = $2
 WHERE uuid = $1;
 
 -- name: UpdateProfile :exec
-UPDATE "User"
+UPDATE users
 SET username = $2,
     bio = $3,
     updated = CURRENT_TIMESTAMP
 WHERE uuid = $1;
 
 -- name: UpdateEmail :exec
-UPDATE "User"
+UPDATE users
 SET email = $2,
     updated_at = CURRENT_TIMESTAMP
 WHERE uuid = $1;
 
 -- name: UpdateImage :exec
-UPDATE "User"
+UPDATE users
 SET profile_image_path = $2,
     updated_at = CURRENT_TIMESTAMP
 WHERE uuid = $1;
 
 ------ PUT
 -- name: CreateUser :exec
-INSERT INTO "User" (username, email, hashed_password, bio, profile_image_path)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO users (username, email, hashed_password, bio, profile_image_path)
+VALUES ($1, $2, $3, $4, $5);
 
 ------ DELETE
 -- name: DeleteUser :exec

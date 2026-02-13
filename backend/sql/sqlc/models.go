@@ -65,7 +65,6 @@ type Album struct {
 
 type Artist struct {
 	Uuid             pgtype.UUID
-	UserUuid         pgtype.UUID
 	ArtistName       string
 	Bio              pgtype.Text
 	ProfileImagePath pgtype.Text
@@ -139,6 +138,16 @@ type PlaylistTrack struct {
 	Position     int32
 	PlaylistUuid pgtype.UUID
 	AddedAt      pgtype.Timestamp
+}
+
+type PublicUser struct {
+	Uuid             pgtype.UUID
+	Username         string
+	Email            string
+	Bio              pgtype.Text
+	ProfileImagePath pgtype.Text
+	CreatedAt        pgtype.Timestamp
+	UpdatedAt        pgtype.Timestamp
 }
 
 type TagAssignment struct {

@@ -1,13 +1,13 @@
 
 -- Insert Sample Users
-INSERT INTO "User" (uuid, username, email, hashed_password, bio) VALUES
+INSERT INTO users (uuid, username, email, hashed_password, bio) VALUES
     ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'john_doe', 'john@example.com', '$2a$10$hashedpassword1', 'Music lover and indie artist'),
     ('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'jane_smith', 'jane@example.com', '$2a$10$hashedpassword2', 'Singer-songwriter from NYC'),
     ('c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'mike_jones', 'mike@example.com', '$2a$10$hashedpassword3', 'Electronic music producer'),
     ('d3eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'sarah_wilson', 'sarah@example.com', '$2a$10$hashedpassword4', 'Jazz enthusiast');
 
 -- Insert Sample Artists
-INSERT INTO "Artist" (uuid, user_uuid, artist_name, bio) VALUES
+INSERT INTO artist (uuid, user_uuid, artist_name, bio) VALUES
     ('e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'The Indie Collective', 'Alternative indie band from Portland'),
     ('f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Jane Smith', 'Singer-songwriter specializing in acoustic folk'),
     ('06eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', 'c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Digital Dreams', 'Electronic/EDM artist'),

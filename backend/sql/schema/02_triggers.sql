@@ -9,27 +9,27 @@ $$ LANGUAGE plpgsql;
 
 -- Add triggers to tables with updated_at columns
 CREATE TRIGGER update_user_updated_at
-    BEFORE UPDATE ON "User"
+    BEFORE UPDATE ON users
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_artist_updated_at
-    BEFORE UPDATE ON "Artist"
+    BEFORE UPDATE ON artist
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_album_updated_at
-    BEFORE UPDATE ON "Album"
+    BEFORE UPDATE ON album
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_music_updated_at
-    BEFORE UPDATE ON "Music"
+    BEFORE UPDATE ON music
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_playlist_updated_at
-    BEFORE UPDATE ON "Playlist"
+    BEFORE UPDATE ON playlist
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
