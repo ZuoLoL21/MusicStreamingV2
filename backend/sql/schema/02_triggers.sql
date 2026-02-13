@@ -1,0 +1,35 @@
+-- Create function to update the updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add triggers to tables with updated_at columns
+CREATE TRIGGER update_user_updated_at
+    BEFORE UPDATE ON "User"
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_artist_updated_at
+    BEFORE UPDATE ON "Artist"
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_album_updated_at
+    BEFORE UPDATE ON "Album"
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_music_updated_at
+    BEFORE UPDATE ON "Music"
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_playlist_updated_at
+    BEFORE UPDATE ON "Playlist"
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
