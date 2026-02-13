@@ -1,8 +1,8 @@
-package app
+package dependencies
 
 import (
 	"errors"
-	"file-storage/internal/helpers"
+	"file-storage/internal/general"
 	"io"
 	"net/http"
 	"os"
@@ -50,7 +50,7 @@ func (h *LocalStorageManager) GetDataFolder(name string) (string, error) {
 	return filepath.Join(h.config.StorageLocation, name), nil
 }
 
-func (h *LocalStorageManager) SaveToFile(filePart io.Reader, location string) (int64, *helpers.ErrorResult) {
+func (h *LocalStorageManager) SaveToFile(filePart io.Reader, location string) (int64, *general.ErrorResult) {
 	// Create the destination file
 	destFile, err := os.Create(location)
 	if err != nil {
@@ -58,7 +58,7 @@ func (h *LocalStorageManager) SaveToFile(filePart io.Reader, location string) (i
 			zap.String("location", location),
 			zap.Error(err),
 		)
-		return 0, &helpers.ErrorResult{Message: "failed to create file", Status: http.StatusInternalServerError}
+		return 0, &general.ErrorResult{Message: "failed to create file", Status: http.StatusInternalServerError}
 	}
 	defer func(destFile *os.File) {
 		_ = destFile.Close()
@@ -74,12 +74,12 @@ func (h *LocalStorageManager) SaveToFile(filePart io.Reader, location string) (i
 			zap.String("location", location),
 			zap.Error(err),
 		)
-		return 0, &helpers.ErrorResult{Message: "failed to save file", Status: http.StatusInternalServerError}
+		return 0, &general.ErrorResult{Message: "failed to save file", Status: http.StatusInternalServerError}
 	}
 	return written, nil
 }
 
-func (h *LocalStorageManager) SaveToFileB(filePart []byte, location string) (int64, *helpers.ErrorResult) {
+func (h *LocalStorageManager) SaveToFileB(filePart []byte, location string) (int64, *general.ErrorResult) {
 	// Create the destination file
 	destFile, err := os.Create(location)
 	if err != nil {
@@ -87,7 +87,7 @@ func (h *LocalStorageManager) SaveToFileB(filePart []byte, location string) (int
 			zap.String("location", location),
 			zap.Error(err),
 		)
-		return 0, &helpers.ErrorResult{Message: "failed to create file", Status: http.StatusInternalServerError}
+		return 0, &general.ErrorResult{Message: "failed to create file", Status: http.StatusInternalServerError}
 	}
 	defer func(destFile *os.File) {
 		_ = destFile.Close()
@@ -103,7 +103,7 @@ func (h *LocalStorageManager) SaveToFileB(filePart []byte, location string) (int
 			zap.String("location", location),
 			zap.Error(err),
 		)
-		return 0, &helpers.ErrorResult{Message: "failed to save file", Status: http.StatusInternalServerError}
+		return 0, &general.ErrorResult{Message: "failed to save file", Status: http.StatusInternalServerError}
 	}
 	return int64(written), nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"file-storage/internal/app"
+	"file-storage/internal/dependencies"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,12 +20,12 @@ func main() {
 	}(logger)
 
 	// Init components
-	config := app.LoadConfig(logger)
-	storage := app.GetLocalStorageManager(logger, config)
+	config := dependencies.LoadConfig(logger)
+	storage := dependencies.GetLocalStorageManager(logger, config)
 	storage.InitStorage()
 
 	// RESI API
-	application := app.New(logger)
+	application := app.New(logger, config, storage)
 	srv := &http.Server{
 		Handler:      application.Router(),
 		Addr:         "127.0.0.1:8000",

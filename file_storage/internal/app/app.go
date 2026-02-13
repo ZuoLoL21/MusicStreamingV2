@@ -1,6 +1,7 @@
 package app
 
 import (
+	"file-storage/internal/dependencies"
 	"file-storage/internal/handlers"
 	"file-storage/internal/middleware"
 	"fmt"
@@ -19,7 +20,9 @@ func defaultEndpoint(w http.ResponseWriter, _ *http.Request) {
 }
 
 type App struct {
-	Logger *zap.Logger
+	Logger  *zap.Logger
+	Config  *dependencies.Config
+	Storage dependencies.StorageHandler
 }
 
 func (a *App) Router() *mux.Router {
@@ -45,6 +48,6 @@ func (a *App) Router() *mux.Router {
 	return r
 }
 
-func New(logger *zap.Logger) *App {
-	return &App{Logger: logger}
+func New(logger *zap.Logger, config *dependencies.Config, storage dependencies.StorageHandler) *App {
+	return &App{Logger: logger, Config: config, Storage: storage}
 }

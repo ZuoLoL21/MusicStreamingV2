@@ -1,4 +1,4 @@
-package helpers
+package general
 
 type ErrorResult struct {
 	Message string
