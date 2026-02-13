@@ -51,14 +51,17 @@ FROM artist_member am
 WHERE am.user_uuid = $1;
 
 ------ POST
------- PUT
------- DELETE
-
--- name: AddUserToArtist :exec
-
--- name: RemoveUserFromArtist :exec
-
 -- name: ChangeUserRole :exec
+UPDATE artist_member
+SET role = $3
+WHERE artist_uuid = $1 AND user_uuid = $2;
 
--- name: Create :exec
+------ PUT
+-- name: AddUserToArtist :exec
+INSERT INTO artist_member (artist_uuid, user_uuid, role)
+VALUES ($1, $2, $3);
 
+------ DELETE
+-- name: RemoveUserFromArtist :exec
+DELETE FROM artist_member
+WHERE artist_uuid = $1 AND user_uuid = $2;
