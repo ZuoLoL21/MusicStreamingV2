@@ -121,6 +121,7 @@ CREATE TABLE playlist (
     original_name VARCHAR(255) NOT NULL,
     description TEXT,
     is_public BOOLEAN DEFAULT false,
+    image_path VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(from_user, original_name),
