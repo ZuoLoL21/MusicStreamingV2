@@ -1,4 +1,4 @@
-package service
+package handlers
 
 import (
 	"file-storage/internal/helpers"
@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
 var defaultMap = map[string]string{
@@ -15,8 +16,18 @@ var defaultMap = map[string]string{
 	"profile_pictures": "default_profile.jpeg",
 }
 
-func GetImage(w http.ResponseWriter, r *http.Request, bucketName string) {
+type ImageHandler struct {
+	logger *zap.Logger
+}
+
+func NewImageHandler(logger *zap.Logger) *ImageHandler {
+	return &ImageHandler{logger: logger}
+}
+
+func (*ImageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+	bucketName := vars["folder"]
+
 	baseDir := helpers.GetDataFolder(bucketName)
 
 	details, err := helpers.RetrieveImage(vars["id"], baseDir)
@@ -32,7 +43,10 @@ func GetImage(w http.ResponseWriter, r *http.Request, bucketName string) {
 	w.Header().Set("Content-Type", "image/jpeg")
 	http.ServeContent(w, r, details.Name, details.ModTime, file)
 }
-func GetDefaultImage(w http.ResponseWriter, r *http.Request, bucketName string) {
+func (*ImageHandler) GetDefaultImage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	bucketName := vars["folder"]
+
 	details, err := helpers.RetrieveDefaultImage(defaultMap[bucketName])
 	if err != nil {
 		http.Error(w, err.Message, err.Status)
@@ -47,7 +61,7 @@ func GetDefaultImage(w http.ResponseWriter, r *http.Request, bucketName string) 
 	http.ServeContent(w, r, details.Name, details.ModTime, file)
 }
 
-func UpdateImage(w http.ResponseWriter, r *http.Request, bucketName string) {
+func (*ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 	response, err := helpers.ParseImageFromRequest(r)
 
 	if err != nil {
@@ -56,6 +70,7 @@ func UpdateImage(w http.ResponseWriter, r *http.Request, bucketName string) {
 	}
 	id := response.ID
 	part := response.Data
+	bucketName := response.Bucket
 
 	baseDir := helpers.GetDataFolder(bucketName)
 	destPath := filepath.Join(baseDir, id+".jpeg")

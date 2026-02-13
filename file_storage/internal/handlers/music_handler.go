@@ -8,9 +8,18 @@ import (
 	"path/filepath"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
-func StreamAudio(w http.ResponseWriter, r *http.Request) {
+type MusicHandler struct {
+	logger *zap.Logger
+}
+
+func NewMusicHandler(logger *zap.Logger) *MusicHandler {
+	return &MusicHandler{logger: logger}
+}
+
+func (h *MusicHandler) StreamAudio(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	baseDir := helpers.GetDataFolder("music")
 	validated := helpers.ValidateUUID(vars["id"])
@@ -38,7 +47,7 @@ func StreamAudio(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file)
 }
 
-func SaveAudio(w http.ResponseWriter, r *http.Request) {
+func (h *MusicHandler) SaveAudio(w http.ResponseWriter, r *http.Request) {
 	response, err := helpers.ParseAudioFromRequest(r)
 
 	if err != nil {
@@ -67,7 +76,7 @@ func SaveAudio(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "Audio file %s saved successfully with (%d bytes)", id, writtenBytes)
 }
 
-func UpdateAudio(w http.ResponseWriter, r *http.Request) {
+func (h *MusicHandler) UpdateAudio(w http.ResponseWriter, r *http.Request) {
 	response, err := helpers.ParseAudioFromRequest(r)
 
 	if err != nil {
@@ -102,7 +111,7 @@ func UpdateAudio(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "Audio file %s updated successfully with (%d bytes)", id, writtenBytes)
 }
 
-func DeleteAudio(w http.ResponseWriter, r *http.Request) {
+func (h *MusicHandler) DeleteAudio(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	baseDir := helpers.GetDataFolder("music")
 	validated := helpers.ValidateUUID(vars["id"])

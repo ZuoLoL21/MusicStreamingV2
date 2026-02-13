@@ -18,11 +18,11 @@ import (
 )
 
 type FileResult struct {
-	ID   string
-	Data []byte
+	ID     string
+	Data   []byte
+	Bucket string
 }
 
-// io.fs
 const MaxImageSize = 10 << 20 // 10MB
 const ImageDimension = 640
 
@@ -34,6 +34,7 @@ func ParseImageFromRequest(r *http.Request) (*FileResult, *ErrorResult) {
 	}
 
 	id := vars["id"]
+	bucketName := vars["folder"]
 
 	// Get image file
 	reader, err := r.MultipartReader()
@@ -99,7 +100,7 @@ func ParseImageFromRequest(r *http.Request) (*FileResult, *ErrorResult) {
 		return nil, err2
 	}
 
-	return &FileResult{ID: id, Data: jpegData}, nil
+	return &FileResult{ID: id, Data: jpegData, Bucket: bucketName}, nil
 }
 
 func encodeToJPEG(img image.Image) ([]byte, *ErrorResult) {
