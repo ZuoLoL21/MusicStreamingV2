@@ -15,6 +15,9 @@ CREATE TABLE "User" (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE VIEW "PublicUser"
+AS SELECT uuid, username, email, bio, profile_image_path, created_at, updated_at
+FROM User
 
 -- Artist Table
 CREATE TABLE "Artist" (
@@ -126,7 +129,8 @@ CREATE TABLE "Playlist" (
     is_public BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(from_user, original_name)
+    UNIQUE(from_user, original_name),
+    UNIQUE (playlist_uuid, position)
 );
 
 CREATE INDEX idx_playlist_from_user ON "Playlist"(from_user);
