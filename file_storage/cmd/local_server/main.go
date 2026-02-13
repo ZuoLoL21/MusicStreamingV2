@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
 
 func defaultEndpoint(w http.ResponseWriter, _ *http.Request) {
@@ -20,8 +21,19 @@ func defaultEndpoint(w http.ResponseWriter, _ *http.Request) {
 }
 
 func main() {
-	fmt.Println("Data location set to " + helpers.GetDataFolder(""))
+	// Load .env
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %s", err)
+	}
 
+	// Init components
+	helpers.InitStorage()
+
+	// RESI API
+	initRest()
+}
+func initRest() {
 	r := mux.NewRouter()
 
 	sMusic := r.PathPrefix("/music").Subrouter()
