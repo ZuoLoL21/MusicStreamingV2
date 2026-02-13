@@ -2,31 +2,26 @@ package main
 
 import (
 	"file-storage/internal/app"
-	"file-storage/internal/helpers"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
 func main() {
 	// Logger
 	logger, _ := zap.NewProduction()
+	logger = logger.WithOptions(zap.AddCaller())
 	defer func(logger *zap.Logger) {
 		_ = logger.Sync()
 	}(logger)
 
-	// Load .env
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file: %s", err)
-	}
-
 	// Init components
-	helpers.InitStorage()
+	config := app.LoadConfig(logger)
+	storage := app.GetLocalStorageManager(logger, config)
+	storage.InitStorage()
 
 	// RESI API
 	application := app.New(logger)
