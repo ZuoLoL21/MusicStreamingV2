@@ -12,14 +12,12 @@ ORDER BY artist_name;
 -- name: UpdateArtistProfile :exec
 UPDATE artist
 SET artist_name = $2,
-    bio = $3,
-    updated_at = CURRENT_TIMESTAMP
+    bio = $3
 WHERE uuid = $1;
 
 -- name: UpdateArtistPicture :exec
 UPDATE artist
-SET profile_image_path = $2,
-    updated_at = CURRENT_TIMESTAMP
+SET profile_image_path = $2
 WHERE uuid = $1;
 
 ------ PUT

@@ -17,20 +17,17 @@ WHERE uuid = $1;
 -- name: UpdateProfile :exec
 UPDATE users
 SET username = $2,
-    bio = $3,
-    updated = CURRENT_TIMESTAMP
+    bio = $3
 WHERE uuid = $1;
 
 -- name: UpdateEmail :exec
 UPDATE users
-SET email = $2,
-    updated_at = CURRENT_TIMESTAMP
+SET email = $2
 WHERE uuid = $1;
 
 -- name: UpdateImage :exec
 UPDATE users
-SET profile_image_path = $2,
-    updated_at = CURRENT_TIMESTAMP
+SET profile_image_path = $2
 WHERE uuid = $1;
 
 ------ PUT
