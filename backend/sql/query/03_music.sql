@@ -17,7 +17,7 @@ ORDER BY created_at DESC;
 -- name: GetMusicForUser :many
 SELECT * FROM music
 WHERE uploaded_by = $1
-ORDER BY create_at DESC;
+ORDER BY created_at DESC;
 
 -- TODO: name: SearchForMusic :many
 

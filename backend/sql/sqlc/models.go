@@ -59,6 +59,7 @@ type Album struct {
 	FromArtist   pgtype.UUID
 	OriginalName string
 	Description  pgtype.Text
+	ImagePath    pgtype.Text
 	CreatedAt    pgtype.Timestamp
 	UpdatedAt    pgtype.Timestamp
 }
@@ -78,6 +79,7 @@ type ArtistMember struct {
 	UserUuid   pgtype.UUID
 	Role       ArtistMemberRole
 	JoinedAt   pgtype.Timestamp
+	UpdatedAt  pgtype.Timestamp
 }
 
 type Follow struct {
@@ -112,6 +114,7 @@ type Music struct {
 	CreatedAt         pgtype.Timestamp
 	UpdatedAt         pgtype.Timestamp
 	PathInFileStorage string
+	ImagePath         pgtype.Text
 	PlayCount         pgtype.Int4
 	DurationSeconds   int32
 }
@@ -128,6 +131,7 @@ type Playlist struct {
 	OriginalName string
 	Description  pgtype.Text
 	IsPublic     pgtype.Bool
+	ImagePath    pgtype.Text
 	CreatedAt    pgtype.Timestamp
 	UpdatedAt    pgtype.Timestamp
 }

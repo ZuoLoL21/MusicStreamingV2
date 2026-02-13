@@ -5,6 +5,10 @@
 - Store hashed passwords
 - Add OAuth 2.0
 
+- Use JWT tokens (get auth)
+- Two tokens: 
+  - access token - short lived (sent with every request)
+  - refresh token - long-lived (send to get a new access token)
 
 ### Format
 - Format Queries like the following

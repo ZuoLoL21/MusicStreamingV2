@@ -11,8 +11,43 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addUserToArtist = `-- name: AddUserToArtist :exec
+INSERT INTO artist_member (artist_uuid, user_uuid, role)
+VALUES ($1, $2, $3)
+`
+
+type AddUserToArtistParams struct {
+	ArtistUuid pgtype.UUID
+	UserUuid   pgtype.UUID
+	Role       ArtistMemberRole
+}
+
+// ---- PUT
+func (q *Queries) AddUserToArtist(ctx context.Context, arg AddUserToArtistParams) error {
+	_, err := q.db.Exec(ctx, addUserToArtist, arg.ArtistUuid, arg.UserUuid, arg.Role)
+	return err
+}
+
+const changeUserRole = `-- name: ChangeUserRole :exec
+UPDATE artist_member
+SET role = $3
+WHERE artist_uuid = $1 AND user_uuid = $2
+`
+
+type ChangeUserRoleParams struct {
+	ArtistUuid pgtype.UUID
+	UserUuid   pgtype.UUID
+	Role       ArtistMemberRole
+}
+
+// ---- POST
+func (q *Queries) ChangeUserRole(ctx context.Context, arg ChangeUserRoleParams) error {
+	_, err := q.db.Exec(ctx, changeUserRole, arg.ArtistUuid, arg.UserUuid, arg.Role)
+	return err
+}
+
 const createArtist = `-- name: CreateArtist :exec
-    WITH new_artist as (
+WITH new_artist as (
     INSERT INTO artist (artist_name, bio, profile_image_path)
     VALUES ($2, $3, $4)
     RETURNING uuid
@@ -196,10 +231,25 @@ func (q *Queries) GetUsersRepresentingArtist(ctx context.Context, artistUuid pgt
 	return items, nil
 }
 
+const removeUserFromArtist = `-- name: RemoveUserFromArtist :exec
+DELETE FROM artist_member
+WHERE artist_uuid = $1 AND user_uuid = $2
+`
+
+type RemoveUserFromArtistParams struct {
+	ArtistUuid pgtype.UUID
+	UserUuid   pgtype.UUID
+}
+
+// ---- DELETE
+func (q *Queries) RemoveUserFromArtist(ctx context.Context, arg RemoveUserFromArtistParams) error {
+	_, err := q.db.Exec(ctx, removeUserFromArtist, arg.ArtistUuid, arg.UserUuid)
+	return err
+}
+
 const updateArtistPicture = `-- name: UpdateArtistPicture :exec
 UPDATE artist
-SET profile_image_path = $2,
-    updated_at = CURRENT_TIMESTAMP
+SET profile_image_path = $2
 WHERE uuid = $1
 `
 
@@ -216,8 +266,7 @@ func (q *Queries) UpdateArtistPicture(ctx context.Context, arg UpdateArtistPictu
 const updateArtistProfile = `-- name: UpdateArtistProfile :exec
 UPDATE artist
 SET artist_name = $2,
-    bio = $3,
-    updated_at = CURRENT_TIMESTAMP
+    bio = $3
 WHERE uuid = $1
 `
 

@@ -18,7 +18,7 @@ SET original_name = $2,
     description = $3
 WHERE uuid = $1;
 
--- name: UpdateImage :exec
+-- name: UpdateAlbumImage :exec
 UPDATE album
 SET image_path = $2
 WHERE uuid = $1;
