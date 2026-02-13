@@ -1,10 +1,10 @@
 package main
 
 import (
+	"file-storage/internal/handlers"
+	"file-storage/internal/helpers"
 	"fmt"
 	"log"
-	"music-streaming/file-storage/handlers"
-	"music-streaming/file-storage/helpers"
 	"net/http"
 	"time"
 

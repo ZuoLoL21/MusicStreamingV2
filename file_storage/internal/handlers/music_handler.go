@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"file-storage/internal/helpers"
 	"fmt"
-	"music-streaming/file-storage/helpers"
 	"net/http"
 	"os"
 	"path/filepath"

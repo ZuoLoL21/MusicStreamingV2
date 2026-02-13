@@ -1,4 +1,4 @@
-module music-streaming/file-storage
+module file-storage
 
 go 1.24.3
 

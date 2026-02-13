@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"file-storage/internal/helpers"
 	"fmt"
-	"music-streaming/file-storage/helpers"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,14 +10,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const defaultProfileName = "default_profile.jpeg"
+const defaultImageName = "default_music.jpeg"
 
-func GetProfileImage(w http.ResponseWriter, r *http.Request) {
+func GetMusicImage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	baseDir := helpers.GetDataFolder("profile_pictures")
+	baseDir := helpers.GetDataFolder("music_pictures")
+
 	details, err := helpers.RetrieveImage(vars["id"], baseDir)
 	if err != nil {
-		http.Error(w, err.Message, err.Status)
+		http.Error(w, err.Error(), err.Status)
 		return
 	}
 	file := details.File
@@ -28,8 +29,8 @@ func GetProfileImage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/jpeg")
 	http.ServeContent(w, r, details.Name, details.ModTime, file)
 }
-func GetDefaultProfileImage(w http.ResponseWriter, r *http.Request) {
-	details, err := helpers.RetrieveDefaultImage(defaultProfileName)
+func GetDefaultMusicImage(w http.ResponseWriter, r *http.Request) {
+	details, err := helpers.RetrieveDefaultImage(defaultImageName)
 	if err != nil {
 		http.Error(w, err.Message, err.Status)
 		return
@@ -43,7 +44,7 @@ func GetDefaultProfileImage(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, details.Name, details.ModTime, file)
 }
 
-func UpdateProfileImage(w http.ResponseWriter, r *http.Request) {
+func UpdateMusicImage(w http.ResponseWriter, r *http.Request) {
 	response, err := helpers.ParseImageFromRequest(r)
 
 	if err != nil {
@@ -53,7 +54,7 @@ func UpdateProfileImage(w http.ResponseWriter, r *http.Request) {
 	id := response.ID
 	part := response.Data
 
-	baseDir := helpers.GetDataFolder("profile_pictures")
+	baseDir := helpers.GetDataFolder("music_pictures")
 	destPath := filepath.Join(baseDir, id+".jpeg")
 
 	writtenBytes, err := helpers.SaveToFileB(part, destPath)
@@ -63,5 +64,5 @@ func UpdateProfileImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_, _ = fmt.Fprintf(w, "Profile picture %s saved successfully with (%d bytes)", id, writtenBytes)
+	_, _ = fmt.Fprintf(w, "Music image %s saved successfully with (%d bytes)", id, writtenBytes)
 }
