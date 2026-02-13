@@ -22,7 +22,6 @@ FROM User
 -- Artist Table
 CREATE TABLE "Artist" (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_uuid UUID REFERENCES "User"(uuid) ON DELETE SET NULL,
     artist_name VARCHAR(255) NOT NULL UNIQUE,
     bio TEXT,
     profile_image_path VARCHAR(500),
@@ -30,9 +29,6 @@ CREATE TABLE "Artist" (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_artist_user_uuid ON "Artist"(user_uuid);
-
--- ArtistMember Table
 CREATE TABLE "ArtistMember" (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     artist_uuid UUID NOT NULL REFERENCES "Artist"(uuid) ON DELETE CASCADE,
