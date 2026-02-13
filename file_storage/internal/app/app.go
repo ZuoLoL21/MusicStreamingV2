@@ -2,6 +2,7 @@ package app
 
 import (
 	"file-storage/internal/handlers"
+	"file-storage/internal/middleware"
 	"fmt"
 	"net/http"
 
@@ -11,7 +12,7 @@ import (
 
 func defaultEndpoint(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
-	_, err := fmt.Fprintf(w, "Hello World")
+	_, err := fmt.Fprintf(w, "Invalid endpoint")
 	if err != nil {
 		panic(err)
 	}
@@ -39,6 +40,8 @@ func (a *App) Router() *mux.Router {
 	sImage.HandleFunc("/{folder}/", imageHandler.GetDefaultImage).Methods("GET")
 
 	r.HandleFunc("/", defaultEndpoint)
+
+	r.Use(middleware.LoggingMiddleware(a.Logger))
 	return r
 }
 
