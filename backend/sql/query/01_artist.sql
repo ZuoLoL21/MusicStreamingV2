@@ -22,7 +22,7 @@ WHERE uuid = $1;
 
 ------ PUT
 -- name: CreateArtist :exec
-    WITH new_artist as (
+WITH new_artist as (
     INSERT INTO artist (artist_name, bio, profile_image_path)
     VALUES ($2, $3, $4)
     RETURNING uuid

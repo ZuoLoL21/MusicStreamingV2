@@ -9,6 +9,7 @@ SELECT * FROM album
 WHERE from_artist = $1
 ORDER BY created_at DESC;
 
+-- TODO: name: SearchForAlbum :many
 
 ------ POST
 -- name: UpdateAlbum :exec
@@ -17,10 +18,15 @@ SET original_name = $2,
     description = $3
 WHERE uuid = $1;
 
+-- name: UpdateImage :exec
+UPDATE album
+SET image_path = $2
+WHERE uuid = $1
+
 ------ PUT
 -- name: CreateAlbum :exec
-INSERT INTO album (from_artist, original_name, description)
-VALUES ($1, $2, $3);
+INSERT INTO album (from_artist, original_name, description, image_path)
+VALUES ($1, $2, $3, $4);
 
 ------ DELETE
 -- name: DeleteAlbum :exec

@@ -43,6 +43,7 @@ CREATE TABLE album (
     from_artist UUID NOT NULL REFERENCES artist(uuid) ON DELETE CASCADE,
     original_name VARCHAR(255) NOT NULL,
     description TEXT,
+    image_path VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(from_artist, original_name)
@@ -60,6 +61,7 @@ CREATE TABLE music (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     path_in_file_storage VARCHAR(500) NOT NULL,
+    image_path VARCHAR(500),
     play_count INTEGER DEFAULT 0,
     duration_seconds INTEGER NOT NULL
 );
