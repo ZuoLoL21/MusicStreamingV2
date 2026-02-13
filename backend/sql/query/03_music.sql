@@ -37,7 +37,7 @@ WHERE uuid = $1;
 UPDATE music
 SET path_in_file_storage = $2,
     duration_seconds = $3
-WHERE uuid = $1
+WHERE uuid = $1;
 
 ------ PUT
 -- name: CreateMusic :exec

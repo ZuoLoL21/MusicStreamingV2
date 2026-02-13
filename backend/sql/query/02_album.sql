@@ -21,7 +21,7 @@ WHERE uuid = $1;
 -- name: UpdateImage :exec
 UPDATE album
 SET image_path = $2
-WHERE uuid = $1
+WHERE uuid = $1;
 
 ------ PUT
 -- name: CreateAlbum :exec
