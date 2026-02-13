@@ -28,8 +28,8 @@ type App struct {
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
 
-	musicHandler := handlers.NewMusicHandler(a.Logger)
-	imageHandler := handlers.NewImageHandler(a.Logger)
+	musicHandler := handlers.NewMusicHandler(a.Logger, a.Config, a.Storage)
+	imageHandler := handlers.NewImageHandler(a.Logger, a.Config, a.Storage)
 
 	sMusic := r.PathPrefix("/music").Subrouter()
 	sMusic.HandleFunc("/{id}", musicHandler.StreamAudio).Methods("GET")

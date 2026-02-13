@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"file-storage/internal/dependencies"
+	"file-storage/internal/general"
 	"file-storage/internal/helpers"
 	"fmt"
 	"net/http"
@@ -11,18 +13,28 @@ import (
 	"go.uber.org/zap"
 )
 
+const musicDir = "music"
+
 type MusicHandler struct {
-	logger *zap.Logger
+	logger  *zap.Logger
+	config  *dependencies.Config
+	storage dependencies.StorageHandler
 }
 
-func NewMusicHandler(logger *zap.Logger) *MusicHandler {
-	return &MusicHandler{logger: logger}
+func NewMusicHandler(logger *zap.Logger, config *dependencies.Config, storage dependencies.StorageHandler) *MusicHandler {
+	return &MusicHandler{logger: logger, config: config, storage: storage}
 }
 
 func (h *MusicHandler) StreamAudio(w http.ResponseWriter, r *http.Request) {
+	logger := h.logger.With(
+		zap.String("method", r.Method),
+		zap.String("path", r.URL.Path),
+	)
+
 	vars := mux.Vars(r)
-	baseDir := helpers.GetDataFolder("music")
-	validated := helpers.ValidateUUID(vars["id"])
+	baseDir, _ := h.storage.GetDataFolder(musicDir)
+
+	validated := general.ValidateUUID(vars["id"])
 	if !validated {
 		http.Error(w, "Invalid id provided", http.StatusBadRequest)
 		return
@@ -48,6 +60,11 @@ func (h *MusicHandler) StreamAudio(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MusicHandler) SaveAudio(w http.ResponseWriter, r *http.Request) {
+	logger := h.logger.With(
+		zap.String("method", r.Method),
+		zap.String("path", r.URL.Path),
+	)
+
 	response, err := helpers.ParseAudioFromRequest(r)
 
 	if err != nil {
@@ -57,10 +74,10 @@ func (h *MusicHandler) SaveAudio(w http.ResponseWriter, r *http.Request) {
 	id := response.ID
 	part := response.Data
 
-	baseDir := helpers.GetDataFolder("music")
+	baseDir, _ := h.storage.GetDataFolder(musicDir)
 	destPath := filepath.Join(baseDir, id+".mp3")
 
-	writtenBytes, err := helpers.SaveToFile(part, destPath)
+	writtenBytes, err := h.storage.SaveToFile(part, destPath)
 	if err != nil {
 		http.Error(w, err.Message, err.Status)
 		return
@@ -77,6 +94,11 @@ func (h *MusicHandler) SaveAudio(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MusicHandler) UpdateAudio(w http.ResponseWriter, r *http.Request) {
+	logger := h.logger.With(
+		zap.String("method", r.Method),
+		zap.String("path", r.URL.Path),
+	)
+
 	response, err := helpers.ParseAudioFromRequest(r)
 
 	if err != nil {
@@ -86,7 +108,7 @@ func (h *MusicHandler) UpdateAudio(w http.ResponseWriter, r *http.Request) {
 	id := response.ID
 	part := response.Data
 
-	baseDir := helpers.GetDataFolder("music")
+	baseDir, _ := h.storage.GetDataFolder(musicDir)
 	destPath := filepath.Join(baseDir, id+".mp3")
 
 	// Check if file exists
@@ -95,7 +117,7 @@ func (h *MusicHandler) UpdateAudio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writtenBytes, err := helpers.SaveToFile(part, destPath)
+	writtenBytes, err := h.storage.SaveToFile(part, destPath)
 	if err != nil {
 		http.Error(w, err.Message, err.Status)
 		return
@@ -112,9 +134,14 @@ func (h *MusicHandler) UpdateAudio(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MusicHandler) DeleteAudio(w http.ResponseWriter, r *http.Request) {
+	logger := h.logger.With(
+		zap.String("method", r.Method),
+		zap.String("path", r.URL.Path),
+	)
+
 	vars := mux.Vars(r)
-	baseDir := helpers.GetDataFolder("music")
-	validated := helpers.ValidateUUID(vars["id"])
+	baseDir, _ := h.storage.GetDataFolder(musicDir)
+	validated := general.ValidateUUID(vars["id"])
 	if !validated {
 		http.Error(w, "Invalid id provided", http.StatusBadRequest)
 		return

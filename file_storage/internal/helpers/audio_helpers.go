@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"bytes"
+	"file-storage/internal/general"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -16,11 +17,11 @@ type AudioResult struct {
 
 const MaxAudioSize = 10 << 20 // 10MB
 
-func ParseAudioFromRequest(r *http.Request) (*AudioResult, *ErrorResult) {
+func ParseAudioFromRequest(r *http.Request) (*AudioResult, *general.ErrorResult) {
 	vars := mux.Vars(r)
-	validated := ValidateUUID(vars["id"])
+	validated := general.ValidateUUID(vars["id"])
 	if !validated {
-		return nil, &ErrorResult{Message: "Invalid id provided", Status: http.StatusBadRequest}
+		return nil, &general.ErrorResult{Message: "Invalid id provided", Status: http.StatusBadRequest}
 	}
 
 	id := vars["id"]
@@ -28,22 +29,22 @@ func ParseAudioFromRequest(r *http.Request) (*AudioResult, *ErrorResult) {
 	// Get audio file
 	reader, err := r.MultipartReader()
 	if err != nil {
-		return nil, &ErrorResult{Message: "failed to read multipart data", Status: http.StatusBadRequest}
+		return nil, &general.ErrorResult{Message: "failed to read multipart data", Status: http.StatusBadRequest}
 	}
 	part, err := reader.NextPart()
 	if err != nil {
-		return nil, &ErrorResult{Message: "failed to get file part", Status: http.StatusBadRequest}
+		return nil, &general.ErrorResult{Message: "failed to get file part", Status: http.StatusBadRequest}
 	}
 
 	if part.FormName() != "audio" {
 		_ = part.Close()
-		return nil, &ErrorResult{Message: "expected 'audio' field", Status: http.StatusBadRequest}
+		return nil, &general.ErrorResult{Message: "expected 'audio' field", Status: http.StatusBadRequest}
 	}
 
 	// Validate filename exists
 	filename := part.FileName()
 	if filename == "" {
-		return nil, &ErrorResult{Message: "missing filename", Status: http.StatusBadRequest}
+		return nil, &general.ErrorResult{Message: "missing filename", Status: http.StatusBadRequest}
 	}
 
 	// Validate MP3 format by peeking at the header
@@ -59,16 +60,16 @@ func ParseAudioFromRequest(r *http.Request) (*AudioResult, *ErrorResult) {
 	return &AudioResult{ID: id, Data: limitedReader}, nil
 }
 
-func testIfMP3(filePart *multipart.Part) (io.Reader, *ErrorResult) {
+func testIfMP3(filePart *multipart.Part) (io.Reader, *general.ErrorResult) {
 	header := make([]byte, 3)
 	n, err := io.ReadFull(filePart, header)
 	if err != nil || n != 3 {
-		return nil, &ErrorResult{Message: "Failed to read file header", Status: http.StatusBadRequest}
+		return nil, &general.ErrorResult{Message: "Failed to read file header", Status: http.StatusBadRequest}
 	}
 	isID3 := header[0] == 0x49 && header[1] == 0x44 && header[2] == 0x33
 	isMPEG := header[0] == 0xFF && (header[1]&0xE0) == 0xE0
 	if !isID3 && !isMPEG {
-		return nil, &ErrorResult{Message: "Invalid MP3 file format", Status: http.StatusBadRequest}
+		return nil, &general.ErrorResult{Message: "Invalid MP3 file format", Status: http.StatusBadRequest}
 	}
 	return io.MultiReader(bytes.NewReader(header), filePart), nil
 }

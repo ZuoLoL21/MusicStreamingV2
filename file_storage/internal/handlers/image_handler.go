@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"file-storage/internal/dependencies"
+	"file-storage/internal/general"
 	"file-storage/internal/helpers"
 	"fmt"
 	"net/http"
@@ -17,51 +19,95 @@ var defaultMap = map[string]string{
 }
 
 type ImageHandler struct {
-	logger *zap.Logger
+	logger  *zap.Logger
+	config  *dependencies.Config
+	storage dependencies.StorageHandler
 }
 
-func NewImageHandler(logger *zap.Logger) *ImageHandler {
-	return &ImageHandler{logger: logger}
+func NewImageHandler(logger *zap.Logger, config *dependencies.Config, storage dependencies.StorageHandler) *ImageHandler {
+	return &ImageHandler{logger: logger, config: config, storage: storage}
 }
 
-func (*ImageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
+func (h *ImageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
+	logger := h.logger.With(
+		zap.String("method", r.Method),
+		zap.String("path", r.URL.Path),
+	)
+
 	vars := mux.Vars(r)
 	bucketName := vars["folder"]
+	id := vars["id"]
 
-	baseDir := helpers.GetDataFolder(bucketName)
-
-	details, err := helpers.RetrieveImage(vars["id"], baseDir)
-	if err != nil {
-		http.Error(w, err.Error(), err.Status)
+	baseDir, err_s := h.storage.GetDataFolder(bucketName)
+	if err_s != nil {
+		logger.Warn("Failed to get data from storage", zap.Error(err_s), zap.String("bucket", bucketName))
+		http.Error(w, "invalid bucket name", http.StatusBadRequest)
 		return
 	}
-	file := details.File
+
+	validated := general.ValidateUUID(id)
+	if !validated {
+		logger.Warn("Invalid uuid received", zap.String("bucket", bucketName), zap.String("uuid", id))
+		http.Error(w, "invalid uuid", http.StatusBadRequest)
+		return
+	}
+
+	file, err := os.Open(filepath.Join(baseDir, id+".jpeg"))
+	if err != nil {
+		logger.Warn("Failed to open file", zap.Error(err), zap.String("bucket", bucketName), zap.String("id", id))
+		http.Error(w, "failed to open file", http.StatusNotFound)
+	}
 	defer func(file *os.File) {
 		_ = file.Close()
 	}(file)
 
+	stat, err := file.Stat()
+	if err != nil {
+		_ = file.Close()
+		logger.Warn("Failed to stat file", zap.Error(err), zap.String("bucket", bucketName), zap.String("id", id))
+		http.Error(w, "failed to stat file", http.StatusNotFound)
+		return
+	}
+
 	w.Header().Set("Content-Type", "image/jpeg")
-	http.ServeContent(w, r, details.Name, details.ModTime, file)
+	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file)
 }
-func (*ImageHandler) GetDefaultImage(w http.ResponseWriter, r *http.Request) {
+func (h *ImageHandler) GetDefaultImage(w http.ResponseWriter, r *http.Request) {
+	logger := h.logger.With(
+		zap.String("method", r.Method),
+		zap.String("path", r.URL.Path),
+	)
+
 	vars := mux.Vars(r)
 	bucketName := vars["folder"]
 
-	details, err := helpers.RetrieveDefaultImage(defaultMap[bucketName])
+	baseDir, _ := h.storage.GetDataFolder("default")
+	file, err := os.Open(filepath.Join(baseDir, bucketName))
 	if err != nil {
-		http.Error(w, err.Message, err.Status)
+		http.Error(w, "Default not found", http.StatusNotFound)
 		return
 	}
-	file := details.File
 	defer func(file *os.File) {
 		_ = file.Close()
 	}(file)
 
+	stat, err := file.Stat()
+	if err != nil {
+		_ = file.Close()
+		http.Error(w, "Stat failed", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "image/jpeg")
-	http.ServeContent(w, r, details.Name, details.ModTime, file)
+	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file)
 }
 
-func (*ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
+func (h *ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
+	logger := h.logger.With(
+		zap.String("method", r.Method),
+		zap.String("path", r.URL.Path),
+	)
+
 	response, err := helpers.ParseImageFromRequest(r)
 
 	if err != nil {
@@ -72,10 +118,14 @@ func (*ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 	part := response.Data
 	bucketName := response.Bucket
 
-	baseDir := helpers.GetDataFolder(bucketName)
+	baseDir, err_s := h.storage.GetDataFolder(bucketName)
+	if err_s != nil {
+		logger.Warn("Failed to get data from storage", zap.Error(err_s), zap.String("bucket", bucketName))
+		http.Error(w, "invalid bucket name", http.StatusBadRequest)
+	}
 	destPath := filepath.Join(baseDir, id+".jpeg")
 
-	writtenBytes, err := helpers.SaveToFileB(part, destPath)
+	writtenBytes, err := h.storage.SaveToFileB(part, destPath)
 	if err != nil {
 		http.Error(w, err.Message, err.Status)
 		return
