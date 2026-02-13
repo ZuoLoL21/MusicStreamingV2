@@ -30,6 +30,7 @@ CREATE TABLE artist_member (
     user_uuid UUID NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
     role artist_member_role NOT NULL,
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(artist_uuid, user_uuid)
 );
 
@@ -37,7 +38,7 @@ CREATE INDEX idx_artistmember_artist_uuid ON artist_member(artist_uuid);
 CREATE INDEX idx_artistmember_user_uuid ON artist_member(user_uuid);
 
 -- Album Table
-CREATE TABLE "Album" (
+CREATE TABLE album (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     from_artist UUID NOT NULL REFERENCES artist(uuid) ON DELETE CASCADE,
     original_name VARCHAR(255) NOT NULL,
@@ -47,14 +48,14 @@ CREATE TABLE "Album" (
     UNIQUE(from_artist, original_name)
 );
 
-CREATE INDEX idx_album_from_artist ON "Album"(from_artist);
+CREATE INDEX idx_album_from_artist ON album(from_artist);
 
 -- Music Table
 CREATE TABLE music (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     from_artist UUID NOT NULL REFERENCES artist(uuid) ON DELETE CASCADE,
     uploaded_by UUID NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
-    in_album UUID REFERENCES "Album"(uuid) ON DELETE SET NULL,
+    in_album UUID REFERENCES album(uuid) ON DELETE SET NULL,
     song_name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

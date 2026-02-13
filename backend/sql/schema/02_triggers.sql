@@ -18,6 +18,11 @@ CREATE TRIGGER update_artist_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_artist_member_updated_at
+    BEFORE UPDATE ON artist_member
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_album_updated_at
     BEFORE UPDATE ON album
     FOR EACH ROW
