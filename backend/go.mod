@@ -3,6 +3,7 @@ module music-streaming/backend
 go 1.24.3
 
 require (
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/matthewhartstonge/argon2 v1.4.5
 )
