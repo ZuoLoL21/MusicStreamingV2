@@ -3,7 +3,7 @@ package handlers
 import (
 	"file-storage/internal/dependencies"
 	"file-storage/internal/general"
-	"file-storage/internal/helpers"
+	"file-storage/internal/service"
 	"fmt"
 	"net/http"
 	"os"
@@ -112,7 +112,7 @@ func (h *ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 		zap.String("path", r.URL.Path),
 	)
 
-	response, err := helpers.ParseImageFromRequest(r)
+	response, err := service.ParseImageFromRequest(r)
 	if err != nil {
 		logger.Info("failed to parse image from request", zap.Int("status", err.Status), zap.String("message", err.Message))
 		http.Error(w, err.Message, err.Status)

@@ -3,7 +3,7 @@ package handlers
 import (
 	"file-storage/internal/dependencies"
 	"file-storage/internal/general"
-	"file-storage/internal/helpers"
+	"file-storage/internal/service"
 	"fmt"
 	"net/http"
 	"os"
@@ -69,7 +69,7 @@ func (h *MusicHandler) SaveAudio(w http.ResponseWriter, r *http.Request) {
 		zap.String("path", r.URL.Path),
 	)
 
-	response, err := helpers.ParseAudioFromRequest(r)
+	response, err := service.ParseAudioFromRequest(r)
 	if err != nil {
 		logger.Warn("failed to parse audio from request", zap.Int("status", err.Status), zap.String("message", err.Message))
 		http.Error(w, err.Message, err.Status)
@@ -88,7 +88,7 @@ func (h *MusicHandler) SaveAudio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if writtenBytes > helpers.MaxAudioSize {
+	if writtenBytes > service.MaxAudioSize {
 		_ = os.Remove(destPath)
 		logger.Info("audio exceeds maximum size, deleted", zap.String("id", id), zap.Int64("bytes", writtenBytes))
 		http.Error(w, "audio exceeds maximum size", http.StatusRequestEntityTooLarge)
@@ -106,7 +106,7 @@ func (h *MusicHandler) UpdateAudio(w http.ResponseWriter, r *http.Request) {
 		zap.String("path", r.URL.Path),
 	)
 
-	response, err := helpers.ParseAudioFromRequest(r)
+	response, err := service.ParseAudioFromRequest(r)
 	if err != nil {
 		logger.Warn("failed to parse audio from request", zap.Int("status", err.Status), zap.String("message", err.Message))
 		http.Error(w, err.Message, err.Status)
@@ -132,7 +132,7 @@ func (h *MusicHandler) UpdateAudio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if writtenBytes > helpers.MaxAudioSize {
+	if writtenBytes > service.MaxAudioSize {
 		_ = os.Remove(destPath)
 		logger.Info("updated audio exceeds maximum size, deleted", zap.String("id", id), zap.Int64("bytes", writtenBytes))
 		http.Error(w, "audio exceeds maximum size", http.StatusRequestEntityTooLarge)
