@@ -8,13 +8,18 @@ import (
 	"go.uber.org/zap"
 )
 
-var allowedRoutes = []RoutePattern{
-	{BuildRegex("login"), "POST"},
-	{BuildRegex("login"), "PUT"},
+type Route struct {
+	Route  string
+	Method string
 }
 
-var refreshRoutes = []RoutePattern{
-	{BuildRegex("renew"), "POST"},
+var allowedRoutes = []Route{
+	{"/login", "POST"},
+	{"/login", "PUT"},
+}
+
+var refreshRoutes = []Route{
+	{"/renew", "POST"},
 }
 
 type AuthHandler struct {
@@ -29,7 +34,8 @@ func NewAuthHandler(logger *zap.Logger, config *dependencies.Config) *AuthHandle
 func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			currentRoute := Route{r.URL.Path, r.Method}
+			template, _ := mux.CurrentRoute(r).GetPathTemplate()
+			currentRoute := Route{template, r.Method}
 
 			h.logger.Info("incoming request",
 				zap.String("method", r.Method),
@@ -37,7 +43,7 @@ func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 			)
 
 			for _, route := range allowedRoutes {
-				if route.Matches(currentRoute) {
+				if route == currentRoute {
 					next.ServeHTTP(w, r)
 					return
 				}
@@ -48,7 +54,7 @@ func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 			var matched bool
 
 			for _, route := range refreshRoutes {
-				if route.Matches(currentRoute) {
+				if route == currentRoute {
 					matched = true
 					authorized, err = h.handleSpecialAuth(w, r)
 				}
