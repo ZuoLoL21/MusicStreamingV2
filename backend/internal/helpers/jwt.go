@@ -13,7 +13,7 @@ type MyCustomClaims struct {
 	jwt.StandardClaims
 }
 
-func generate_jwt(subject string, uuid string, key *ecdsa.PrivateKey, duration time.Duration) string {
+func GenerateJwt(subject string, uuid string, key *ecdsa.PrivateKey, duration time.Duration) string {
 	claims := MyCustomClaims{
 		Uuid: uuid,
 		StandardClaims: jwt.StandardClaims{
@@ -34,7 +34,7 @@ func generate_jwt(subject string, uuid string, key *ecdsa.PrivateKey, duration t
 	return s
 }
 
-func validated_jwt(subject string, tokenStr string, key *ecdsa.PrivateKey) (string, error) {
+func ValidatedJwt(subject string, tokenStr string, key *ecdsa.PrivateKey) (string, error) {
 	claims := &MyCustomClaims{}
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok {
