@@ -18,30 +18,7 @@ func GetReturnManager(logger *zap.Logger, config *Config) *ReturnManager {
 	return &ReturnManager{logger: logger, config: config}
 }
 
-func (h *ReturnManager) ReturnError(w http.ResponseWriter, r *http.Request, msg string, code int) {
-	if code >= 500 {
-		h.logger.Error("server error",
-			zap.String("msg", msg),
-			zap.Int("code", code),
-			zap.String("request_id", r.Context().Value(h.config.RequestIDKey).(string)),
-			zap.String("method", r.Method),
-			zap.String("url", r.URL.String()))
-	} else if code == 400 {
-		h.logger.Info("bad request",
-			zap.String("msg", msg),
-			zap.Int("code", code),
-			zap.String("request_id", r.Context().Value(h.config.RequestIDKey).(string)),
-			zap.String("method", r.Method),
-			zap.String("url", r.URL.String()))
-	} else if code > 400 {
-		h.logger.Warn("problem with request",
-			zap.String("msg", msg),
-			zap.Int("code", code),
-			zap.String("request_id", r.Context().Value(h.config.RequestIDKey).(string)),
-			zap.String("method", r.Method),
-			zap.String("url", r.URL.String()))
-	}
-
+func (h *ReturnManager) ReturnError(w http.ResponseWriter, msg string, code int) {
 	errResp := map[string]string{"error": msg}
 	h.returnJSON(w, errResp, code)
 }
@@ -52,7 +29,6 @@ func (h *ReturnManager) ReturnText(w http.ResponseWriter, msg string, code int) 
 }
 
 func (h *ReturnManager) ReturnFile(w http.ResponseWriter, r *http.Request, msg string, modtime time.Time, file io.ReadSeeker) {
-	w.Header().Set("Content-Type", "audio/mpeg")
 	http.ServeContent(w, r, msg, modtime, file)
 }
 

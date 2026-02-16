@@ -29,11 +29,17 @@ func NewImageHandler(logger *zap.Logger, config *dependencies.Config, storage *d
 	return &ImageHandler{logger: logger, config: config, storage: storage, returns: returns}
 }
 
-func (h *ImageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
-	logger := h.logger.With(
+func (h *ImageHandler) loggerFor(r *http.Request) *zap.Logger {
+	requestID, _ := r.Context().Value(h.config.RequestIDKey).(string)
+	return h.logger.With(
+		zap.String("request_id", requestID),
 		zap.String("method", r.Method),
 		zap.String("path", r.URL.Path),
 	)
+}
+
+func (h *ImageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
+	logger := h.loggerFor(r)
 
 	vars := mux.Vars(r)
 	bucketName := vars["folder"]
@@ -42,20 +48,20 @@ func (h *ImageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
 	baseDir, errS := h.storage.GetDataFolder(bucketName)
 	if errS != nil {
 		logger.Info("Invalid bucket name", zap.Error(errS), zap.String("bucket", bucketName))
-		h.returns.ReturnError(w, r, "invalid bucket name", http.StatusBadRequest)
+		h.returns.ReturnError(w, "invalid bucket name", http.StatusBadRequest)
 		return
 	}
 
 	if !general.ValidateUUID(id) {
 		logger.Info("Invalid uuid received", zap.String("bucket", bucketName), zap.String("uuid", id))
-		h.returns.ReturnError(w, r, "invalid uuid", http.StatusBadRequest)
+		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
 		return
 	}
 
 	file, err := os.Open(filepath.Join(baseDir, id+".jpeg"))
 	if err != nil {
 		logger.Info("Didn't find file", zap.Error(err), zap.String("bucket", bucketName), zap.String("id", id))
-		h.returns.ReturnError(w, r, "didn't find file", http.StatusNotFound)
+		h.returns.ReturnError(w, "didn't find file", http.StatusNotFound)
 		return
 	}
 	defer func(file *os.File) {
@@ -66,7 +72,7 @@ func (h *ImageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		_ = file.Close()
 		logger.Warn("failed to stat file", zap.Error(err), zap.String("bucket", bucketName), zap.String("id", id))
-		h.returns.ReturnError(w, r, "failed to stat file", http.StatusInternalServerError)
+		h.returns.ReturnError(w, "failed to stat file", http.StatusInternalServerError)
 		return
 	}
 
@@ -74,10 +80,7 @@ func (h *ImageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ImageHandler) GetDefaultImage(w http.ResponseWriter, r *http.Request) {
-	logger := h.logger.With(
-		zap.String("method", r.Method),
-		zap.String("path", r.URL.Path),
-	)
+	logger := h.loggerFor(r)
 
 	vars := mux.Vars(r)
 	bucketName := vars["folder"]
@@ -86,14 +89,14 @@ func (h *ImageHandler) GetDefaultImage(w http.ResponseWriter, r *http.Request) {
 	imageName := defaultMap[bucketName]
 	if imageName == "" {
 		logger.Warn("invalid bucket name", zap.String("bucket", bucketName))
-		h.returns.ReturnError(w, r, "invalid bucket name", http.StatusBadRequest)
+		h.returns.ReturnError(w, "invalid bucket name", http.StatusBadRequest)
 		return
 	}
 
 	file, err := os.Open(filepath.Join(baseDir, imageName))
 	if err != nil {
 		logger.Warn("default image not found", zap.String("bucket", bucketName), zap.Error(err), zap.String("file_name", imageName), zap.String("folder", baseDir))
-		h.returns.ReturnError(w, r, "default not found", http.StatusInternalServerError)
+		h.returns.ReturnError(w, "default not found", http.StatusInternalServerError)
 		return
 	}
 	defer func(file *os.File) {
@@ -104,7 +107,7 @@ func (h *ImageHandler) GetDefaultImage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		_ = file.Close()
 		logger.Warn("failed to stat default image", zap.String("bucket", bucketName), zap.Error(err))
-		h.returns.ReturnError(w, r, "stat failed", http.StatusInternalServerError)
+		h.returns.ReturnError(w, "stat failed", http.StatusInternalServerError)
 		return
 	}
 
@@ -113,10 +116,7 @@ func (h *ImageHandler) GetDefaultImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
-	logger := h.logger.With(
-		zap.String("method", r.Method),
-		zap.String("path", r.URL.Path),
-	)
+	logger := h.loggerFor(r)
 
 	vars := mux.Vars(r)
 	id := vars["id"]
@@ -124,21 +124,21 @@ func (h *ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 
 	if !general.ValidateUUID(id) {
 		logger.Info("invalid UUID provided", zap.String("id", id))
-		h.returns.ReturnError(w, r, "invalid id provided", http.StatusBadRequest)
+		h.returns.ReturnError(w, "invalid id provided", http.StatusBadRequest)
 		return
 	}
 
 	baseDir, errS := h.storage.GetDataFolder(bucketName)
 	if errS != nil {
 		logger.Info("invalid bucket name", zap.Error(errS), zap.String("bucket", bucketName))
-		h.returns.ReturnError(w, r, "invalid bucket name", http.StatusBadRequest)
+		h.returns.ReturnError(w, "invalid bucket name", http.StatusBadRequest)
 		return
 	}
 
 	response, err := service.ParseImageFromRequest(r, id, bucketName)
 	if err != nil {
 		logger.Info("failed to parse image from request", zap.Int("status", err.Status), zap.String("message", err.Message))
-		h.returns.ReturnError(w, r, err.Message, err.Status)
+		h.returns.ReturnError(w, err.Message, err.Status)
 		return
 	}
 
@@ -147,7 +147,7 @@ func (h *ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 	writtenBytes, err := h.storage.SaveToFileB(response.Data, destPath)
 	if err != nil {
 		logger.Warn("failed to save image file", zap.String("id", id), zap.Int("status", err.Status))
-		h.returns.ReturnError(w, r, err.Message, err.Status)
+		h.returns.ReturnError(w, err.Message, err.Status)
 		return
 	}
 
