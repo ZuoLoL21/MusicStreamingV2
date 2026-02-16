@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
@@ -31,6 +32,12 @@ func getIP(r *http.Request) string {
 	}
 	return r.RemoteAddr
 }
+func getRequestID(ctx context.Context) string {
+	if id, ok := ctx.Value(RequestIDKey).(string); ok {
+		return id
+	}
+	return ""
+}
 
 func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
@@ -46,6 +53,7 @@ func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 				if rec := recover(); rec != nil {
 					duration := time.Since(start)
 					template, _ := mux.CurrentRoute(r).GetPathTemplate()
+					ctx := r.Context()
 					logger.Error("panic recovered",
 						zap.Any("panic", rec),
 						zap.String("method", r.Method),
@@ -53,6 +61,7 @@ func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 						zap.String("route", template),
 						zap.String("remote_addr", r.RemoteAddr),
 						zap.Duration("duration", duration),
+						zap.String("request_id", getRequestID(ctx)),
 					)
 					http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}
@@ -63,6 +72,7 @@ func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 			duration := time.Since(start)
 			template, _ := mux.CurrentRoute(r).GetPathTemplate()
 
+			ctx := r.Context()
 			fields := []zap.Field{
 				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
@@ -71,6 +81,7 @@ func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 				zap.Int("bytes", rw.bytes),
 				zap.Duration("duration", duration),
 				zap.String("remote_addr", getIP(r)),
+				zap.String("request_id", getRequestID(ctx)),
 			}
 
 			switch {
