@@ -34,14 +34,18 @@ func GenerateJwt(subject string, uuid string, key *ecdsa.PrivateKey, duration ti
 	return s
 }
 
-func ValidatedJwt(subject string, tokenStr string, key *ecdsa.PrivateKey) (string, error) {
-	claims := &MyCustomClaims{}
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+func keySelectorBuilder(key *ecdsa.PublicKey) func(token *jwt.Token) (interface{}, error) {
+	return func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			return "", fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return key, nil
-	})
+	}
+}
+
+func ValidateJwt(subject string, tokenStr string, key *ecdsa.PublicKey) (string, error) {
+	claims := &MyCustomClaims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, keySelectorBuilder(key))
 	if err != nil {
 		return "", err
 	}

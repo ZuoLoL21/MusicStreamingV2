@@ -2,7 +2,11 @@ package middleware
 
 import (
 	"backend/internal/dependencies"
+	"backend/internal/helpers"
+	"context"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -21,6 +25,8 @@ var allowedRoutes = []Route{
 var refreshRoutes = []Route{
 	{"/renew", "POST"},
 }
+
+const UserUUIDKey = "uuidKey"
 
 type AuthHandler struct {
 	logger *zap.Logger
@@ -49,42 +55,63 @@ func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 				}
 			}
 
-			var authorized bool
 			var err error
 			var matched bool
+			var uuid string
 
 			for _, route := range refreshRoutes {
 				if route == currentRoute {
 					matched = true
-					authorized, err = h.handleSpecialAuth(w, r)
+					uuid, err = h.handleRefreshAuth(r)
 				}
 			}
 			if !matched {
-				authorized, err = h.handleDefaultAuth(w, r)
+				uuid, err = h.handleDefaultAuth(r)
 			}
 
 			if err != nil {
-				h.logger.Warn("auth failed completely",
+				h.logger.Warn("invalid token",
 					zap.Error(err),
 					zap.String("route", r.URL.Path),
 					zap.String("method", r.Method),
 				)
-			}
-			if authorized {
-				http.Error(w, "unauthorized", http.StatusForbidden)
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			ctx := context.WithValue(r.Context(), UserUUIDKey, uuid)
+			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		})
 	}
 }
 
-func (h *AuthHandler) handleDefaultAuth(w http.ResponseWriter, r *http.Request) (bool, error) {
-
+func (h *AuthHandler) parseToken(r *http.Request) string {
+	token := r.Header.Get("Authorization")
+	if strings.HasPrefix(token, "Bearer ") {
+		return strings.TrimPrefix(token, "Bearer ")
+	}
+	return ""
 }
 
-func (h *AuthHandler) handleSpecialAuth(w http.ResponseWriter, r *http.Request) (bool, error) {
+func (h *AuthHandler) authenticate(r *http.Request, subject string) (string, error) {
+	token := h.parseToken(r)
+	if token == "" {
+		return "", fmt.Errorf("invalid jwt: missing \"Bearer \"")
+	}
 
+	uuid, err := helpers.ValidateJwt(subject, token, &h.config.PublicKey)
+	if err != nil {
+		h.logger.Info("auth failed completely", zap.Error(err))
+		return "", fmt.Errorf("invalid jwt: %v", err.Error())
+	}
+	return uuid, nil
+}
+
+func (h *AuthHandler) handleDefaultAuth(r *http.Request) (string, error) {
+	return h.authenticate(r, h.config.SubjectNormal)
+}
+
+func (h *AuthHandler) handleRefreshAuth(r *http.Request) (string, error) {
+	return h.authenticate(r, h.config.SubjectRefresh)
 }
