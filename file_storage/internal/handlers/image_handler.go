@@ -154,3 +154,45 @@ func (h *ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 	logger.Info("image file saved", zap.String("id", id), zap.String("bucket", bucketName), zap.Int64("bytes", writtenBytes))
 	h.returns.ReturnText(w, fmt.Sprintf("music image %s saved successfully with (%d bytes)", id, writtenBytes), http.StatusOK)
 }
+
+func (h *ImageHandler) DeleteImage(w http.ResponseWriter, r *http.Request) {
+	logger := h.loggerFor(r)
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+	bucketName := vars["folder"]
+	if !general.ValidateUUID(id) {
+		logger.Warn("invalid UUID provided", zap.String("id", id))
+		h.returns.ReturnError(w, "invalid id provided", http.StatusBadRequest)
+		return
+	}
+
+	baseDir, errS := h.storage.GetDataFolder(bucketName)
+	if errS != nil {
+		logger.Info("invalid bucket name", zap.Error(errS), zap.String("bucket", bucketName))
+		h.returns.ReturnError(w, "invalid bucket name", http.StatusBadRequest)
+		return
+	}
+
+	destPath := filepath.Join(baseDir, id+".mp3")
+
+	if _, err := os.Stat(destPath); os.IsNotExist(err) {
+		logger.Warn("image not found for deletion", zap.String("id", id))
+		h.returns.ReturnError(w, "image not found", http.StatusNotFound)
+		return
+	}
+
+	err := os.Remove(destPath)
+	if err != nil {
+		logger.Warn("failed to delete image", zap.String("id", id), zap.Error(err))
+		h.returns.ReturnError(w, "failed to delete image", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info("image deleted", zap.String("id", id))
+	h.returns.ReturnText(
+		w,
+		fmt.Sprintf("image %s deleted successfully", id),
+		http.StatusOK,
+	)
+}

@@ -42,6 +42,7 @@ func (a *App) Router() *mux.Router {
 	sImage.HandleFunc("/{folder}/{id}", imageHandler.GetImage).Methods("GET")
 	sImage.HandleFunc("/{folder}/{id}", imageHandler.UpdateImage).Methods("POST")
 	sImage.HandleFunc("/{folder}/", imageHandler.GetDefaultImage).Methods("GET")
+	sImage.HandleFunc("/{folder}/{id}", imageHandler.DeleteImage).Methods("DELETE")
 
 	r.HandleFunc("/", defaultEndpoint)
 
