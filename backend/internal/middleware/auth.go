@@ -26,8 +26,6 @@ var refreshRoutes = []Route{
 	{"/renew", "POST"},
 }
 
-const UserUUIDKey = "uuidKey"
-
 type AuthHandler struct {
 	logger *zap.Logger
 	config *dependencies.Config
@@ -79,7 +77,7 @@ func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), UserUUIDKey, uuid)
+			ctx := context.WithValue(r.Context(), h.config.UserUUIDKey, uuid)
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		})

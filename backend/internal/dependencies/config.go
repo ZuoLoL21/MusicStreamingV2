@@ -16,9 +16,10 @@ type Config struct {
 	JWTExpirationNormal  time.Duration
 	SubjectRefresh       string
 	JWTExpirationRefresh time.Duration
-
-	PrivateKey ecdsa.PrivateKey
-	PublicKey  ecdsa.PublicKey
+	UserUUIDKey          string
+	RequestIDKey         string
+	PrivateKey           ecdsa.PrivateKey
+	PublicKey            ecdsa.PublicKey
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -47,7 +48,17 @@ func LoadConfig(logger *zap.Logger) *Config {
 		JWTExpirationNormal:  time.Minute * time.Duration(normalTime),
 		SubjectRefresh:       os.Getenv("SUBJECT_REFRESH"),
 		JWTExpirationRefresh: time.Hour * 24 * time.Duration(refreshTime),
-		PrivateKey:           os.Getenv("PRIVATE_KEY"),
-		PublicKey:            os.Getenv("PUBLIC_KEY"),
+		PrivateKey:           getPrivateKey(),
+		PublicKey:            getPublicKey(),
+		UserUUIDKey:          "userUuid",
+		RequestIDKey:         "requestId",
 	}
+}
+
+func getPrivateKey() ecdsa.PrivateKey {
+	os.Getenv("PRIVATE_KEY")
+}
+
+func getPublicKey() ecdsa.PublicKey {
+	os.Getenv("PUBLIC_KEY")
 }
