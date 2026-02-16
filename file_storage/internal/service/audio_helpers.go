@@ -6,8 +6,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-
-	"github.com/gorilla/mux"
 )
 
 type AudioResult struct {
@@ -17,15 +15,7 @@ type AudioResult struct {
 
 const MaxAudioSize = 10 << 20 // 10MB
 
-func ParseAudioFromRequest(r *http.Request) (*AudioResult, *general.ErrorResult) {
-	vars := mux.Vars(r)
-	validated := general.ValidateUUID(vars["id"])
-	if !validated {
-		return nil, &general.ErrorResult{Message: "Invalid id provided", Status: http.StatusBadRequest}
-	}
-
-	id := vars["id"]
-
+func ParseAudioFromRequest(r *http.Request, id string) (*AudioResult, *general.ErrorResult) {
 	// Get audio file
 	reader, err := r.MultipartReader()
 	if err != nil {

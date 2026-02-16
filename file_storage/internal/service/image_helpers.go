@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"github.com/nfnt/resize"
 	_ "golang.org/x/image/webp"
 )
@@ -24,16 +23,7 @@ type FileResult struct {
 const MaxImageSize = 10 << 20 // 10MB
 const ImageDimension = 640
 
-func ParseImageFromRequest(r *http.Request) (*FileResult, *general.ErrorResult) {
-	vars := mux.Vars(r)
-	validated := general.ValidateUUID(vars["id"])
-	if !validated {
-		return nil, &general.ErrorResult{Message: "Invalid id provided", Status: http.StatusBadRequest}
-	}
-
-	id := vars["id"]
-	bucketName := vars["folder"]
-
+func ParseImageFromRequest(r *http.Request, id, bucketName string) (*FileResult, *general.ErrorResult) {
 	// Get image file
 	reader, err := r.MultipartReader()
 	if err != nil {
@@ -45,18 +35,21 @@ func ParseImageFromRequest(r *http.Request) (*FileResult, *general.ErrorResult) 
 	}
 
 	if part.FormName() != "image" {
+		_ = part.Close()
 		return nil, &general.ErrorResult{Message: "expected 'image' field", Status: http.StatusBadRequest}
 	}
 
 	// Validate filename exists
 	filename := part.FileName()
 	if filename == "" {
+		_ = part.Close()
 		return nil, &general.ErrorResult{Message: "missing filename", Status: http.StatusBadRequest}
 	}
 
 	// Limit reader to prevent memory exhaustion
 	limitedReader := io.LimitReader(part, int64(MaxImageSize)+1)
 	imgData, err := io.ReadAll(limitedReader)
+	_ = part.Close()
 	if err != nil {
 		return nil, &general.ErrorResult{Message: "failed to read image data", Status: http.StatusBadRequest}
 	}

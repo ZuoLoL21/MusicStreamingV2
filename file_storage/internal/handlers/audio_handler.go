@@ -19,10 +19,11 @@ type MusicHandler struct {
 	logger  *zap.Logger
 	config  *dependencies.Config
 	storage *dependencies.LocalStorageManager
+	returns *dependencies.ReturnManager
 }
 
-func NewMusicHandler(logger *zap.Logger, config *dependencies.Config, storage *dependencies.LocalStorageManager) *MusicHandler {
-	return &MusicHandler{logger: logger, config: config, storage: storage}
+func NewMusicHandler(logger *zap.Logger, config *dependencies.Config, storage *dependencies.LocalStorageManager, returns *dependencies.ReturnManager) *MusicHandler {
+	return &MusicHandler{logger: logger, config: config, storage: storage, returns: returns}
 }
 
 func (h *MusicHandler) StreamAudio(w http.ResponseWriter, r *http.Request) {
@@ -32,19 +33,19 @@ func (h *MusicHandler) StreamAudio(w http.ResponseWriter, r *http.Request) {
 	)
 
 	vars := mux.Vars(r)
+	id := vars["id"]
 	baseDir, _ := h.storage.GetDataFolder(musicDir)
 
-	validated := general.ValidateUUID(vars["id"])
-	if !validated {
-		logger.Info("invalid UUID provided", zap.String("id", vars["id"]))
-		http.Error(w, "invalid UUID provided", http.StatusBadRequest)
+	if !general.ValidateUUID(id) {
+		logger.Info("invalid UUID provided", zap.String("id", id))
+		h.returns.ReturnError(w, r, "invalid UUID provided", http.StatusBadRequest)
 		return
 	}
 
-	file, err := os.Open(filepath.Join(baseDir, vars["id"]+".mp3"))
+	file, err := os.Open(filepath.Join(baseDir, id+".mp3"))
 	if err != nil {
-		logger.Info("file not found", zap.String("id", vars["id"]), zap.Error(err))
-		http.Error(w, "file not found", http.StatusNotFound)
+		logger.Info("file not found", zap.String("id", id), zap.Error(err))
+		h.returns.ReturnError(w, r, "file not found", http.StatusNotFound)
 		return
 	}
 	defer func(file *os.File) {
@@ -53,14 +54,13 @@ func (h *MusicHandler) StreamAudio(w http.ResponseWriter, r *http.Request) {
 
 	stat, err := file.Stat()
 	if err != nil {
-		logger.Warn("failed to stat file", zap.String("id", vars["id"]), zap.Error(err))
-		http.Error(w, "stat failed", http.StatusInternalServerError)
+		logger.Warn("failed to stat file", zap.String("id", id), zap.Error(err))
+		h.returns.ReturnError(w, r, "stat failed", http.StatusInternalServerError)
 		return
 	}
 
-	logger.Info("streaming audio", zap.String("id", vars["id"]))
-	w.Header().Set("Content-Type", "audio/mpeg")
-	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file)
+	logger.Info("streaming audio", zap.String("id", id))
+	h.returns.ReturnFile(w, r, stat.Name(), stat.ModTime(), file)
 }
 
 func (h *MusicHandler) SaveAudio(w http.ResponseWriter, r *http.Request) {
@@ -69,35 +69,44 @@ func (h *MusicHandler) SaveAudio(w http.ResponseWriter, r *http.Request) {
 		zap.String("path", r.URL.Path),
 	)
 
-	response, err := service.ParseAudioFromRequest(r)
-	if err != nil {
-		logger.Warn("failed to parse audio from request", zap.Int("status", err.Status), zap.String("message", err.Message))
-		http.Error(w, err.Message, err.Status)
+	vars := mux.Vars(r)
+	id := vars["id"]
+	if !general.ValidateUUID(id) {
+		logger.Info("invalid UUID provided", zap.String("id", id))
+		h.returns.ReturnError(w, r, "invalid id provided", http.StatusBadRequest)
 		return
 	}
-	id := response.ID
-	part := response.Data
+
+	response, err := service.ParseAudioFromRequest(r, id)
+	if err != nil {
+		logger.Warn("failed to parse audio from request", zap.Int("status", err.Status), zap.String("message", err.Message))
+		h.returns.ReturnError(w, r, err.Message, err.Status)
+		return
+	}
 
 	baseDir, _ := h.storage.GetDataFolder(musicDir)
 	destPath := filepath.Join(baseDir, id+".mp3")
 
-	writtenBytes, err := h.storage.SaveToFile(part, destPath)
+	writtenBytes, err := h.storage.SaveToFile(response.Data, destPath)
 	if err != nil {
 		logger.Warn("failed to save audio file", zap.String("id", id), zap.Int("status", err.Status))
-		http.Error(w, err.Message, err.Status)
+		h.returns.ReturnError(w, r, err.Message, err.Status)
 		return
 	}
 
 	if writtenBytes > service.MaxAudioSize {
 		_ = os.Remove(destPath)
 		logger.Info("audio exceeds maximum size, deleted", zap.String("id", id), zap.Int64("bytes", writtenBytes))
-		http.Error(w, "audio exceeds maximum size", http.StatusRequestEntityTooLarge)
+		h.returns.ReturnError(w, r, "audio exceeds maximum size", http.StatusRequestEntityTooLarge)
 		return
 	}
 
 	logger.Info("audio file saved", zap.String("id", id), zap.Int64("bytes", writtenBytes))
-	w.WriteHeader(http.StatusCreated)
-	_, _ = fmt.Fprintf(w, "audio file %s saved successfully with (%d bytes)", id, writtenBytes)
+	h.returns.ReturnText(
+		w,
+		fmt.Sprintf("audio file %s saved successfully with (%d bytes)", id, writtenBytes),
+		http.StatusCreated,
+	)
 }
 
 func (h *MusicHandler) UpdateAudio(w http.ResponseWriter, r *http.Request) {
@@ -106,14 +115,20 @@ func (h *MusicHandler) UpdateAudio(w http.ResponseWriter, r *http.Request) {
 		zap.String("path", r.URL.Path),
 	)
 
-	response, err := service.ParseAudioFromRequest(r)
-	if err != nil {
-		logger.Warn("failed to parse audio from request", zap.Int("status", err.Status), zap.String("message", err.Message))
-		http.Error(w, err.Message, err.Status)
+	vars := mux.Vars(r)
+	id := vars["id"]
+	if !general.ValidateUUID(id) {
+		logger.Info("invalid UUID provided", zap.String("id", id))
+		h.returns.ReturnError(w, r, "invalid id provided", http.StatusBadRequest)
 		return
 	}
-	id := response.ID
-	part := response.Data
+
+	response, err := service.ParseAudioFromRequest(r, id)
+	if err != nil {
+		logger.Warn("failed to parse audio from request", zap.Int("status", err.Status), zap.String("message", err.Message))
+		h.returns.ReturnError(w, r, err.Message, err.Status)
+		return
+	}
 
 	baseDir, _ := h.storage.GetDataFolder(musicDir)
 	destPath := filepath.Join(baseDir, id+".mp3")
@@ -121,27 +136,30 @@ func (h *MusicHandler) UpdateAudio(w http.ResponseWriter, r *http.Request) {
 	// Check if file exists
 	if _, err := os.Stat(destPath); os.IsNotExist(err) {
 		logger.Info("audio file not found for update", zap.String("id", id))
-		http.Error(w, "audio file not found for update", http.StatusNotFound)
+		h.returns.ReturnError(w, r, "audio file not found for update", http.StatusNotFound)
 		return
 	}
 
-	writtenBytes, err := h.storage.SaveToFile(part, destPath)
+	writtenBytes, err := h.storage.SaveToFile(response.Data, destPath)
 	if err != nil {
 		logger.Warn("failed to save updated audio file", zap.String("id", id), zap.Int("status", err.Status))
-		http.Error(w, err.Message, err.Status)
+		h.returns.ReturnError(w, r, err.Message, err.Status)
 		return
 	}
 
 	if writtenBytes > service.MaxAudioSize {
 		_ = os.Remove(destPath)
 		logger.Info("updated audio exceeds maximum size, deleted", zap.String("id", id), zap.Int64("bytes", writtenBytes))
-		http.Error(w, "audio exceeds maximum size", http.StatusRequestEntityTooLarge)
+		h.returns.ReturnError(w, r, "audio exceeds maximum size", http.StatusRequestEntityTooLarge)
 		return
 	}
 
 	logger.Info("audio file updated", zap.String("id", id), zap.Int64("bytes", writtenBytes))
-	w.WriteHeader(http.StatusOK)
-	_, _ = fmt.Fprintf(w, "audio file %s updated successfully with (%d bytes)", id, writtenBytes)
+	h.returns.ReturnText(
+		w,
+		fmt.Sprintf("audio file %s updated successfully with (%d bytes)", id, writtenBytes),
+		http.StatusOK,
+	)
 }
 
 func (h *MusicHandler) DeleteAudio(w http.ResponseWriter, r *http.Request) {
@@ -151,30 +169,34 @@ func (h *MusicHandler) DeleteAudio(w http.ResponseWriter, r *http.Request) {
 	)
 
 	vars := mux.Vars(r)
+	id := vars["id"]
 	baseDir, _ := h.storage.GetDataFolder(musicDir)
-	validated := general.ValidateUUID(vars["id"])
-	if !validated {
-		logger.Info("invalid UUID provided", zap.String("id", vars["id"]))
-		http.Error(w, "invalid id provided", http.StatusBadRequest)
+
+	if !general.ValidateUUID(id) {
+		logger.Warn("invalid UUID provided", zap.String("id", id))
+		h.returns.ReturnError(w, r, "invalid id provided", http.StatusBadRequest)
 		return
 	}
 
-	destPath := filepath.Join(baseDir, vars["id"]+".mp3")
+	destPath := filepath.Join(baseDir, id+".mp3")
 
 	if _, err := os.Stat(destPath); os.IsNotExist(err) {
-		logger.Info("audio file not found for deletion", zap.String("id", vars["id"]))
-		http.Error(w, "audio file not found", http.StatusNotFound)
+		logger.Warn("audio file not found for deletion", zap.String("id", id))
+		h.returns.ReturnError(w, r, "audio file not found", http.StatusNotFound)
 		return
 	}
 
 	err := os.Remove(destPath)
 	if err != nil {
-		logger.Warn("failed to delete audio file", zap.String("id", vars["id"]), zap.Error(err))
-		http.Error(w, "failed to delete audio file", http.StatusInternalServerError)
+		logger.Warn("failed to delete audio file", zap.String("id", id), zap.Error(err))
+		h.returns.ReturnError(w, r, "failed to delete audio file", http.StatusInternalServerError)
 		return
 	}
 
-	logger.Info("audio file deleted", zap.String("id", vars["id"]))
-	w.WriteHeader(http.StatusOK)
-	_, _ = fmt.Fprintf(w, "audio file %s deleted successfully", vars["id"])
+	logger.Info("audio file deleted", zap.String("id", id))
+	h.returns.ReturnText(
+		w,
+		fmt.Sprintf("audio file %s deleted successfully", id),
+		http.StatusOK,
+	)
 }
