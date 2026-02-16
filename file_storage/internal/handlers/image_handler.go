@@ -21,10 +21,10 @@ var defaultMap = map[string]string{
 type ImageHandler struct {
 	logger  *zap.Logger
 	config  *dependencies.Config
-	storage dependencies.StorageHandler
+	storage dependencies.LocalStorageManager
 }
 
-func NewImageHandler(logger *zap.Logger, config *dependencies.Config, storage dependencies.StorageHandler) *ImageHandler {
+func NewImageHandler(logger *zap.Logger, config *dependencies.Config, storage dependencies.LocalStorageManager) *ImageHandler {
 	return &ImageHandler{logger: logger, config: config, storage: storage}
 }
 
@@ -38,9 +38,9 @@ func (h *ImageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
 	bucketName := vars["folder"]
 	id := vars["id"]
 
-	baseDir, err_s := h.storage.GetDataFolder(bucketName)
-	if err_s != nil {
-		logger.Info("Invalid bucket name", zap.Error(err_s), zap.String("bucket", bucketName))
+	baseDir, errS := h.storage.GetDataFolder(bucketName)
+	if errS != nil {
+		logger.Info("Invalid bucket name", zap.Error(errS), zap.String("bucket", bucketName))
 		http.Error(w, "invalid bucket name", http.StatusBadRequest)
 		return
 	}
@@ -122,9 +122,9 @@ func (h *ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 	part := response.Data
 	bucketName := response.Bucket
 
-	baseDir, err_s := h.storage.GetDataFolder(bucketName)
-	if err_s != nil {
-		logger.Info("invalid bucket name", zap.Error(err_s), zap.String("bucket", bucketName))
+	baseDir, errS := h.storage.GetDataFolder(bucketName)
+	if errS != nil {
+		logger.Info("invalid bucket name", zap.Error(errS), zap.String("bucket", bucketName))
 		http.Error(w, "invalid bucket name", http.StatusBadRequest)
 		return
 	}

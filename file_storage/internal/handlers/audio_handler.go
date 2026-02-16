@@ -18,10 +18,10 @@ const musicDir = "music"
 type MusicHandler struct {
 	logger  *zap.Logger
 	config  *dependencies.Config
-	storage dependencies.StorageHandler
+	storage dependencies.LocalStorageManager
 }
 
-func NewMusicHandler(logger *zap.Logger, config *dependencies.Config, storage dependencies.StorageHandler) *MusicHandler {
+func NewMusicHandler(logger *zap.Logger, config *dependencies.Config, storage dependencies.LocalStorageManager) *MusicHandler {
 	return &MusicHandler{logger: logger, config: config, storage: storage}
 }
 
