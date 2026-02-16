@@ -174,7 +174,7 @@ func (h *ImageHandler) DeleteImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	destPath := filepath.Join(baseDir, id+".mp3")
+	destPath := filepath.Join(baseDir, id+".jpeg")
 
 	if _, err := os.Stat(destPath); os.IsNotExist(err) {
 		logger.Warn("image not found for deletion", zap.String("id", id))
