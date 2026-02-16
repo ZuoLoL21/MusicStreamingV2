@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"file-storage/internal/dependencies"
+	"file-storage/internal/di"
 	"file-storage/internal/general"
 	"file-storage/internal/service"
 	"fmt"
@@ -17,12 +17,12 @@ const musicDir = "music"
 
 type MusicHandler struct {
 	logger  *zap.Logger
-	config  *dependencies.Config
-	storage *dependencies.LocalStorageManager
-	returns *dependencies.ReturnManager
+	config  *di.Config
+	storage *di.LocalStorageManager
+	returns *di.ReturnManager
 }
 
-func NewMusicHandler(logger *zap.Logger, config *dependencies.Config, storage *dependencies.LocalStorageManager, returns *dependencies.ReturnManager) *MusicHandler {
+func NewMusicHandler(logger *zap.Logger, config *di.Config, storage *di.LocalStorageManager, returns *di.ReturnManager) *MusicHandler {
 	return &MusicHandler{logger: logger, config: config, storage: storage, returns: returns}
 }
 

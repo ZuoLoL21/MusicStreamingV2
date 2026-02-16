@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"file-storage/internal/dependencies"
+	"file-storage/internal/di"
 	"net/http"
 	"strings"
 	"time"
@@ -33,7 +33,7 @@ func getIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-func LoggingMiddleware(logger *zap.Logger, config *dependencies.Config) mux.MiddlewareFunc {
+func LoggingMiddleware(logger *zap.Logger, config *di.Config) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()

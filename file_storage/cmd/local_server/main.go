@@ -2,7 +2,7 @@ package main
 
 import (
 	"file-storage/internal/app"
-	"file-storage/internal/dependencies"
+	"file-storage/internal/di"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,10 +20,10 @@ func main() {
 	}(logger)
 
 	// Init components
-	config := dependencies.LoadConfig(logger)
-	storage := dependencies.GetLocalStorageManager(logger, config)
+	config := di.LoadConfig(logger)
+	storage := di.GetLocalStorageManager(logger, config)
 	storage.InitStorage()
-	returns := dependencies.GetReturnManager(logger, config)
+	returns := di.GetReturnManager(logger, config)
 
 	// RESI API
 	application := app.New(logger, config, storage, returns)

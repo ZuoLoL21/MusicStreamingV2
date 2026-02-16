@@ -1,4 +1,4 @@
-package dependencies
+package di
 
 import (
 	"encoding/json"
@@ -28,8 +28,8 @@ func (h *ReturnManager) ReturnText(w http.ResponseWriter, msg string, code int) 
 	h.returnJSON(w, resp, code)
 }
 
-func (h *ReturnManager) ReturnFile(w http.ResponseWriter, r *http.Request, msg string, modtime time.Time, file io.ReadSeeker) {
-	http.ServeContent(w, r, msg, modtime, file)
+func (h *ReturnManager) ReturnFile(w http.ResponseWriter, r *http.Request, msg string, modTime time.Time, file io.ReadSeeker) {
+	http.ServeContent(w, r, msg, modTime, file)
 }
 
 func (h *ReturnManager) ReturnJSON(w http.ResponseWriter, data interface{}, code int) {

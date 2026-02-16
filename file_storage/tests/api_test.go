@@ -3,7 +3,7 @@ package tests
 import (
 	"bytes"
 	"file-storage/internal/app"
-	"file-storage/internal/dependencies"
+	"file-storage/internal/di"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -29,13 +29,13 @@ func newTestServer(t *testing.T) (*httptest.Server, string) {
 	tmpDir := t.TempDir()
 	logger := zap.NewNop()
 
-	config := &dependencies.Config{
+	config := &di.Config{
 		StorageLocation: tmpDir,
 		RequestIDKey:    "request_id",
 	}
-	storage := dependencies.GetLocalStorageManager(logger, config)
+	storage := di.GetLocalStorageManager(logger, config)
 	storage.InitStorage()
-	returns := dependencies.GetReturnManager(logger, config)
+	returns := di.GetReturnManager(logger, config)
 
 	application := app.New(logger, config, storage, returns)
 	srv := httptest.NewServer(application.Router())
