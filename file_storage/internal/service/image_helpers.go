@@ -62,7 +62,7 @@ func ParseImageFromRequest(r *http.Request) (*FileResult, *general.ErrorResult) 
 	}
 
 	// Check if size limit was exceeded
-	if len(imgData) == MaxImageSize {
+	if len(imgData) >= MaxImageSize {
 		return nil, &general.ErrorResult{Message: "image exceeds maximum size", Status: http.StatusRequestEntityTooLarge}
 	}
 

@@ -83,7 +83,13 @@ func (h *ImageHandler) GetDefaultImage(w http.ResponseWriter, r *http.Request) {
 	bucketName := vars["folder"]
 
 	baseDir, _ := h.storage.GetDataFolder("default")
-	file, err := os.Open(filepath.Join(baseDir, defaultMap[bucketName]))
+	imageName := defaultMap[bucketName]
+	if imageName == "" {
+		logger.Warn("invalid bucket name", zap.String("bucket", bucketName))
+		http.Error(w, "invalid bucket name", http.StatusBadRequest)
+		return
+	}
+	file, err := os.Open(filepath.Join(baseDir, imageName))
 	if err != nil {
 		logger.Warn("default image not found", zap.String("bucket", bucketName), zap.Error(err), zap.String("file_name", defaultMap[bucketName]), zap.String("folder", baseDir))
 		http.Error(w, "default not found", http.StatusInternalServerError)
