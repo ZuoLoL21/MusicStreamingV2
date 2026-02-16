@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	StorageLocation string
+	RequestIDKey    string
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -24,5 +25,6 @@ func LoadConfig(logger *zap.Logger) *Config {
 
 	return &Config{
 		StorageLocation: filepath.Clean(os.Getenv("DATA_LOCATION")),
+		RequestIDKey:    "request_id",
 	}
 }

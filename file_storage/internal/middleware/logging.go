@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"context"
+	"file-storage/internal/dependencies"
 	"net/http"
 	"strings"
 	"time"
@@ -32,14 +32,8 @@ func getIP(r *http.Request) string {
 	}
 	return r.RemoteAddr
 }
-func getRequestID(ctx context.Context) string {
-	if id, ok := ctx.Value(RequestIDKey).(string); ok {
-		return id
-	}
-	return ""
-}
 
-func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
+func LoggingMiddleware(logger *zap.Logger, config *dependencies.Config) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -61,7 +55,7 @@ func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 						zap.String("route", template),
 						zap.String("remote_addr", r.RemoteAddr),
 						zap.Duration("duration", duration),
-						zap.String("request_id", getRequestID(ctx)),
+						zap.String("request_id", ctx.Value(config.RequestIDKey).(string)),
 					)
 					http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}
@@ -81,7 +75,7 @@ func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 				zap.Int("bytes", rw.bytes),
 				zap.Duration("duration", duration),
 				zap.String("remote_addr", getIP(r)),
-				zap.String("request_id", getRequestID(ctx)),
+				zap.String("request_id", ctx.Value(config.RequestIDKey).(string)),
 			}
 
 			switch {

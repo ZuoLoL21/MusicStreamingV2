@@ -21,10 +21,10 @@ var defaultMap = map[string]string{
 type ImageHandler struct {
 	logger  *zap.Logger
 	config  *dependencies.Config
-	storage dependencies.LocalStorageManager
+	storage *dependencies.LocalStorageManager
 }
 
-func NewImageHandler(logger *zap.Logger, config *dependencies.Config, storage dependencies.LocalStorageManager) *ImageHandler {
+func NewImageHandler(logger *zap.Logger, config *dependencies.Config, storage *dependencies.LocalStorageManager) *ImageHandler {
 	return &ImageHandler{logger: logger, config: config, storage: storage}
 }
 

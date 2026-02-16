@@ -9,6 +9,11 @@ import (
 
 type ReturnManager struct {
 	logger *zap.Logger
+	config *Config
+}
+
+func GetReturnManager(logger *zap.Logger, config *Config) *ReturnManager {
+	return &ReturnManager{logger: logger, config: config}
 }
 
 func (h *ReturnManager) ReturnError(w http.ResponseWriter, r *http.Request, msg string, code int) {
@@ -16,21 +21,21 @@ func (h *ReturnManager) ReturnError(w http.ResponseWriter, r *http.Request, msg 
 		h.logger.Error("server error",
 			zap.String("msg", msg),
 			zap.Int("code", code),
-			zap.String("request_id", r.Context().Value("requestID").(string)), // if using middleware
+			zap.String("request_id", r.Context().Value(h.config.RequestIDKey).(string)),
 			zap.String("method", r.Method),
 			zap.String("url", r.URL.String()))
 	} else if code == 400 {
 		h.logger.Info("bad request",
 			zap.String("msg", msg),
 			zap.Int("code", code),
-			zap.String("request_id", r.Context().Value("requestID").(string)), // if using middleware
+			zap.String("request_id", r.Context().Value(h.config.RequestIDKey).(string)),
 			zap.String("method", r.Method),
 			zap.String("url", r.URL.String()))
 	} else if code > 400 {
 		h.logger.Warn("problem with request",
 			zap.String("msg", msg),
 			zap.Int("code", code),
-			zap.String("request_id", r.Context().Value("requestID").(string)), // if using middleware
+			zap.String("request_id", r.Context().Value(h.config.RequestIDKey).(string)),
 			zap.String("method", r.Method),
 			zap.String("url", r.URL.String()))
 	}

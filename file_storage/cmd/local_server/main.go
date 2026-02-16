@@ -23,9 +23,10 @@ func main() {
 	config := dependencies.LoadConfig(logger)
 	storage := dependencies.GetLocalStorageManager(logger, config)
 	storage.InitStorage()
+	returns := dependencies.GetReturnManager(logger, config)
 
 	// RESI API
-	application := app.New(logger, config, storage)
+	application := app.New(logger, config, storage, returns)
 	srv := &http.Server{
 		Handler:      application.Router(),
 		Addr:         "127.0.0.1:8000",

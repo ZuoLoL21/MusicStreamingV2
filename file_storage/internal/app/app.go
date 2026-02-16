@@ -22,7 +22,8 @@ func defaultEndpoint(w http.ResponseWriter, _ *http.Request) {
 type App struct {
 	Logger  *zap.Logger
 	Config  *dependencies.Config
-	Storage dependencies.StorageHandler
+	Storage *dependencies.LocalStorageManager
+	Returns *dependencies.ReturnManager
 }
 
 func (a *App) Router() *mux.Router {
@@ -44,10 +45,14 @@ func (a *App) Router() *mux.Router {
 
 	r.HandleFunc("/", defaultEndpoint)
 
-	r.Use(middleware.LoggingMiddleware(a.Logger))
+	r.Use(
+		middleware.RequestIDMiddleware(a.Config),
+		middleware.LoggingMiddleware(a.Logger, a.Config),
+	)
+
 	return r
 }
 
-func New(logger *zap.Logger, config *dependencies.Config, storage dependencies.StorageHandler) *App {
-	return &App{Logger: logger, Config: config, Storage: storage}
+func New(logger *zap.Logger, config *dependencies.Config, storage *dependencies.LocalStorageManager, returns *dependencies.ReturnManager) *App {
+	return &App{Logger: logger, Config: config, Storage: storage, Returns: returns}
 }
