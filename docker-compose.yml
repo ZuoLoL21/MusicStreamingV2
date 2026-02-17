@@ -18,5 +18,13 @@ services:
             timeout: 5s
             retries: 5
 
+    hashicorp-vault-dev:
+        image: hashicorp/vault
+        environment:
+            VAULT_DEV_ROOT_TOKEN_ID: "root"
+            VAULT_DEV_LISTEN_ADDRESS: "0:0:0:0:8200"
+        ports:
+            - "8200:8200"
+
 volumes:
     postgres_data:
