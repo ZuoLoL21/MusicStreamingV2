@@ -27,12 +27,13 @@ var refreshRoutes = []Route{
 }
 
 type AuthHandler struct {
-	logger *zap.Logger
-	config *di.Config
+	logger  *zap.Logger
+	config  *di.Config
+	secrets *di.SecretsManager
 }
 
-func NewAuthHandler(logger *zap.Logger, config *di.Config) *AuthHandler {
-	return &AuthHandler{logger: logger, config: config}
+func NewAuthHandler(logger *zap.Logger, config *di.Config, secrets *di.SecretsManager) *AuthHandler {
+	return &AuthHandler{logger: logger, config: config, secrets: secrets}
 }
 
 func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
@@ -98,7 +99,7 @@ func (h *AuthHandler) authenticate(r *http.Request, subject string) (string, err
 		return "", fmt.Errorf("invalid jwt: missing \"Bearer \"")
 	}
 
-	uuid, err := helpers.ValidateJwt(subject, token, &h.config.PublicKey)
+	uuid, err := helpers.ValidateJwt(subject, token, h.secrets.GetKeyFunc())
 	if err != nil {
 		h.logger.Info("auth failed completely", zap.Error(err))
 		return "", fmt.Errorf("invalid jwt: %v", err.Error())

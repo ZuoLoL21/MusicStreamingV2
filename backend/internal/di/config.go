@@ -1,7 +1,6 @@
 package di
 
 import (
-	"crypto/ecdsa"
 	"os"
 	"strconv"
 	"time"
@@ -18,8 +17,6 @@ type Config struct {
 	JWTExpirationRefresh time.Duration
 	UserUUIDKey          string
 	RequestIDKey         string
-	PrivateKey           ecdsa.PrivateKey
-	PublicKey            ecdsa.PublicKey
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -48,17 +45,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 		JWTExpirationNormal:  time.Minute * time.Duration(normalTime),
 		SubjectRefresh:       os.Getenv("SUBJECT_REFRESH"),
 		JWTExpirationRefresh: time.Hour * 24 * time.Duration(refreshTime),
-		PrivateKey:           getPrivateKey(),
-		PublicKey:            getPublicKey(),
 		UserUUIDKey:          "userUuid",
 		RequestIDKey:         "requestId",
 	}
-}
-
-func getPrivateKey() ecdsa.PrivateKey {
-	os.Getenv("PRIVATE_KEY")
-}
-
-func getPublicKey() ecdsa.PublicKey {
-	os.Getenv("PUBLIC_KEY")
 }

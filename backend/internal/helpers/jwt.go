@@ -10,10 +10,11 @@ import (
 
 type MyCustomClaims struct {
 	Uuid string `json:"uuid"`
+	Kid  string `json:"kid"`
 	jwt.StandardClaims
 }
 
-func GenerateJwt(subject string, uuid string, key *ecdsa.PrivateKey, duration time.Duration) string {
+func GenerateJwt(subject string, uuid string, key *ecdsa.PrivateKey, kid string, duration time.Duration) string {
 	claims := MyCustomClaims{
 		Uuid: uuid,
 		StandardClaims: jwt.StandardClaims{
@@ -26,6 +27,7 @@ func GenerateJwt(subject string, uuid string, key *ecdsa.PrivateKey, duration ti
 		jwt.SigningMethodES256,
 		claims,
 	)
+	t.Header["kid"] = kid
 	s, err := t.SignedString(key)
 
 	if err != nil {
@@ -34,18 +36,13 @@ func GenerateJwt(subject string, uuid string, key *ecdsa.PrivateKey, duration ti
 	return s
 }
 
-func keySelectorBuilder(key *ecdsa.PublicKey) func(token *jwt.Token) (interface{}, error) {
-	return func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok {
-			return "", fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return key, nil
-	}
-}
-
-func ValidateJwt(subject string, tokenStr string, key *ecdsa.PublicKey) (string, error) {
+func ValidateJwt(
+	subject string,
+	tokenStr string,
+	keyGetter func(token *jwt.Token) (interface{}, error),
+) (string, error) {
 	claims := &MyCustomClaims{}
-	token, err := jwt.ParseWithClaims(tokenStr, claims, keySelectorBuilder(key))
+	token, err := jwt.ParseWithClaims(tokenStr, claims, keyGetter)
 	if err != nil {
 		return "", err
 	}
