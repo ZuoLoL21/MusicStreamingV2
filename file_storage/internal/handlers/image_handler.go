@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"file-storage/internal/di"
 	"file-storage/internal/general"
 	"file-storage/internal/service"
@@ -144,7 +145,7 @@ func (h *ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 
 	destPath := filepath.Join(baseDir, id+".jpeg")
 
-	writtenBytes, err := h.storage.SaveToFileB(response.Data, destPath)
+	writtenBytes, err := h.storage.SaveToFile(bytes.NewReader(response.Data), destPath)
 	if err != nil {
 		logger.Warn("failed to save image file", zap.String("id", id), zap.Int("status", err.Status))
 		h.returns.ReturnError(w, err.Message, err.Status)
