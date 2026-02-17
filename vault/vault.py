@@ -43,34 +43,15 @@ class KeyRequest(BaseModel):
     name: str
 
 
-@app.post("/generate")
-def generate_key(request: KeyRequest):
-    data = load_storage()
-
-    if request.name in data:
-        raise HTTPException(status_code=400, detail="Key already exists")
-
-    private_pem, public_pem = generate_keypair()
-
-    data[request.name] = {
-        "private_key": private_pem,
-        "public_key": public_pem
-    }
-
-    save_storage(data)
-
-    return {
-        "message": "Key generated",
-        "name": request.name,
-        "public_key": public_pem
-    }
-
-
 @app.get("/key/{name}")
 def get_key(name: str):
     data = load_storage()
 
     if name not in data:
-        raise HTTPException(status_code=404, detail="Key not found")
+        private_pem, public_pem = generate_keypair()
+
+        data[name] = {"private_key": private_pem, "public_key": public_pem}
+
+        save_storage(data)
 
     return data[name]
