@@ -42,11 +42,6 @@ func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 			template, _ := mux.CurrentRoute(r).GetPathTemplate()
 			currentRoute := Route{template, r.Method}
 
-			h.logger.Info("incoming request",
-				zap.String("method", r.Method),
-				zap.String("path", r.URL.Path),
-			)
-
 			for _, route := range allowedRoutes {
 				if route == currentRoute {
 					next.ServeHTTP(w, r)
