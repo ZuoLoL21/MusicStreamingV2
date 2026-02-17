@@ -8,9 +8,14 @@ import (
 	"go.uber.org/zap"
 )
 
+// ContextKey is an unexported named type used as context keys to avoid
+// collisions with plain string keys from other packages.
+type ContextKey string
+
 type Config struct {
 	StorageLocation string
-	RequestIDKey    string
+	ListenAddr      string
+	RequestIDKey    ContextKey
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -23,8 +28,14 @@ func LoadConfig(logger *zap.Logger) *Config {
 		slogger.Errorf("Error loading .env file: %v", err)
 	}
 
+	listenAddr := os.Getenv("LISTEN_ADDR")
+	if listenAddr == "" {
+		listenAddr = "127.0.0.1:8000"
+	}
+
 	return &Config{
 		StorageLocation: filepath.Clean(os.Getenv("DATA_LOCATION")),
+		ListenAddr:      listenAddr,
 		RequestIDKey:    "request_id",
 	}
 }

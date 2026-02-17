@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"file-storage/internal/app"
 	"file-storage/internal/di"
-	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"go.uber.org/zap"
@@ -25,14 +29,36 @@ func main() {
 	storage.InitStorage()
 	returns := di.GetReturnManager(logger, config)
 
-	// RESI API
+	// Router
 	application := app.New(logger, config, storage, returns)
 	srv := &http.Server{
 		Handler:      application.Router(),
-		Addr:         "127.0.0.1:8000",
+		Addr:         config.ListenAddr,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
-	fmt.Println("Server is up and running!")
-	log.Fatal(srv.ListenAndServe())
+
+	// Start server in background
+	go func() {
+		logger.Info("server starting", zap.String("addr", config.ListenAddr))
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatal(err)
+		}
+	}()
+
+	// Wait for SIGINT or SIGTERM
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	<-ctx.Done()
+	stop()
+
+	// Graceful termination
+	logger.Info("shutting down")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Fatal("server shutdown:", err)
+	}
+	logger.Info("server stopped")
 }
