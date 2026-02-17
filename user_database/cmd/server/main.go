@@ -3,6 +3,7 @@ package main
 import (
 	"backend/internal/app"
 	"backend/internal/di"
+	sqlhandler "backend/sql/sqlc"
 	"context"
 	"errors"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
 
@@ -28,8 +30,16 @@ func main() {
 	secrets := di.GetSecretsManager(logger, config)
 	returns := di.GetReturnManager(logger, config)
 
+	// Database
+	pool, err := pgxpool.New(context.Background(), config.DatabaseURL)
+	if err != nil {
+		logger.Fatal("failed to create connection pool", zap.Error(err))
+	}
+	defer pool.Close()
+	db := sqlhandler.New(pool)
+
 	// Router
-	application := app.New(logger, config, secrets, returns)
+	application := app.New(logger, config, secrets, returns, db)
 	srv := &http.Server{
 		Handler:      application.Router(),
 		Addr:         ":8080",
