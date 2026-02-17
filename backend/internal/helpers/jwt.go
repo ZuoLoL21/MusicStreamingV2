@@ -5,22 +5,22 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type MyCustomClaims struct {
 	Uuid string `json:"uuid"`
 	Kid  string `json:"kid"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 func GenerateJwt(subject string, uuid string, key *ecdsa.PrivateKey, kid string, duration time.Duration) string {
 	claims := MyCustomClaims{
 		Uuid: uuid,
-		StandardClaims: jwt.StandardClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   subject,
-			IssuedAt:  time.Now().Unix(),
-			ExpiresAt: time.Now().Add(duration).Unix(),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 		},
 	}
 	t := jwt.NewWithClaims(
