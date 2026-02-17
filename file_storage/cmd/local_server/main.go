@@ -19,9 +19,9 @@ func main() {
 	// Logger
 	logger, _ := zap.NewProduction()
 	logger = logger.WithOptions(zap.AddCaller())
-	defer func(logger *zap.Logger) {
+	defer func() {
 		_ = logger.Sync()
-	}(logger)
+	}()
 
 	// Init components
 	config := di.LoadConfig(logger)
@@ -47,13 +47,12 @@ func main() {
 		}
 	}()
 
-	// Wait for SIGINT or SIGTERM
+	// Graceful termination
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	<-ctx.Done()
 	stop()
 
-	// Graceful termination
 	logger.Info("shutting down")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
