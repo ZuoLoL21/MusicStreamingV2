@@ -11,9 +11,10 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createUser = `-- name: CreateUser :exec
+const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, email, hashed_password, bio, profile_image_path)
 VALUES ($1, $2, $3, $4, $5)
+RETURNING uuid
 `
 
 type CreateUserParams struct {
@@ -25,15 +26,17 @@ type CreateUserParams struct {
 }
 
 // ---- PUT
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
-	_, err := q.db.Exec(ctx, createUser,
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, createUser,
 		arg.Username,
 		arg.Email,
 		arg.HashedPassword,
 		arg.Bio,
 		arg.ProfileImagePath,
 	)
-	return err
+	var uuid pgtype.UUID
+	err := row.Scan(&uuid)
+	return uuid, err
 }
 
 const getHashPassword = `-- name: GetHashPassword :one
@@ -62,6 +65,27 @@ func (q *Queries) GetPublicUser(ctx context.Context, uuid pgtype.UUID) (PublicUs
 		&i.Uuid,
 		&i.Username,
 		&i.Email,
+		&i.Bio,
+		&i.ProfileImagePath,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT uuid, username, email, hashed_password, bio, profile_image_path, created_at, updated_at
+FROM users WHERE email = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.Uuid,
+		&i.Username,
+		&i.Email,
+		&i.HashedPassword,
 		&i.Bio,
 		&i.ProfileImagePath,
 		&i.CreatedAt,

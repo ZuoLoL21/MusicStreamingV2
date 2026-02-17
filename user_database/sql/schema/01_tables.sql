@@ -7,7 +7,8 @@ CREATE TABLE users (
     bio TEXT,
     profile_image_path VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(email)
 );
 
 CREATE VIEW public_user
