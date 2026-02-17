@@ -7,7 +7,7 @@ import (
 
 	"backend/internal/di"
 	"backend/internal/helpers"
-	sql_handler "backend/sql/sqlc"
+	sqlhandler "backend/sql/sqlc"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -19,10 +19,10 @@ type UserHandler struct {
 	config  *di.Config
 	secrets *di.SecretsManager
 	returns *di.ReturnManager
-	db      *sql_handler.Queries
+	db      *sqlhandler.Queries
 }
 
-func NewUserHandler(logger *zap.Logger, config *di.Config, secrets *di.SecretsManager, returns *di.ReturnManager, db *sql_handler.Queries) *UserHandler {
+func NewUserHandler(logger *zap.Logger, config *di.Config, secrets *di.SecretsManager, returns *di.ReturnManager, db *sqlhandler.Queries) *UserHandler {
 	return &UserHandler{
 		logger:  logger,
 		config:  config,
@@ -58,7 +58,6 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		h.returns.ReturnError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-
 	if err := validateBody(&body); err != nil {
 		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
 		return
@@ -76,7 +75,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		profileImagePath = pgtype.Text{String: *body.ProfileImagePath, Valid: true}
 	}
 
-	userUUID, err := h.db.CreateUser(r.Context(), sql_handler.CreateUserParams{
+	userUUID, err := h.db.CreateUser(r.Context(), sqlhandler.CreateUserParams{
 		Username:         body.Username,
 		Email:            body.Email,
 		HashedPassword:   hashedPassword,
@@ -179,7 +178,7 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		bio = pgtype.Text{String: *body.Bio, Valid: true}
 	}
 
-	if err := h.db.UpdateProfile(r.Context(), sql_handler.UpdateProfileParams{
+	if err := h.db.UpdateProfile(r.Context(), sqlhandler.UpdateProfileParams{
 		Uuid:     userUUID,
 		Username: body.Username,
 		Bio:      bio,
@@ -214,7 +213,7 @@ func (h *UserHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.db.UpdateEmail(r.Context(), sql_handler.UpdateEmailParams{
+	if err := h.db.UpdateEmail(r.Context(), sqlhandler.UpdateEmailParams{
 		Uuid:  userUUID,
 		Email: body.Email,
 	}); err != nil {
@@ -261,7 +260,7 @@ func (h *UserHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newHashed := helpers.Encode(body.NewPassword)
-	if err := h.db.UpdatePassword(r.Context(), sql_handler.UpdatePasswordParams{
+	if err := h.db.UpdatePassword(r.Context(), sqlhandler.UpdatePasswordParams{
 		Uuid:           userUUID,
 		HashedPassword: newHashed,
 	}); err != nil {
@@ -295,7 +294,7 @@ func (h *UserHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.db.UpdateImage(r.Context(), sql_handler.UpdateImageParams{
+	if err := h.db.UpdateImage(r.Context(), sqlhandler.UpdateImageParams{
 		Uuid:             userUUID,
 		ProfileImagePath: pgtype.Text{String: body.ProfileImagePath, Valid: true},
 	}); err != nil {

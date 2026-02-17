@@ -9,7 +9,7 @@
 - Two tokens: 
   - access token - short lived (sent with every request)
   - refresh token - long-lived (send to get a new access token)
-
+    - TODO: make them expire after one use - rotating refresh tokens
 ### Format
 - Format Queries like the following
 ```sql
