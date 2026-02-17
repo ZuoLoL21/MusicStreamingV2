@@ -1,4 +1,4 @@
-package dependencies
+package di
 
 import (
 	"crypto/ecdsa"

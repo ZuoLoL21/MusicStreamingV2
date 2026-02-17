@@ -1,7 +1,8 @@
 package middleware
 
 import (
-	"backend/internal/dependencies"
+	"backend/internal/di"
+	"context"
 	"net/http"
 	"strings"
 	"time"
@@ -33,7 +34,17 @@ func getIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-func LoggingMiddleware(logger *zap.Logger, config *dependencies.Config) mux.MiddlewareFunc {
+func requestID(ctx context.Context, config *di.Config) string {
+	id, _ := ctx.Value(config.RequestIDKey).(string)
+	return id
+}
+
+func uuid(ctx context.Context, config *di.Config) string {
+	id, _ := ctx.Value(config.UserUUIDKey).(string)
+	return id
+}
+
+func LoggingMiddleware(logger *zap.Logger, config *di.Config) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -55,8 +66,8 @@ func LoggingMiddleware(logger *zap.Logger, config *dependencies.Config) mux.Midd
 						zap.String("route", template),
 						zap.String("remote_addr", r.RemoteAddr),
 						zap.Duration("duration", duration),
-						zap.String("request_id", ctx.Value(config.RequestIDKey).(string)),
-						zap.String("uuid", ctx.Value(config.UserUUIDKey).(string)),
+						zap.String("request_id", requestID(ctx, config)),
+						zap.String("user_uuid", uuid(ctx, config)),
 					)
 					http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}
@@ -76,8 +87,8 @@ func LoggingMiddleware(logger *zap.Logger, config *dependencies.Config) mux.Midd
 				zap.Int("bytes", rw.bytes),
 				zap.Duration("duration", duration),
 				zap.String("remote_addr", getIP(r)),
-				zap.String("request_id", ctx.Value(config.RequestIDKey).(string)),
-				zap.String("uuid", ctx.Value(config.UserUUIDKey).(string)),
+				zap.String("request_id", requestID(ctx, config)),
+				zap.String("user_uuid", uuid(ctx, config)),
 			}
 
 			switch {

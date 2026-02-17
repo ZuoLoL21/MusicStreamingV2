@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"backend/internal/dependencies"
+	"backend/internal/di"
 	"backend/internal/helpers"
 	"context"
 	"fmt"
@@ -28,10 +28,10 @@ var refreshRoutes = []Route{
 
 type AuthHandler struct {
 	logger *zap.Logger
-	config *dependencies.Config
+	config *di.Config
 }
 
-func NewAuthHandler(logger *zap.Logger, config *dependencies.Config) *AuthHandler {
+func NewAuthHandler(logger *zap.Logger, config *di.Config) *AuthHandler {
 	return &AuthHandler{logger: logger, config: config}
 }
 

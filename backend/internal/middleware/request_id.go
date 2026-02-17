@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"backend/internal/dependencies"
+	"backend/internal/di"
 	"context"
 	"net/http"
 
@@ -13,7 +13,7 @@ func generateRequestID() string {
 	return uuid.New().String()
 }
 
-func RequestIDMiddleware(config *dependencies.Config) mux.MiddlewareFunc {
+func RequestIDMiddleware(config *di.Config) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestID := r.Header.Get("X-Request-ID")
