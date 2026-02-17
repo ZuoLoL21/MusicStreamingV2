@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/hashicorp/vault/api"
 	"go.uber.org/zap"
 )
@@ -25,7 +25,13 @@ type SecretsManager struct {
 
 func GetSecretsManager(logger *zap.Logger, config *Config) *SecretsManager {
 	client := getClient(logger, api.DefaultConfig())
-	return &SecretsManager{logger: logger, config: config, client: client}
+	return &SecretsManager{
+		logger:           logger,
+		config:           config,
+		client:           client,
+		privateKeySearch: make(map[string]*ecdsa.PrivateKey),
+		publicKeySearch:  make(map[string]*ecdsa.PublicKey),
+	}
 }
 
 func getClient(logger *zap.Logger, config *api.Config) *api.Client {
