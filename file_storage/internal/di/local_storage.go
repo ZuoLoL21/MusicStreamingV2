@@ -32,7 +32,7 @@ func (h *LocalStorageManager) InitStorage() {
 
 	for _, storage := range possibleStorages {
 		directory, _ := h.GetDataFolder(storage)
-		err := os.MkdirAll(directory, os.ModePerm)
+		err := os.MkdirAll(directory, 0o755)
 		if err != nil {
 			slogger.Panicf("Error creating directory: %v", err)
 		}
@@ -51,7 +51,6 @@ func (h *LocalStorageManager) GetDataFolder(name string) (string, error) {
 }
 
 func (h *LocalStorageManager) SaveToFile(filePart io.Reader, location string) (int64, *general.ErrorResult) {
-	// Create the destination file
 	destFile, err := os.Create(location)
 	if err != nil {
 		h.logger.Warn("Error creating file",
@@ -64,7 +63,6 @@ func (h *LocalStorageManager) SaveToFile(filePart io.Reader, location string) (i
 		_ = destFile.Close()
 	}(destFile)
 
-	// Stream directly to file
 	written, err := io.Copy(destFile, filePart)
 	if err != nil {
 		_ = destFile.Close()
@@ -77,33 +75,4 @@ func (h *LocalStorageManager) SaveToFile(filePart io.Reader, location string) (i
 		return 0, &general.ErrorResult{Message: "failed to save file", Status: http.StatusInternalServerError}
 	}
 	return written, nil
-}
-
-func (h *LocalStorageManager) SaveToFileB(filePart []byte, location string) (int64, *general.ErrorResult) {
-	// Create the destination file
-	destFile, err := os.Create(location)
-	if err != nil {
-		h.logger.Warn("Error creating file",
-			zap.String("location", location),
-			zap.Error(err),
-		)
-		return 0, &general.ErrorResult{Message: "failed to create file", Status: http.StatusInternalServerError}
-	}
-	defer func(destFile *os.File) {
-		_ = destFile.Close()
-	}(destFile)
-
-	// Stream directly to file
-	written, err := destFile.Write(filePart)
-	if err != nil {
-		_ = destFile.Close()
-		_ = os.Remove(location)
-
-		h.logger.Warn("Failed to save file",
-			zap.String("location", location),
-			zap.Error(err),
-		)
-		return 0, &general.ErrorResult{Message: "failed to save file", Status: http.StatusInternalServerError}
-	}
-	return int64(written), nil
 }
