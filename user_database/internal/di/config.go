@@ -13,6 +13,8 @@ type contextKey string
 
 type Config struct {
 	Provider             string
+	DatabaseURL          string
+	JWTStorePath         string
 	SubjectNormal        string
 	JWTExpirationNormal  time.Duration
 	SubjectRefresh       string
@@ -43,6 +45,8 @@ func LoadConfig(logger *zap.Logger) *Config {
 
 	return &Config{
 		Provider:             os.Getenv("PROVIDER"),
+		DatabaseURL:          os.Getenv("DATABASE_URL"),
+		JWTStorePath:         os.Getenv("JWT_STORE_PATH"),
 		SubjectNormal:        os.Getenv("SUBJECT_NORMAL"),
 		JWTExpirationNormal:  time.Minute * time.Duration(normalTime),
 		SubjectRefresh:       os.Getenv("SUBJECT_REFRESH"),
