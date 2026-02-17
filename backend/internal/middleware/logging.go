@@ -39,7 +39,7 @@ func requestID(ctx context.Context, config *di.Config) string {
 	return id
 }
 
-func uuid(ctx context.Context, config *di.Config) string {
+func userUUID(ctx context.Context, config *di.Config) string {
 	id, _ := ctx.Value(config.UserUUIDKey).(string)
 	return id
 }
@@ -67,7 +67,7 @@ func LoggingMiddleware(logger *zap.Logger, config *di.Config) mux.MiddlewareFunc
 						zap.String("remote_addr", r.RemoteAddr),
 						zap.Duration("duration", duration),
 						zap.String("request_id", requestID(ctx, config)),
-						zap.String("user_uuid", uuid(ctx, config)),
+						zap.String("user_uuid", userUUID(ctx, config)),
 					)
 					http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}
@@ -88,7 +88,7 @@ func LoggingMiddleware(logger *zap.Logger, config *di.Config) mux.MiddlewareFunc
 				zap.Duration("duration", duration),
 				zap.String("remote_addr", getIP(r)),
 				zap.String("request_id", requestID(ctx, config)),
-				zap.String("user_uuid", uuid(ctx, config)),
+				zap.String("user_uuid", userUUID(ctx, config)),
 			}
 
 			switch {
