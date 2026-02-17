@@ -29,9 +29,11 @@ func (a *App) Router() *mux.Router {
 
 	auth := middleware.NewAuthHandler(a.logger, a.config, a.secrets)
 
-	r.Use(middleware.RequestIDMiddleware(a.config))
-	r.Use(middleware.LoggingMiddleware(a.logger, a.config))
-	r.Use(auth.GetAuthMiddleware())
+	r.Use(
+		middleware.RequestIDMiddleware(a.config),
+		auth.GetAuthMiddleware(),
+		middleware.LoggingMiddleware(a.logger, a.config),
+	)
 
 	return r
 }
