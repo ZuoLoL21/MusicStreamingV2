@@ -55,6 +55,120 @@ func (q *Queries) GetFollowCount(ctx context.Context, fromUser pgtype.UUID) (int
 	return count, err
 }
 
+const getFollowedArtistsForUser = `-- name: GetFollowedArtistsForUser :many
+SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at
+FROM follows f
+         JOIN public_user pu
+              ON f.to_artist = pu.uuid
+WHERE f.from_user = $1
+  AND (
+    $3::timestamptz IS NULL
+    OR (
+        f.created_at < $3
+        OR (f.created_at = $3 AND f.uuid < $4)
+    )
+    )
+ORDER BY f.created_at DESC, f.uuid DESC
+    LIMIT $2
+`
+
+type GetFollowedArtistsForUserParams struct {
+	FromUser pgtype.UUID
+	Limit    int32
+	Column3  pgtype.Timestamptz
+	Uuid     pgtype.UUID
+}
+
+func (q *Queries) GetFollowedArtistsForUser(ctx context.Context, arg GetFollowedArtistsForUserParams) ([]PublicUser, error) {
+	rows, err := q.db.Query(ctx, getFollowedArtistsForUser,
+		arg.FromUser,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PublicUser
+	for rows.Next() {
+		var i PublicUser
+		if err := rows.Scan(
+			&i.Uuid,
+			&i.Username,
+			&i.Email,
+			&i.Bio,
+			&i.ProfileImagePath,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getFollowedUsersForUser = `-- name: GetFollowedUsersForUser :many
+SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at
+FROM follows f
+JOIN public_user pu
+    ON f.to_user = pu.uuid
+WHERE f.from_user = $1
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        f.created_at < $3
+        OR (f.created_at = $3 AND f.uuid < $4)
+    )
+)
+ORDER BY f.created_at DESC, f.uuid DESC
+LIMIT $2
+`
+
+type GetFollowedUsersForUserParams struct {
+	FromUser pgtype.UUID
+	Limit    int32
+	Column3  pgtype.Timestamptz
+	Uuid     pgtype.UUID
+}
+
+func (q *Queries) GetFollowedUsersForUser(ctx context.Context, arg GetFollowedUsersForUserParams) ([]PublicUser, error) {
+	rows, err := q.db.Query(ctx, getFollowedUsersForUser,
+		arg.FromUser,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PublicUser
+	for rows.Next() {
+		var i PublicUser
+		if err := rows.Scan(
+			&i.Uuid,
+			&i.Username,
+			&i.Email,
+			&i.Bio,
+			&i.ProfileImagePath,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFollowerCountForUser = `-- name: GetFollowerCountForUser :one
 SELECT COUNT(*)
 FROM follows
@@ -195,63 +309,6 @@ func (q *Queries) GetFollowingCountForArtist(ctx context.Context, toArtist pgtyp
 	var count int64
 	err := row.Scan(&count)
 	return count, err
-}
-
-const getFollowsForUser = `-- name: GetFollowsForUser :many
-SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at
-FROM follows f
-JOIN public_user pu
-    ON f.to_user = pu.uuid
-WHERE f.from_user = $1
-AND (
-    $3::timestamptz IS NULL
-    OR (
-        f.created_at < $3
-        OR (f.created_at = $3 AND f.uuid < $4)
-    )
-)
-ORDER BY f.created_at DESC, f.uuid DESC
-LIMIT $2
-`
-
-type GetFollowsForUserParams struct {
-	FromUser pgtype.UUID
-	Limit    int32
-	Column3  pgtype.Timestamptz
-	Uuid     pgtype.UUID
-}
-
-func (q *Queries) GetFollowsForUser(ctx context.Context, arg GetFollowsForUserParams) ([]PublicUser, error) {
-	rows, err := q.db.Query(ctx, getFollowsForUser,
-		arg.FromUser,
-		arg.Limit,
-		arg.Column3,
-		arg.Uuid,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []PublicUser
-	for rows.Next() {
-		var i PublicUser
-		if err := rows.Scan(
-			&i.Uuid,
-			&i.Username,
-			&i.Email,
-			&i.Bio,
-			&i.ProfileImagePath,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const isFollowingArtist = `-- name: IsFollowingArtist :one

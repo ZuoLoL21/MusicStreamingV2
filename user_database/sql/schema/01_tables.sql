@@ -91,6 +91,7 @@ CREATE TABLE follows (
     to_artist UUID REFERENCES artist(uuid) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CHECK ((to_user IS NULL) != (to_artist IS NULL)),
+    CHECK (from_user != to_user),
     UNIQUE(from_user, to_user),
     UNIQUE(from_user, to_artist)
 );

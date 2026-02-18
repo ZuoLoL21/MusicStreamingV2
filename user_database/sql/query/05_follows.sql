@@ -32,7 +32,7 @@ AND (
 ORDER BY f.created_at DESC, f.uuid DESC
 LIMIT $2;
 
--- name: GetFollowsForUser :many
+-- name: GetFollowedUsersForUser :many
 SELECT pu.*
 FROM follows f
 JOIN public_user pu
@@ -47,6 +47,22 @@ AND (
 )
 ORDER BY f.created_at DESC, f.uuid DESC
 LIMIT $2;
+
+-- name: GetFollowedArtistsForUser :many
+SELECT pu.*
+FROM follows f
+         JOIN public_user pu
+              ON f.to_artist = pu.uuid
+WHERE f.from_user = $1
+  AND (
+    $3::timestamptz IS NULL
+    OR (
+        f.created_at < $3
+        OR (f.created_at = $3 AND f.uuid < $4)
+    )
+    )
+ORDER BY f.created_at DESC, f.uuid DESC
+    LIMIT $2;
 
 -- name: GetFollowerCountForUser :one
 SELECT COUNT(*)

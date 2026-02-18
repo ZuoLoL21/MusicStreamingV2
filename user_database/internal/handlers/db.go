@@ -55,7 +55,8 @@ type DB interface {
 	UnlikeMusic(ctx context.Context, arg sqlhandler.UnlikeMusicParams) error
 
 	GetFollowersForUser(ctx context.Context, arg sqlhandler.GetFollowersForUserParams) ([]sqlhandler.PublicUser, error)
-	GetFollowsForUser(ctx context.Context, arg sqlhandler.GetFollowsForUserParams) ([]sqlhandler.PublicUser, error)
+	GetFollowedUsersForUser(ctx context.Context, arg sqlhandler.GetFollowedUsersForUserParams) ([]sqlhandler.PublicUser, error)
+	GetFollowedArtistsForUser(ctx context.Context, arg sqlhandler.GetFollowedArtistsForUserParams) ([]sqlhandler.PublicUser, error)
 	GetFollowersForArtist(ctx context.Context, arg sqlhandler.GetFollowersForArtistParams) ([]sqlhandler.PublicUser, error)
 	FollowUser(ctx context.Context, arg sqlhandler.FollowUserParams) error
 	UnfollowUser(ctx context.Context, arg sqlhandler.UnfollowUserParams) error
