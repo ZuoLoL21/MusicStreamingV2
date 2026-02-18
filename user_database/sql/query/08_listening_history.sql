@@ -15,18 +15,15 @@ ORDER BY played_at DESC, uuid DESC
 LIMIT $2;
 
 -- name: GetTopMusicForUser :many
-WITH music_plays AS (
-    SELECT music_uuid, COUNT(*) as play_count
-    FROM listening_history
-    WHERE user_uuid = $1
-    GROUP BY music_uuid
-)
-SELECT * FROM music_plays
-WHERE (
-    $3::bigint IS NULL
+SELECT music_uuid, COUNT(*) as play_count
+FROM listening_history
+WHERE user_uuid = $1
+GROUP BY music_uuid
+HAVING (
+    $3::uuid IS NULL
     OR (
-        play_count < $3
-        OR (play_count = $3 AND music_uuid < $4)
+        COUNT(*) < $4
+        OR (COUNT(*) = $4 AND music_uuid < $3)
     )
 )
 ORDER BY play_count DESC, music_uuid DESC
