@@ -1,69 +1,26 @@
-import vowpalwabbit
-import pandas as pd
+import numpy as np
 
-train_data = [
-    {
-        "action": 1,
-        "cost": 2,
-        "probability": 0.4,
-        "feature1": "a",
-        "feature2": "c",
-        "feature3": "",
-    },
-    {
-        "action": 3,
-        "cost": 0,
-        "probability": 0.2,
-        "feature1": "b",
-        "feature2": "d",
-        "feature3": "",
-    },
-    {
-        "action": 4,
-        "cost": 1,
-        "probability": 0.5,
-        "feature1": "a",
-        "feature2": "b",
-        "feature3": "",
-    },
-    {
-        "action": 2,
-        "cost": 1,
-        "probability": 0.3,
-        "feature1": "a",
-        "feature2": "b",
-        "feature3": "c",
-    },
-    {
-        "action": 3,
-        "cost": 1,
-        "probability": 0.7,
-        "feature1": "a",
-        "feature2": "d",
-        "feature3": "",
-    },
-]
+from src.thompson import ArmResult, TrainingData, predict
 
-train_df = pd.DataFrame(train_data)
+actual_prob = [0.1, 0.7, 0.5]
 
-# Add index to data frame
-train_df["index"] = range(1, len(train_df) + 1)
-train_df = train_df.set_index("index")
+data = TrainingData(
+    Arms=[
+        ArmResult(Success=0, Failures=0, ArmName="1"),
+        ArmResult(Success=0, Failures=0, ArmName="2"),
+        ArmResult(Success=0, Failures=0, ArmName="3"),
+    ]
+)
 
+for trial in range(101):
+    predicted = predict(data)
 
-test_data = [
-    {"feature1": "b", "feature2": "c", "feature3": ""},
-    {"feature1": "a", "feature2": "", "feature3": "b"},
-    {"feature1": "b", "feature2": "b", "feature3": ""},
-    {"feature1": "a", "feature2": "", "feature3": "b"},
-]
+    if np.random.uniform() < actual_prob[predicted]:
+        data.Arms[predicted].Success += 1
+    else:
+        data.Arms[predicted].Failures += 1
 
-test_df = pd.DataFrame(test_data)
+    # logging
+    if trial % 10 == 0:
+        print(f"trial: {trial}\tdata: {data}")
 
-# Add index to data frame
-test_df["index"] = range(1, len(test_df) + 1)
-test_df = test_df.set_index("index")
-
-import vowpalwabbit
-
-vw = vowpalwabbit.Workspace("--cb 4", quiet=True)
