@@ -28,8 +28,8 @@ func NewPlaylistHandler(logger *zap.Logger, config *di.Config, returns *di.Retur
 
 // checkPlaylistOwnership parses the playlist UUID from the route, fetches the
 // playlist, and verifies the calling user is its owner.
-func (h *PlaylistHandler) checkPlaylistOwnership(w http.ResponseWriter, r *http.Request) (playlistUUID pgtype.UUID, ok bool) {
-	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+func (h *PlaylistHandler) checkPlaylistOwnership(w http.ResponseWriter, r *http.Request) (userUUID, playlistUUID pgtype.UUID, ok bool) {
+	userUUID, ok = userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
 	}
@@ -171,7 +171,7 @@ type updatePlaylistRequest struct {
 }
 
 func (h *PlaylistHandler) UpdatePlaylist(w http.ResponseWriter, r *http.Request) {
-	playlistUUID, ok := h.checkPlaylistOwnership(w, r)
+	userUUID, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
 	}
@@ -192,6 +192,7 @@ func (h *PlaylistHandler) UpdatePlaylist(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.db.UpdatePlaylist(r.Context(), sqlhandler.UpdatePlaylistParams{
+		UserUuid:     userUUID,
 		Uuid:         playlistUUID,
 		OriginalName: body.OriginalName,
 		Description:  description,
@@ -206,12 +207,12 @@ func (h *PlaylistHandler) UpdatePlaylist(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *PlaylistHandler) DeletePlaylist(w http.ResponseWriter, r *http.Request) {
-	playlistUUID, ok := h.checkPlaylistOwnership(w, r)
+	userUUID, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
 	}
 
-	if err := h.db.DeletePlaylist(r.Context(), playlistUUID); err != nil {
+	if err := h.db.DeletePlaylist(r.Context(), sqlhandler.DeletePlaylistParams{UserUuid: userUUID, Uuid: playlistUUID}); err != nil {
 		h.logger.Error("failed to delete playlist", zap.Error(err))
 		h.returns.ReturnError(w, "failed to delete playlist", http.StatusInternalServerError)
 		return
@@ -225,7 +226,7 @@ type addTrackRequest struct {
 }
 
 func (h *PlaylistHandler) AddTrackToPlaylist(w http.ResponseWriter, r *http.Request) {
-	playlistUUID, ok := h.checkPlaylistOwnership(w, r)
+	_, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
 	}
@@ -255,7 +256,7 @@ func (h *PlaylistHandler) AddTrackToPlaylist(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *PlaylistHandler) RemoveTrackFromPlaylist(w http.ResponseWriter, r *http.Request) {
-	playlistUUID, ok := h.checkPlaylistOwnership(w, r)
+	userUUID, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
 	}
@@ -268,6 +269,7 @@ func (h *PlaylistHandler) RemoveTrackFromPlaylist(w http.ResponseWriter, r *http
 	}
 
 	if err := h.db.RemoveTrackFromPlaylist(r.Context(), sqlhandler.RemoveTrackFromPlaylistParams{
+		UserUuid:     userUUID,
 		MusicUuid:    musicUUID,
 		PlaylistUuid: playlistUUID,
 	}); err != nil {
@@ -284,7 +286,7 @@ type updatePlaylistImageRequest struct {
 }
 
 func (h *PlaylistHandler) UpdatePlaylistImage(w http.ResponseWriter, r *http.Request) {
-	playlistUUID, ok := h.checkPlaylistOwnership(w, r)
+	userUUID, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
 	}
@@ -295,6 +297,7 @@ func (h *PlaylistHandler) UpdatePlaylistImage(w http.ResponseWriter, r *http.Req
 	}
 
 	if err := h.db.UpdatePlaylistImage(r.Context(), sqlhandler.UpdatePlaylistImageParams{
+		UserUuid:  userUUID,
 		Uuid:      playlistUUID,
 		ImagePath: pgtype.Text{String: body.ImagePath, Valid: true},
 	}); err != nil {
@@ -311,7 +314,7 @@ type updateTrackPositionRequest struct {
 }
 
 func (h *PlaylistHandler) UpdateTrackPosition(w http.ResponseWriter, r *http.Request) {
-	_, ok := h.checkPlaylistOwnership(w, r)
+	userUUID, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
 	}
@@ -329,8 +332,10 @@ func (h *PlaylistHandler) UpdateTrackPosition(w http.ResponseWriter, r *http.Req
 	}
 
 	if err := h.db.UpdateTrackPosition(r.Context(), sqlhandler.UpdateTrackPositionParams{
-		Uuid:     trackUUID,
-		Position: body.Position,
+		UserUuid:     userUUID,
+		PlaylistUuid: playlistUUID,
+		Uuid:         trackUUID,
+		Position:     body.Position,
 	}); err != nil {
 		h.logger.Error("failed to update track position", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update track position", http.StatusInternalServerError)

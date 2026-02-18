@@ -42,7 +42,7 @@ func TestGetFollowersForUser_InvalidUUID(t *testing.T) {
 
 func TestGetFollowingUsersForUser_Success(t *testing.T) {
 	db := &mockDB{
-		getFollowsForUserFn: func(_ context.Context, _ sqlhandler.GetFollowsForUserParams) ([]sqlhandler.PublicUser, error) {
+		getFollowedUsersForUserFn: func(_ context.Context, _ sqlhandler.GetFollowedUsersForUserParams) ([]sqlhandler.PublicUser, error) {
 			return []sqlhandler.PublicUser{}, nil
 		},
 	}
@@ -56,6 +56,27 @@ func TestGetFollowingUsersForUser_InvalidUUID(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodGet, "/users/bad/following/users", nil), map[string]string{"uuid": "bad"})
 	newFollowsHandler(&mockDB{}).GetFollowingUsersForUser(w, r)
+	assertStatus(t, w, http.StatusBadRequest)
+}
+
+// ── GetFollowedArtistsForUser ─────────────────────────────────────────────────
+
+func TestGetFollowedArtistsForUser_Success(t *testing.T) {
+	db := &mockDB{
+		getFollowedArtistsForUserFn: func(_ context.Context, _ sqlhandler.GetFollowedArtistsForUserParams) ([]sqlhandler.PublicUser, error) {
+			return []sqlhandler.PublicUser{}, nil
+		},
+	}
+	w := httptest.NewRecorder()
+	r := withVars(newRequest(http.MethodGet, "/users/"+testUserUUID+"/following/artists", nil), map[string]string{"uuid": testUserUUID})
+	newFollowsHandler(db).GetFollowedArtistsForUser(w, r)
+	assertStatus(t, w, http.StatusOK)
+}
+
+func TestGetFollowedArtistsForUser_InvalidUUID(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := withVars(newRequest(http.MethodGet, "/users/bad/following/artists", nil), map[string]string{"uuid": "bad"})
+	newFollowsHandler(&mockDB{}).GetFollowedArtistsForUser(w, r)
 	assertStatus(t, w, http.StatusBadRequest)
 }
 

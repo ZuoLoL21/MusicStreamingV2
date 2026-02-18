@@ -65,6 +65,7 @@ func (a *App) Router() *mux.Router {
 	r.HandleFunc("/users/{uuid}/likes", likesH.GetLikesForUser).Methods("GET")
 	r.HandleFunc("/users/{uuid}/followers", followsH.GetFollowersForUser).Methods("GET")
 	r.HandleFunc("/users/{uuid}/following/users", followsH.GetFollowingUsersForUser).Methods("GET")
+	r.HandleFunc("/users/{uuid}/following/artists", followsH.GetFollowedArtistsForUser).Methods("GET")
 	r.HandleFunc("/users/{uuid}/follow", followsH.FollowUser).Methods("POST")
 	r.HandleFunc("/users/{uuid}/follow", followsH.UnfollowUser).Methods("DELETE")
 	r.HandleFunc("/users/{uuid}/music", musicH.GetMusicForUser).Methods("GET")

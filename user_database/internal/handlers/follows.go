@@ -56,7 +56,7 @@ func (h *FollowsHandler) GetFollowingUsersForUser(w http.ResponseWriter, r *http
 	}
 
 	limit, cursorTS, cursorID := parsePagination(r)
-	following, err := h.db.GetFollowsForUser(r.Context(), sqlhandler.GetFollowsForUserParams{
+	following, err := h.db.GetFollowedUsersForUser(r.Context(), sqlhandler.GetFollowedUsersForUserParams{
 		FromUser: userUUID,
 		Limit:    limit,
 		Column3:  cursorTS,
@@ -92,6 +92,29 @@ func (h *FollowsHandler) GetFollowersForArtist(w http.ResponseWriter, r *http.Re
 	}
 
 	h.returns.ReturnJSON(w, followers, http.StatusOK)
+}
+
+func (h *FollowsHandler) GetFollowedArtistsForUser(w http.ResponseWriter, r *http.Request) {
+	userUUID, ok := parseUUID(r, "uuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
+		return
+	}
+
+	limit, cursorTS, cursorID := parsePagination(r)
+	artists, err := h.db.GetFollowedArtistsForUser(r.Context(), sqlhandler.GetFollowedArtistsForUserParams{
+		FromUser: userUUID,
+		Limit:    limit,
+		Column3:  cursorTS,
+		Uuid:     cursorID,
+	})
+	if err != nil {
+		h.logger.Error("failed to get followed artists", zap.Error(err))
+		h.returns.ReturnError(w, "failed to get followed artists", http.StatusInternalServerError)
+		return
+	}
+
+	h.returns.ReturnJSON(w, artists, http.StatusOK)
 }
 
 func (h *FollowsHandler) FollowUser(w http.ResponseWriter, r *http.Request) {

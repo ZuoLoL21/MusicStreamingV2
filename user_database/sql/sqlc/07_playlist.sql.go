@@ -329,16 +329,16 @@ AND is_user_allowed_playlist_edit($1, $2)
 `
 
 type UpdateTrackPositionParams struct {
-	UserUuid  pgtype.UUID
-	AlbumUuid pgtype.UUID
-	Uuid      pgtype.UUID
-	Position  int32
+	UserUuid     pgtype.UUID
+	PlaylistUuid pgtype.UUID
+	Uuid         pgtype.UUID
+	Position     int32
 }
 
 func (q *Queries) UpdateTrackPosition(ctx context.Context, arg UpdateTrackPositionParams) error {
 	_, err := q.db.Exec(ctx, updateTrackPosition,
 		arg.UserUuid,
-		arg.AlbumUuid,
+		arg.PlaylistUuid,
 		arg.Uuid,
 		arg.Position,
 	)
