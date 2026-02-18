@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"backend/internal/di"
-	sql_handler "backend/sql/sqlc"
+	sqlhandler "backend/sql/sqlc"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
@@ -14,16 +14,45 @@ type AlbumHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	returns *di.ReturnManager
-	db      *sql_handler.Queries
+	db      *sqlhandler.Queries
 }
 
-func NewAlbumHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sql_handler.Queries) *AlbumHandler {
+func NewAlbumHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sqlhandler.Queries) *AlbumHandler {
 	return &AlbumHandler{
 		logger:  logger,
 		config:  config,
 		returns: returns,
 		db:      db,
 	}
+}
+
+// checkAlbumAccess parses the album UUID from the route, fetches the album to
+// resolve its artist, and verifies the calling user has at least the given role.
+func (h *AlbumHandler) checkAlbumAccess(w http.ResponseWriter, r *http.Request, role sqlhandler.ArtistMemberRole) (albumUUID pgtype.UUID, ok bool) {
+	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	if !ok {
+		return
+	}
+
+	albumUUID, ok = parseUUID(r, "uuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
+		return
+	}
+
+	album, err := h.db.GetAlbum(r.Context(), albumUUID)
+	if err != nil {
+		h.returns.ReturnError(w, "album not found", http.StatusNotFound)
+		ok = false
+		return
+	}
+
+	if !checkArtistRole(r.Context(), h.db, album.FromArtist, userUUID, role) {
+		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
+		ok = false
+	}
+
+	return
 }
 
 func (h *AlbumHandler) GetAlbum(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +112,7 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !checkArtistRole(r.Context(), h.db, artistUUID, userUUID, sql_handler.ArtistMemberRoleMember) {
+	if !checkArtistRole(r.Context(), h.db, artistUUID, userUUID, sqlhandler.ArtistMemberRoleMember) {
 		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -98,7 +127,7 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 		imagePath = pgtype.Text{String: *body.ImagePath, Valid: true}
 	}
 
-	if err := h.db.CreateAlbum(r.Context(), sql_handler.CreateAlbumParams{
+	if err := h.db.CreateAlbum(r.Context(), sqlhandler.CreateAlbumParams{
 		FromArtist:   artistUUID,
 		OriginalName: body.OriginalName,
 		Description:  description,
@@ -118,25 +147,8 @@ type updateAlbumRequest struct {
 }
 
 func (h *AlbumHandler) UpdateAlbum(w http.ResponseWriter, r *http.Request) {
-	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	albumUUID, ok := h.checkAlbumAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
-		return
-	}
-
-	albumUUID, ok := parseUUID(r, "uuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
-		return
-	}
-
-	album, err := h.db.GetAlbum(r.Context(), albumUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "album not found", http.StatusNotFound)
-		return
-	}
-
-	if !checkArtistRole(r.Context(), h.db, album.FromArtist, userUUID, sql_handler.ArtistMemberRoleManager) {
-		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -150,7 +162,7 @@ func (h *AlbumHandler) UpdateAlbum(w http.ResponseWriter, r *http.Request) {
 		description = pgtype.Text{String: *body.Description, Valid: true}
 	}
 
-	if err := h.db.UpdateAlbum(r.Context(), sql_handler.UpdateAlbumParams{
+	if err := h.db.UpdateAlbum(r.Context(), sqlhandler.UpdateAlbumParams{
 		Uuid:         albumUUID,
 		OriginalName: body.OriginalName,
 		Description:  description,
@@ -168,25 +180,8 @@ type updateAlbumImageRequest struct {
 }
 
 func (h *AlbumHandler) UpdateAlbumImage(w http.ResponseWriter, r *http.Request) {
-	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	albumUUID, ok := h.checkAlbumAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
-		return
-	}
-
-	albumUUID, ok := parseUUID(r, "uuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
-		return
-	}
-
-	album, err := h.db.GetAlbum(r.Context(), albumUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "album not found", http.StatusNotFound)
-		return
-	}
-
-	if !checkArtistRole(r.Context(), h.db, album.FromArtist, userUUID, sql_handler.ArtistMemberRoleManager) {
-		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -195,7 +190,7 @@ func (h *AlbumHandler) UpdateAlbumImage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.db.UpdateAlbumImage(r.Context(), sql_handler.UpdateAlbumImageParams{
+	if err := h.db.UpdateAlbumImage(r.Context(), sqlhandler.UpdateAlbumImageParams{
 		Uuid:      albumUUID,
 		ImagePath: pgtype.Text{String: body.ImagePath, Valid: true},
 	}); err != nil {
@@ -208,25 +203,8 @@ func (h *AlbumHandler) UpdateAlbumImage(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *AlbumHandler) DeleteAlbum(w http.ResponseWriter, r *http.Request) {
-	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	albumUUID, ok := h.checkAlbumAccess(w, r, sqlhandler.ArtistMemberRoleOwner)
 	if !ok {
-		return
-	}
-
-	albumUUID, ok := parseUUID(r, "uuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
-		return
-	}
-
-	album, err := h.db.GetAlbum(r.Context(), albumUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "album not found", http.StatusNotFound)
-		return
-	}
-
-	if !checkArtistRole(r.Context(), h.db, album.FromArtist, userUUID, sql_handler.ArtistMemberRoleOwner) {
-		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 

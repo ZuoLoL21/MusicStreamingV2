@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"backend/internal/di"
-	sql_handler "backend/sql/sqlc"
+	sqlhandler "backend/sql/sqlc"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
@@ -14,16 +14,68 @@ type ArtistHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	returns *di.ReturnManager
-	db      *sql_handler.Queries
+	db      *sqlhandler.Queries
 }
 
-func NewArtistHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sql_handler.Queries) *ArtistHandler {
+func NewArtistHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sqlhandler.Queries) *ArtistHandler {
 	return &ArtistHandler{
 		logger:  logger,
 		config:  config,
 		returns: returns,
 		db:      db,
 	}
+}
+
+// checkArtistAccess parses the artist UUID from the route and verifies the
+// calling user has at least the given role on that artist.
+// Used for just checking if a user can modify information about an artist
+func (h *ArtistHandler) checkArtistAccess(w http.ResponseWriter, r *http.Request, role sqlhandler.ArtistMemberRole) (artistUUID pgtype.UUID, ok bool) {
+	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	if !ok {
+		return
+	}
+
+	artistUUID, ok = parseUUID(r, "uuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
+		return
+	}
+
+	if !checkArtistRole(r.Context(), h.db, artistUUID, userUUID, role) {
+		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
+		ok = false
+	}
+
+	return
+}
+
+// checkArtistAccessWithTarget is like checkArtistAccess but also parses a
+// second "userUuid" route parameter for operations that target another user.
+// Used for retrieving an additional user to add/modify wrt an artist
+func (h *ArtistHandler) checkArtistAccessWithTarget(w http.ResponseWriter, r *http.Request, role sqlhandler.ArtistMemberRole) (artistUUID pgtype.UUID, targetUserUUID pgtype.UUID, ok bool) {
+	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	if !ok {
+		return
+	}
+
+	artistUUID, ok = parseUUID(r, "uuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
+		return
+	}
+
+	targetUserUUID, ok = parseUUID(r, "userUuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid user uuid", http.StatusBadRequest)
+		return
+	}
+
+	if !checkArtistRole(r.Context(), h.db, artistUUID, userUUID, role) {
+		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
+		ok = false
+	}
+
+	return
 }
 
 func (h *ArtistHandler) GetArtistsAlphabetically(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +131,7 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 		profileImagePath = pgtype.Text{String: *body.ProfileImagePath, Valid: true}
 	}
 
-	if err := h.db.CreateArtist(r.Context(), sql_handler.CreateArtistParams{
+	if err := h.db.CreateArtist(r.Context(), sqlhandler.CreateArtistParams{
 		UserUuid:         userUUID,
 		ArtistName:       body.ArtistName,
 		Bio:              bio,
@@ -99,19 +151,8 @@ type updateArtistProfileRequest struct {
 }
 
 func (h *ArtistHandler) UpdateArtistProfile(w http.ResponseWriter, r *http.Request) {
-	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	artistUUID, ok := h.checkArtistAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
-		return
-	}
-
-	artistUUID, ok := parseUUID(r, "uuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
-		return
-	}
-
-	if !checkArtistRole(r.Context(), h.db, artistUUID, userUUID, sql_handler.ArtistMemberRoleManager) {
-		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -125,7 +166,7 @@ func (h *ArtistHandler) UpdateArtistProfile(w http.ResponseWriter, r *http.Reque
 		bio = pgtype.Text{String: *body.Bio, Valid: true}
 	}
 
-	if err := h.db.UpdateArtistProfile(r.Context(), sql_handler.UpdateArtistProfileParams{
+	if err := h.db.UpdateArtistProfile(r.Context(), sqlhandler.UpdateArtistProfileParams{
 		Uuid:       artistUUID,
 		ArtistName: body.ArtistName,
 		Bio:        bio,
@@ -143,19 +184,8 @@ type updateArtistPictureRequest struct {
 }
 
 func (h *ArtistHandler) UpdateArtistPicture(w http.ResponseWriter, r *http.Request) {
-	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	artistUUID, ok := h.checkArtistAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
-		return
-	}
-
-	artistUUID, ok := parseUUID(r, "uuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
-		return
-	}
-
-	if !checkArtistRole(r.Context(), h.db, artistUUID, userUUID, sql_handler.ArtistMemberRoleManager) {
-		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -164,7 +194,7 @@ func (h *ArtistHandler) UpdateArtistPicture(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := h.db.UpdateArtistPicture(r.Context(), sql_handler.UpdateArtistPictureParams{
+	if err := h.db.UpdateArtistPicture(r.Context(), sqlhandler.UpdateArtistPictureParams{
 		Uuid:             artistUUID,
 		ProfileImagePath: pgtype.Text{String: body.ProfileImagePath, Valid: true},
 	}); err != nil {
@@ -194,29 +224,12 @@ func (h *ArtistHandler) GetUsersRepresentingArtist(w http.ResponseWriter, r *htt
 }
 
 type addUserToArtistRequest struct {
-	Role sql_handler.ArtistMemberRole `json:"role" validate:"required"`
+	Role sqlhandler.ArtistMemberRole `json:"role" validate:"required"`
 }
 
 func (h *ArtistHandler) AddUserToArtist(w http.ResponseWriter, r *http.Request) {
-	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	artistUUID, targetUserUUID, ok := h.checkArtistAccessWithTarget(w, r, sqlhandler.ArtistMemberRoleOwner)
 	if !ok {
-		return
-	}
-
-	artistUUID, ok := parseUUID(r, "uuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
-		return
-	}
-
-	targetUserUUID, ok := parseUUID(r, "userUuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid user uuid", http.StatusBadRequest)
-		return
-	}
-
-	if !checkArtistRole(r.Context(), h.db, artistUUID, userUUID, sql_handler.ArtistMemberRoleOwner) {
-		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -225,7 +238,7 @@ func (h *ArtistHandler) AddUserToArtist(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.db.AddUserToArtist(r.Context(), sql_handler.AddUserToArtistParams{
+	if err := h.db.AddUserToArtist(r.Context(), sqlhandler.AddUserToArtistParams{
 		ArtistUuid: artistUUID,
 		UserUuid:   targetUserUUID,
 		Role:       body.Role,
@@ -239,29 +252,12 @@ func (h *ArtistHandler) AddUserToArtist(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *ArtistHandler) RemoveUserFromArtist(w http.ResponseWriter, r *http.Request) {
-	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	artistUUID, targetUserUUID, ok := h.checkArtistAccessWithTarget(w, r, sqlhandler.ArtistMemberRoleOwner)
 	if !ok {
 		return
 	}
 
-	artistUUID, ok := parseUUID(r, "uuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
-		return
-	}
-
-	targetUserUUID, ok := parseUUID(r, "userUuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid user uuid", http.StatusBadRequest)
-		return
-	}
-
-	if !checkArtistRole(r.Context(), h.db, artistUUID, userUUID, sql_handler.ArtistMemberRoleOwner) {
-		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
-		return
-	}
-
-	if err := h.db.RemoveUserFromArtist(r.Context(), sql_handler.RemoveUserFromArtistParams{
+	if err := h.db.RemoveUserFromArtist(r.Context(), sqlhandler.RemoveUserFromArtistParams{
 		ArtistUuid: artistUUID,
 		UserUuid:   targetUserUUID,
 	}); err != nil {
@@ -274,29 +270,12 @@ func (h *ArtistHandler) RemoveUserFromArtist(w http.ResponseWriter, r *http.Requ
 }
 
 type changeUserRoleRequest struct {
-	Role sql_handler.ArtistMemberRole `json:"role" validate:"required"`
+	Role sqlhandler.ArtistMemberRole `json:"role" validate:"required"`
 }
 
 func (h *ArtistHandler) ChangeUserRole(w http.ResponseWriter, r *http.Request) {
-	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	artistUUID, targetUserUUID, ok := h.checkArtistAccessWithTarget(w, r, sqlhandler.ArtistMemberRoleOwner)
 	if !ok {
-		return
-	}
-
-	artistUUID, ok := parseUUID(r, "uuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
-		return
-	}
-
-	targetUserUUID, ok := parseUUID(r, "userUuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid user uuid", http.StatusBadRequest)
-		return
-	}
-
-	if !checkArtistRole(r.Context(), h.db, artistUUID, userUUID, sql_handler.ArtistMemberRoleOwner) {
-		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -305,7 +284,7 @@ func (h *ArtistHandler) ChangeUserRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.db.ChangeUserRole(r.Context(), sql_handler.ChangeUserRoleParams{
+	if err := h.db.ChangeUserRole(r.Context(), sqlhandler.ChangeUserRoleParams{
 		ArtistUuid: artistUUID,
 		UserUuid:   targetUserUUID,
 		Role:       body.Role,
