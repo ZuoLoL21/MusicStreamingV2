@@ -9,7 +9,6 @@ import (
 	"backend/internal/handlers"
 	sqlhandler "backend/sql/sqlc"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
@@ -18,7 +17,7 @@ import (
 func TestGetListeningHistoryForUser_Success(t *testing.T) {
 	cfg := testConfig()
 	db := &mockDB{
-		getListeningHistoryForUserFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.ListeningHistory, error) {
+		getListeningHistoryForUserFn: func(_ context.Context, _ sqlhandler.GetListeningHistoryForUserParams) ([]sqlhandler.ListeningHistory, error) {
 			return []sqlhandler.ListeningHistory{}, nil
 		},
 	}
@@ -33,7 +32,7 @@ func TestGetListeningHistoryForUser_Success(t *testing.T) {
 func TestGetListeningHistoryForUser_DBError(t *testing.T) {
 	cfg := testConfig()
 	db := &mockDB{
-		getListeningHistoryForUserFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.ListeningHistory, error) {
+		getListeningHistoryForUserFn: func(_ context.Context, _ sqlhandler.GetListeningHistoryForUserParams) ([]sqlhandler.ListeningHistory, error) {
 			return nil, errDB
 		},
 	}
@@ -43,33 +42,6 @@ func TestGetListeningHistoryForUser_DBError(t *testing.T) {
 	r = withUserUUID(r, cfg, testUserUUID)
 	h.GetListeningHistoryForUser(w, r)
 	assertStatus(t, w, http.StatusInternalServerError)
-}
-
-// ── GetRecentlyPlayedForUser ──────────────────────────────────────────────────
-
-func TestGetRecentlyPlayedForUser_Success(t *testing.T) {
-	cfg := testConfig()
-	db := &mockDB{
-		getRecentlyPlayedForUserFn: func(_ context.Context, _ sqlhandler.GetRecentlyPlayedForUserParams) ([]sqlhandler.ListeningHistory, error) {
-			return []sqlhandler.ListeningHistory{}, nil
-		},
-	}
-	h := handlers.NewHistoryHandler(zap.NewNop(), cfg, testReturns(cfg), db)
-	w := httptest.NewRecorder()
-	r := newRequest(http.MethodGet, "/me/history/recent", nil)
-	r = withUserUUID(r, cfg, testUserUUID)
-	h.GetRecentlyPlayedForUser(w, r)
-	assertStatus(t, w, http.StatusOK)
-}
-
-func TestGetRecentlyPlayedForUser_WithLimit(t *testing.T) {
-	cfg := testConfig()
-	h := handlers.NewHistoryHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
-	w := httptest.NewRecorder()
-	r := newRequest(http.MethodGet, "/me/history/recent?limit=5", nil)
-	r = withUserUUID(r, cfg, testUserUUID)
-	h.GetRecentlyPlayedForUser(w, r)
-	assertStatus(t, w, http.StatusOK)
 }
 
 // ── GetTopMusicForUser ────────────────────────────────────────────────────────

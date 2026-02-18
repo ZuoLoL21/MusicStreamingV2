@@ -25,23 +25,6 @@ func NewLikesHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnMa
 	}
 }
 
-func (h *LikesHandler) GetLikesForMusic(w http.ResponseWriter, r *http.Request) {
-	musicUUID, ok := parseUUID(r, "uuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
-		return
-	}
-
-	likes, err := h.db.GetLikesForMusic(r.Context(), musicUUID)
-	if err != nil {
-		h.logger.Error("failed to get likes for music", zap.Error(err))
-		h.returns.ReturnError(w, "failed to get likes", http.StatusInternalServerError)
-		return
-	}
-
-	h.returns.ReturnJSON(w, likes, http.StatusOK)
-}
-
 func (h *LikesHandler) GetLikesForUser(w http.ResponseWriter, r *http.Request) {
 	userUUID, ok := parseUUID(r, "uuid")
 	if !ok {
@@ -49,7 +32,13 @@ func (h *LikesHandler) GetLikesForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	likes, err := h.db.GetLikesForUser(r.Context(), userUUID)
+	limit, cursorTS, cursorID := parsePagination(r)
+	likes, err := h.db.GetLikesForUser(r.Context(), sqlhandler.GetLikesForUserParams{
+		FromUser: userUUID,
+		Limit:    limit,
+		Column3:  cursorTS,
+		Uuid:     cursorID,
+	})
 	if err != nil {
 		h.logger.Error("failed to get likes for user", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get likes", http.StatusInternalServerError)

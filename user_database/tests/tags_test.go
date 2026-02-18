@@ -9,7 +9,6 @@ import (
 	"backend/internal/handlers"
 	sqlhandler "backend/sql/sqlc"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +21,7 @@ func newTagsHandler(db *mockDB) *handlers.TagsHandler {
 
 func TestGetAllTags_Success(t *testing.T) {
 	db := &mockDB{
-		getAllTagsFn: func(_ context.Context) ([]sqlhandler.MusicTag, error) {
+		getAllTagsFn: func(_ context.Context, _ sqlhandler.GetAllTagsParams) ([]sqlhandler.MusicTag, error) {
 			return []sqlhandler.MusicTag{{TagName: "pop"}}, nil
 		},
 	}
@@ -33,7 +32,7 @@ func TestGetAllTags_Success(t *testing.T) {
 
 func TestGetAllTags_DBError(t *testing.T) {
 	db := &mockDB{
-		getAllTagsFn: func(_ context.Context) ([]sqlhandler.MusicTag, error) {
+		getAllTagsFn: func(_ context.Context, _ sqlhandler.GetAllTagsParams) ([]sqlhandler.MusicTag, error) {
 			return nil, errDB
 		},
 	}
@@ -72,7 +71,7 @@ func TestGetTag_NotFound(t *testing.T) {
 
 func TestGetMusicForTag_Success(t *testing.T) {
 	db := &mockDB{
-		getMusicForTagFn: func(_ context.Context, _ string) ([]sqlhandler.Music, error) {
+		getMusicForTagFn: func(_ context.Context, _ sqlhandler.GetMusicForTagParams) ([]sqlhandler.Music, error) {
 			return []sqlhandler.Music{}, nil
 		},
 	}
@@ -86,7 +85,7 @@ func TestGetMusicForTag_Success(t *testing.T) {
 
 func TestGetTagsForMusic_Success(t *testing.T) {
 	db := &mockDB{
-		getTagsForMusicFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.MusicTag, error) {
+		getTagsForMusicFn: func(_ context.Context, _ sqlhandler.GetTagsForMusicParams) ([]sqlhandler.MusicTag, error) {
 			return []sqlhandler.MusicTag{}, nil
 		},
 	}

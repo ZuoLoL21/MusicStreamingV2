@@ -78,7 +78,13 @@ func (h *PlaylistHandler) GetPlaylistsForUser(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	playlists, err := h.db.GetPlaylistsForUser(r.Context(), userUUID)
+	limit, cursorTS, cursorID := parsePagination(r)
+	playlists, err := h.db.GetPlaylistsForUser(r.Context(), sqlhandler.GetPlaylistsForUserParams{
+		FromUser: userUUID,
+		Limit:    limit,
+		Column3:  cursorTS,
+		Uuid:     cursorID,
+	})
 	if err != nil {
 		h.logger.Error("failed to get playlists for user", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get playlists", http.StatusInternalServerError)
@@ -95,7 +101,12 @@ func (h *PlaylistHandler) GetPlaylistTracks(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	tracks, err := h.db.GetPlaylistTracks(r.Context(), playlistUUID)
+	limit, cursorPos := parsePaginationPos(r)
+	tracks, err := h.db.GetPlaylistTracks(r.Context(), sqlhandler.GetPlaylistTracksParams{
+		PlaylistUuid: playlistUUID,
+		Limit:        limit,
+		Column3:      cursorPos,
+	})
 	if err != nil {
 		h.logger.Error("failed to get playlist tracks", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get playlist tracks", http.StatusInternalServerError)

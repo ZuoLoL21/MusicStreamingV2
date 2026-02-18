@@ -78,7 +78,13 @@ func (h *AlbumHandler) GetAlbumsForArtist(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	albums, err := h.db.GetAlbumsForArtist(r.Context(), artistUUID)
+	limit, cursorTS, cursorID := parsePagination(r)
+	albums, err := h.db.GetAlbumsForArtist(r.Context(), sqlhandler.GetAlbumsForArtistParams{
+		FromArtist: artistUUID,
+		Limit:      limit,
+		Column3:    cursorTS,
+		Uuid:       cursorID,
+	})
 	if err != nil {
 		h.logger.Error("failed to get albums for artist", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get albums", http.StatusInternalServerError)

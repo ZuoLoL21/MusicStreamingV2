@@ -81,6 +81,5 @@ type DB interface {
 	UpdateTrackPosition(ctx context.Context, arg sqlhandler.UpdateTrackPositionParams) error
 
 	GetListeningHistoryForUser(ctx context.Context, arg sqlhandler.GetListeningHistoryForUserParams) ([]sqlhandler.ListeningHistory, error)
-	GetRecentlyPlayedForUser(ctx context.Context, arg sqlhandler.GetRecentlyPlayedForUserParams) ([]sqlhandler.ListeningHistory, error)
 	GetTopMusicForUser(ctx context.Context, arg sqlhandler.GetTopMusicForUserParams) ([]sqlhandler.GetTopMusicForUserRow, error)
 }

@@ -78,7 +78,13 @@ func (h *MusicHandler) GetMusicForArtist(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	music, err := h.db.GetMusicForArtist(r.Context(), artistUUID)
+	limit, cursorTS, cursorID := parsePagination(r)
+	music, err := h.db.GetMusicForArtist(r.Context(), sqlhandler.GetMusicForArtistParams{
+		FromArtist: artistUUID,
+		Limit:      limit,
+		Column3:    cursorTS,
+		Uuid:       cursorID,
+	})
 	if err != nil {
 		h.logger.Error("failed to get music for artist", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get music", http.StatusInternalServerError)
@@ -95,7 +101,13 @@ func (h *MusicHandler) GetMusicForAlbum(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	music, err := h.db.GetMusicForAlbum(r.Context(), albumUUID)
+	limit, cursorTS, cursorID := parsePagination(r)
+	music, err := h.db.GetMusicForAlbum(r.Context(), sqlhandler.GetMusicForAlbumParams{
+		InAlbum: albumUUID,
+		Limit:   limit,
+		Column3: cursorTS,
+		Uuid:    cursorID,
+	})
 	if err != nil {
 		h.logger.Error("failed to get music for album", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get music", http.StatusInternalServerError)
@@ -112,7 +124,13 @@ func (h *MusicHandler) GetMusicForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	music, err := h.db.GetMusicForUser(r.Context(), userUUID)
+	limit, cursorTS, cursorID := parsePagination(r)
+	music, err := h.db.GetMusicForUser(r.Context(), sqlhandler.GetMusicForUserParams{
+		UploadedBy: userUUID,
+		Limit:      limit,
+		Column3:    cursorTS,
+		Uuid:       cursorID,
+	})
 	if err != nil {
 		h.logger.Error("failed to get music for user", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get music", http.StatusInternalServerError)

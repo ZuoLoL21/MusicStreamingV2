@@ -32,7 +32,13 @@ func (h *FollowsHandler) GetFollowersForUser(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	followers, err := h.db.GetFollowersForUser(r.Context(), userUUID)
+	limit, cursorTS, cursorID := parsePagination(r)
+	followers, err := h.db.GetFollowersForUser(r.Context(), sqlhandler.GetFollowersForUserParams{
+		ToUser:  userUUID,
+		Limit:   limit,
+		Column3: cursorTS,
+		Uuid:    cursorID,
+	})
 	if err != nil {
 		h.logger.Error("failed to get followers for user", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get followers", http.StatusInternalServerError)
@@ -49,27 +55,16 @@ func (h *FollowsHandler) GetFollowingUsersForUser(w http.ResponseWriter, r *http
 		return
 	}
 
-	following, err := h.db.GetFollowingUsersForUser(r.Context(), userUUID)
+	limit, cursorTS, cursorID := parsePagination(r)
+	following, err := h.db.GetFollowsForUser(r.Context(), sqlhandler.GetFollowsForUserParams{
+		FromUser: userUUID,
+		Limit:    limit,
+		Column3:  cursorTS,
+		Uuid:     cursorID,
+	})
 	if err != nil {
 		h.logger.Error("failed to get following users", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get following users", http.StatusInternalServerError)
-		return
-	}
-
-	h.returns.ReturnJSON(w, following, http.StatusOK)
-}
-
-func (h *FollowsHandler) GetFollowingArtistsForUser(w http.ResponseWriter, r *http.Request) {
-	userUUID, ok := parseUUID(r, "uuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
-		return
-	}
-
-	following, err := h.db.GetFollowingArtistsForUser(r.Context(), userUUID)
-	if err != nil {
-		h.logger.Error("failed to get following artists", zap.Error(err))
-		h.returns.ReturnError(w, "failed to get following artists", http.StatusInternalServerError)
 		return
 	}
 
@@ -83,7 +78,13 @@ func (h *FollowsHandler) GetFollowersForArtist(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	followers, err := h.db.GetFollowersForArtist(r.Context(), artistUUID)
+	limit, cursorTS, cursorID := parsePagination(r)
+	followers, err := h.db.GetFollowersForArtist(r.Context(), sqlhandler.GetFollowersForArtistParams{
+		ToArtist: artistUUID,
+		Limit:    limit,
+		Column3:  cursorTS,
+		Uuid:     cursorID,
+	})
 	if err != nil {
 		h.logger.Error("failed to get followers for artist", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get followers", http.StatusInternalServerError)

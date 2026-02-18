@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
@@ -88,6 +90,69 @@ var roleWeight = map[sqlhandler.ArtistMemberRole]int{
 	sqlhandler.ArtistMemberRoleMember:  1,
 	sqlhandler.ArtistMemberRoleManager: 2,
 	sqlhandler.ArtistMemberRoleOwner:   3,
+}
+
+// parsePagination reads limit (default 20), cursor_ts, and cursor_id from the
+// request's URL query parameters.
+func parsePagination(r *http.Request) (limit int32, cursorTS pgtype.Timestamptz, cursorID pgtype.UUID) {
+	limit = 20
+	if s := r.URL.Query().Get("limit"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			limit = int32(n)
+		}
+	}
+	if s := r.URL.Query().Get("cursor_ts"); s != "" {
+		if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+			_ = cursorTS.Scan(t)
+		}
+	}
+	if s := r.URL.Query().Get("cursor_id"); s != "" {
+		_ = cursorID.Scan(s)
+	}
+	return
+}
+
+// parsePaginationName reads limit (default 20) and cursor_name from the
+// request's URL query parameters.
+func parsePaginationName(r *http.Request) (limit int32, cursorName string) {
+	limit = 20
+	if s := r.URL.Query().Get("limit"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			limit = int32(n)
+		}
+	}
+	cursorName = r.URL.Query().Get("cursor_name")
+	return
+}
+
+// parsePaginationAlpha reads limit (default 20), cursor_name, and cursor_ts
+// from the request's URL query parameters (used for alphabetically sorted
+// queries where the cursor is (name, created_at)).
+func parsePaginationAlpha(r *http.Request) (limit int32, cursorName string, cursorTS pgtype.Timestamptz) {
+	limit, cursorName = parsePaginationName(r)
+	if s := r.URL.Query().Get("cursor_ts"); s != "" {
+		if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+			_ = cursorTS.Scan(t)
+		}
+	}
+	return
+}
+
+// parsePaginationPos reads limit (default 20) and cursor_pos from the
+// request's URL query parameters (used for position-ordered queries).
+func parsePaginationPos(r *http.Request) (limit int32, cursorPos int32) {
+	limit = 20
+	if s := r.URL.Query().Get("limit"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			limit = int32(n)
+		}
+	}
+	if s := r.URL.Query().Get("cursor_pos"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil {
+			cursorPos = int32(n)
+		}
+	}
+	return
 }
 
 func checkArtistRole(ctx context.Context, q DB, artistUUID pgtype.UUID, userUUID pgtype.UUID, minRole sqlhandler.ArtistMemberRole) bool {

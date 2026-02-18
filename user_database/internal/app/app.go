@@ -64,7 +64,6 @@ func (a *App) Router() *mux.Router {
 	r.HandleFunc("/users/{uuid}/likes", likesH.GetLikesForUser).Methods("GET")
 	r.HandleFunc("/users/{uuid}/followers", followsH.GetFollowersForUser).Methods("GET")
 	r.HandleFunc("/users/{uuid}/following/users", followsH.GetFollowingUsersForUser).Methods("GET")
-	r.HandleFunc("/users/{uuid}/following/artists", followsH.GetFollowingArtistsForUser).Methods("GET")
 	r.HandleFunc("/users/{uuid}/follow", followsH.FollowUser).Methods("POST")
 	r.HandleFunc("/users/{uuid}/follow", followsH.UnfollowUser).Methods("DELETE")
 	r.HandleFunc("/users/{uuid}/music", musicH.GetMusicForUser).Methods("GET")
@@ -102,7 +101,6 @@ func (a *App) Router() *mux.Router {
 	r.HandleFunc("/music/{uuid}", musicH.DeleteMusic).Methods("DELETE")
 	r.HandleFunc("/music/{uuid}/play", musicH.IncrementPlayCount).Methods("POST")
 	r.HandleFunc("/music/{uuid}/listen", musicH.AddListeningHistoryEntry).Methods("POST")
-	r.HandleFunc("/music/{uuid}/likes", likesH.GetLikesForMusic).Methods("GET")
 	r.HandleFunc("/music/{uuid}/liked", likesH.IsLiked).Methods("GET")
 	r.HandleFunc("/music/{uuid}/like", likesH.LikeMusic).Methods("POST")
 	r.HandleFunc("/music/{uuid}/like", likesH.UnlikeMusic).Methods("DELETE")
@@ -128,7 +126,6 @@ func (a *App) Router() *mux.Router {
 
 	// History
 	r.HandleFunc("/history", historyH.GetListeningHistoryForUser).Methods("GET")
-	r.HandleFunc("/history/recent", historyH.GetRecentlyPlayedForUser).Methods("GET")
 	r.HandleFunc("/history/top", historyH.GetTopMusicForUser).Methods("GET")
 
 	return r

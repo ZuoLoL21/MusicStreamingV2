@@ -32,36 +32,16 @@ func (h *HistoryHandler) GetListeningHistoryForUser(w http.ResponseWriter, r *ht
 		return
 	}
 
-	history, err := h.db.GetListeningHistoryForUser(r.Context(), userUUID)
+	limit, cursorTS, cursorID := parsePagination(r)
+	history, err := h.db.GetListeningHistoryForUser(r.Context(), sqlhandler.GetListeningHistoryForUserParams{
+		UserUuid: userUUID,
+		Limit:    limit,
+		Column3:  cursorTS,
+		Uuid:     cursorID,
+	})
 	if err != nil {
 		h.logger.Error("failed to get listening history", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get listening history", http.StatusInternalServerError)
-		return
-	}
-
-	h.returns.ReturnJSON(w, history, http.StatusOK)
-}
-
-func (h *HistoryHandler) GetRecentlyPlayedForUser(w http.ResponseWriter, r *http.Request) {
-	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
-	if !ok {
-		return
-	}
-
-	limit := int32(10)
-	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if parsed, err := strconv.Atoi(limitStr); err == nil {
-			limit = int32(parsed)
-		}
-	}
-
-	history, err := h.db.GetRecentlyPlayedForUser(r.Context(), sqlhandler.GetRecentlyPlayedForUserParams{
-		UserUuid: userUUID,
-		Limit:    limit,
-	})
-	if err != nil {
-		h.logger.Error("failed to get recently played", zap.Error(err))
-		h.returns.ReturnError(w, "failed to get recently played", http.StatusInternalServerError)
 		return
 	}
 
@@ -74,16 +54,19 @@ func (h *HistoryHandler) GetTopMusicForUser(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	limit := int32(10)
-	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if parsed, err := strconv.Atoi(limitStr); err == nil {
-			limit = int32(parsed)
+	limit, _, cursorID := parsePagination(r)
+	var cursorCount interface{}
+	if s := r.URL.Query().Get("cursor_count"); s != "" {
+		if n, err := strconv.ParseInt(s, 10, 64); err == nil {
+			cursorCount = n
 		}
 	}
 
 	top, err := h.db.GetTopMusicForUser(r.Context(), sqlhandler.GetTopMusicForUserParams{
 		UserUuid: userUUID,
 		Limit:    limit,
+		Column3:  cursorID,
+		Column4:  cursorCount,
 	})
 	if err != nil {
 		h.logger.Error("failed to get top music", zap.Error(err))

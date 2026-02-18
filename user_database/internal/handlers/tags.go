@@ -28,7 +28,11 @@ func NewTagsHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnMan
 }
 
 func (h *TagsHandler) GetAllTags(w http.ResponseWriter, r *http.Request) {
-	tags, err := h.db.GetAllTags(r.Context())
+	limit, cursorName := parsePaginationName(r)
+	tags, err := h.db.GetAllTags(r.Context(), sqlhandler.GetAllTagsParams{
+		Limit:   limit,
+		Column2: cursorName,
+	})
 	if err != nil {
 		h.logger.Error("failed to get tags", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get tags", http.StatusInternalServerError)
@@ -53,7 +57,13 @@ func (h *TagsHandler) GetTag(w http.ResponseWriter, r *http.Request) {
 func (h *TagsHandler) GetMusicForTag(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 
-	music, err := h.db.GetMusicForTag(r.Context(), name)
+	limit, cursorTS, cursorID := parsePagination(r)
+	music, err := h.db.GetMusicForTag(r.Context(), sqlhandler.GetMusicForTagParams{
+		TagName: name,
+		Limit:   limit,
+		Column3: cursorTS,
+		Uuid:    cursorID,
+	})
 	if err != nil {
 		h.logger.Error("failed to get music for tag", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get music for tag", http.StatusInternalServerError)
@@ -70,7 +80,12 @@ func (h *TagsHandler) GetTagsForMusic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tags, err := h.db.GetTagsForMusic(r.Context(), musicUUID)
+	limit, cursorName := parsePaginationName(r)
+	tags, err := h.db.GetTagsForMusic(r.Context(), sqlhandler.GetTagsForMusicParams{
+		MusicUuid: musicUUID,
+		Limit:     limit,
+		Column3:   cursorName,
+	})
 	if err != nil {
 		h.logger.Error("failed to get tags for music", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get tags for music", http.StatusInternalServerError)

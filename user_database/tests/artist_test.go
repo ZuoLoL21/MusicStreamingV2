@@ -34,7 +34,7 @@ func ownerMembers(userUUIDStr string) []sqlhandler.GetUsersRepresentingArtistRow
 
 func TestGetArtistsAlphabetically_Success(t *testing.T) {
 	db := &mockDB{
-		getArtistsAlphabeticallyFn: func(_ context.Context) ([]sqlhandler.Artist, error) {
+		getArtistsAlphabeticallyFn: func(_ context.Context, _ sqlhandler.GetArtistsAlphabeticallyParams) ([]sqlhandler.Artist, error) {
 			return []sqlhandler.Artist{{ArtistName: "The Band"}}, nil
 		},
 	}
@@ -45,7 +45,7 @@ func TestGetArtistsAlphabetically_Success(t *testing.T) {
 
 func TestGetArtistsAlphabetically_DBError(t *testing.T) {
 	db := &mockDB{
-		getArtistsAlphabeticallyFn: func(_ context.Context) ([]sqlhandler.Artist, error) {
+		getArtistsAlphabeticallyFn: func(_ context.Context, _ sqlhandler.GetArtistsAlphabeticallyParams) ([]sqlhandler.Artist, error) {
 			return nil, errDB
 		},
 	}

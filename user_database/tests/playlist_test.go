@@ -55,7 +55,7 @@ func TestGetPlaylist_NotFound(t *testing.T) {
 
 func TestGetPlaylistsForUser_Success(t *testing.T) {
 	db := &mockDB{
-		getPlaylistsForUserFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.Playlist, error) {
+		getPlaylistsForUserFn: func(_ context.Context, _ sqlhandler.GetPlaylistsForUserParams) ([]sqlhandler.Playlist, error) {
 			return []sqlhandler.Playlist{}, nil
 		},
 	}
@@ -69,7 +69,7 @@ func TestGetPlaylistsForUser_Success(t *testing.T) {
 
 func TestGetPlaylistTracks_Success(t *testing.T) {
 	db := &mockDB{
-		getPlaylistTracksFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.Music, error) {
+		getPlaylistTracksFn: func(_ context.Context, _ sqlhandler.GetPlaylistTracksParams) ([]sqlhandler.Music, error) {
 			return []sqlhandler.Music{}, nil
 		},
 	}

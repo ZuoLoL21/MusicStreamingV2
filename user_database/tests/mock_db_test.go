@@ -25,7 +25,7 @@ type mockDB struct {
 	updatePasswordFn             func(context.Context, sqlhandler.UpdatePasswordParams) error
 	updateImageFn                func(context.Context, sqlhandler.UpdateImageParams) error
 	getArtistForUserFn           func(context.Context, pgtype.UUID) ([]sqlhandler.GetArtistForUserRow, error)
-	getArtistsAlphabeticallyFn   func(context.Context) ([]sqlhandler.Artist, error)
+	getArtistsAlphabeticallyFn   func(context.Context, sqlhandler.GetArtistsAlphabeticallyParams) ([]sqlhandler.Artist, error)
 	getArtistFn                  func(context.Context, pgtype.UUID) (sqlhandler.Artist, error)
 	createArtistFn               func(context.Context, sqlhandler.CreateArtistParams) error
 	updateArtistProfileFn        func(context.Context, sqlhandler.UpdateArtistProfileParams) error
@@ -35,52 +35,49 @@ type mockDB struct {
 	removeUserFromArtistFn       func(context.Context, sqlhandler.RemoveUserFromArtistParams) error
 	changeUserRoleFn             func(context.Context, sqlhandler.ChangeUserRoleParams) error
 	getAlbumFn                   func(context.Context, pgtype.UUID) (sqlhandler.Album, error)
-	getAlbumsForArtistFn         func(context.Context, pgtype.UUID) ([]sqlhandler.Album, error)
+	getAlbumsForArtistFn         func(context.Context, sqlhandler.GetAlbumsForArtistParams) ([]sqlhandler.Album, error)
 	createAlbumFn                func(context.Context, sqlhandler.CreateAlbumParams) error
 	updateAlbumFn                func(context.Context, sqlhandler.UpdateAlbumParams) error
 	updateAlbumImageFn           func(context.Context, sqlhandler.UpdateAlbumImageParams) error
 	deleteAlbumFn                func(context.Context, pgtype.UUID) error
 	getMusicFn                   func(context.Context, pgtype.UUID) (sqlhandler.Music, error)
-	getMusicForArtistFn          func(context.Context, pgtype.UUID) ([]sqlhandler.Music, error)
-	getMusicForAlbumFn           func(context.Context, pgtype.UUID) ([]sqlhandler.Music, error)
-	getMusicForUserFn            func(context.Context, pgtype.UUID) ([]sqlhandler.Music, error)
+	getMusicForArtistFn          func(context.Context, sqlhandler.GetMusicForArtistParams) ([]sqlhandler.Music, error)
+	getMusicForAlbumFn           func(context.Context, sqlhandler.GetMusicForAlbumParams) ([]sqlhandler.Music, error)
+	getMusicForUserFn            func(context.Context, sqlhandler.GetMusicForUserParams) ([]sqlhandler.Music, error)
 	createMusicFn                func(context.Context, sqlhandler.CreateMusicParams) error
 	updateMusicDetailsFn         func(context.Context, sqlhandler.UpdateMusicDetailsParams) error
 	updateMusicStorageFn         func(context.Context, sqlhandler.UpdateMusicStorageParams) error
 	deleteMusicFn                func(context.Context, pgtype.UUID) error
 	incrementPlayCountFn         func(context.Context, pgtype.UUID) error
 	addListeningHistoryEntryFn   func(context.Context, sqlhandler.AddListeningHistoryEntryParams) error
-	getLikesForMusicFn           func(context.Context, pgtype.UUID) ([]sqlhandler.PublicUser, error)
-	getLikesForUserFn            func(context.Context, pgtype.UUID) ([]sqlhandler.Music, error)
+	getLikesForUserFn            func(context.Context, sqlhandler.GetLikesForUserParams) ([]sqlhandler.Music, error)
 	isLikedFn                    func(context.Context, sqlhandler.IsLikedParams) (bool, error)
 	likeMusicFn                  func(context.Context, sqlhandler.LikeMusicParams) error
 	unlikeMusicFn                func(context.Context, sqlhandler.UnlikeMusicParams) error
-	getFollowersForUserFn        func(context.Context, pgtype.UUID) ([]sqlhandler.PublicUser, error)
-	getFollowingUsersForUserFn   func(context.Context, pgtype.UUID) ([]sqlhandler.PublicUser, error)
-	getFollowingArtistsForUserFn func(context.Context, pgtype.UUID) ([]sqlhandler.Artist, error)
-	getFollowersForArtistFn      func(context.Context, pgtype.UUID) ([]sqlhandler.PublicUser, error)
+	getFollowersForUserFn        func(context.Context, sqlhandler.GetFollowersForUserParams) ([]sqlhandler.PublicUser, error)
+	getFollowsForUserFn          func(context.Context, sqlhandler.GetFollowsForUserParams) ([]sqlhandler.PublicUser, error)
+	getFollowersForArtistFn      func(context.Context, sqlhandler.GetFollowersForArtistParams) ([]sqlhandler.PublicUser, error)
 	followUserFn                 func(context.Context, sqlhandler.FollowUserParams) error
 	unfollowUserFn               func(context.Context, sqlhandler.UnfollowUserParams) error
 	followArtistFn               func(context.Context, sqlhandler.FollowArtistParams) error
 	unfollowArtistFn             func(context.Context, sqlhandler.UnfollowArtistParams) error
-	getAllTagsFn                 func(context.Context) ([]sqlhandler.MusicTag, error)
+	getAllTagsFn                 func(context.Context, sqlhandler.GetAllTagsParams) ([]sqlhandler.MusicTag, error)
 	getTagFn                     func(context.Context, string) (sqlhandler.MusicTag, error)
-	getMusicForTagFn             func(context.Context, string) ([]sqlhandler.Music, error)
-	getTagsForMusicFn            func(context.Context, pgtype.UUID) ([]sqlhandler.MusicTag, error)
+	getMusicForTagFn             func(context.Context, sqlhandler.GetMusicForTagParams) ([]sqlhandler.Music, error)
+	getTagsForMusicFn            func(context.Context, sqlhandler.GetTagsForMusicParams) ([]sqlhandler.MusicTag, error)
 	createTagFn                  func(context.Context, sqlhandler.CreateTagParams) error
 	assignTagToMusicFn           func(context.Context, sqlhandler.AssignTagToMusicParams) error
 	removeTagFromMusicFn         func(context.Context, sqlhandler.RemoveTagFromMusicParams) error
 	getPlaylistFn                func(context.Context, pgtype.UUID) (sqlhandler.Playlist, error)
-	getPlaylistsForUserFn        func(context.Context, pgtype.UUID) ([]sqlhandler.Playlist, error)
-	getPlaylistTracksFn          func(context.Context, pgtype.UUID) ([]sqlhandler.Music, error)
+	getPlaylistsForUserFn        func(context.Context, sqlhandler.GetPlaylistsForUserParams) ([]sqlhandler.Playlist, error)
+	getPlaylistTracksFn          func(context.Context, sqlhandler.GetPlaylistTracksParams) ([]sqlhandler.Music, error)
 	createPlaylistFn             func(context.Context, sqlhandler.CreatePlaylistParams) error
 	updatePlaylistFn             func(context.Context, sqlhandler.UpdatePlaylistParams) error
 	deletePlaylistFn             func(context.Context, pgtype.UUID) error
 	addTrackToPlaylistFn         func(context.Context, sqlhandler.AddTrackToPlaylistParams) error
 	removeTrackFromPlaylistFn    func(context.Context, sqlhandler.RemoveTrackFromPlaylistParams) error
 	updateTrackPositionFn        func(context.Context, sqlhandler.UpdateTrackPositionParams) error
-	getListeningHistoryForUserFn func(context.Context, pgtype.UUID) ([]sqlhandler.ListeningHistory, error)
-	getRecentlyPlayedForUserFn   func(context.Context, sqlhandler.GetRecentlyPlayedForUserParams) ([]sqlhandler.ListeningHistory, error)
+	getListeningHistoryForUserFn func(context.Context, sqlhandler.GetListeningHistoryForUserParams) ([]sqlhandler.ListeningHistory, error)
 	getTopMusicForUserFn         func(context.Context, sqlhandler.GetTopMusicForUserParams) ([]sqlhandler.GetTopMusicForUserRow, error)
 }
 
@@ -138,9 +135,9 @@ func (m *mockDB) GetArtistForUser(ctx context.Context, userUuid pgtype.UUID) ([]
 	}
 	return nil, nil
 }
-func (m *mockDB) GetArtistsAlphabetically(ctx context.Context) ([]sqlhandler.Artist, error) {
+func (m *mockDB) GetArtistsAlphabetically(ctx context.Context, arg sqlhandler.GetArtistsAlphabeticallyParams) ([]sqlhandler.Artist, error) {
 	if m.getArtistsAlphabeticallyFn != nil {
-		return m.getArtistsAlphabeticallyFn(ctx)
+		return m.getArtistsAlphabeticallyFn(ctx, arg)
 	}
 	return nil, nil
 }
@@ -198,9 +195,9 @@ func (m *mockDB) GetAlbum(ctx context.Context, uuid pgtype.UUID) (sqlhandler.Alb
 	}
 	return sqlhandler.Album{}, nil
 }
-func (m *mockDB) GetAlbumsForArtist(ctx context.Context, fromArtist pgtype.UUID) ([]sqlhandler.Album, error) {
+func (m *mockDB) GetAlbumsForArtist(ctx context.Context, arg sqlhandler.GetAlbumsForArtistParams) ([]sqlhandler.Album, error) {
 	if m.getAlbumsForArtistFn != nil {
-		return m.getAlbumsForArtistFn(ctx, fromArtist)
+		return m.getAlbumsForArtistFn(ctx, arg)
 	}
 	return nil, nil
 }
@@ -234,21 +231,21 @@ func (m *mockDB) GetMusic(ctx context.Context, uuid pgtype.UUID) (sqlhandler.Mus
 	}
 	return sqlhandler.Music{}, nil
 }
-func (m *mockDB) GetMusicForArtist(ctx context.Context, fromArtist pgtype.UUID) ([]sqlhandler.Music, error) {
+func (m *mockDB) GetMusicForArtist(ctx context.Context, arg sqlhandler.GetMusicForArtistParams) ([]sqlhandler.Music, error) {
 	if m.getMusicForArtistFn != nil {
-		return m.getMusicForArtistFn(ctx, fromArtist)
+		return m.getMusicForArtistFn(ctx, arg)
 	}
 	return nil, nil
 }
-func (m *mockDB) GetMusicForAlbum(ctx context.Context, inAlbum pgtype.UUID) ([]sqlhandler.Music, error) {
+func (m *mockDB) GetMusicForAlbum(ctx context.Context, arg sqlhandler.GetMusicForAlbumParams) ([]sqlhandler.Music, error) {
 	if m.getMusicForAlbumFn != nil {
-		return m.getMusicForAlbumFn(ctx, inAlbum)
+		return m.getMusicForAlbumFn(ctx, arg)
 	}
 	return nil, nil
 }
-func (m *mockDB) GetMusicForUser(ctx context.Context, uploadedBy pgtype.UUID) ([]sqlhandler.Music, error) {
+func (m *mockDB) GetMusicForUser(ctx context.Context, arg sqlhandler.GetMusicForUserParams) ([]sqlhandler.Music, error) {
 	if m.getMusicForUserFn != nil {
-		return m.getMusicForUserFn(ctx, uploadedBy)
+		return m.getMusicForUserFn(ctx, arg)
 	}
 	return nil, nil
 }
@@ -288,15 +285,9 @@ func (m *mockDB) AddListeningHistoryEntry(ctx context.Context, arg sqlhandler.Ad
 	}
 	return nil
 }
-func (m *mockDB) GetLikesForMusic(ctx context.Context, toMusic pgtype.UUID) ([]sqlhandler.PublicUser, error) {
-	if m.getLikesForMusicFn != nil {
-		return m.getLikesForMusicFn(ctx, toMusic)
-	}
-	return nil, nil
-}
-func (m *mockDB) GetLikesForUser(ctx context.Context, fromUser pgtype.UUID) ([]sqlhandler.Music, error) {
+func (m *mockDB) GetLikesForUser(ctx context.Context, arg sqlhandler.GetLikesForUserParams) ([]sqlhandler.Music, error) {
 	if m.getLikesForUserFn != nil {
-		return m.getLikesForUserFn(ctx, fromUser)
+		return m.getLikesForUserFn(ctx, arg)
 	}
 	return nil, nil
 }
@@ -318,27 +309,21 @@ func (m *mockDB) UnlikeMusic(ctx context.Context, arg sqlhandler.UnlikeMusicPara
 	}
 	return nil
 }
-func (m *mockDB) GetFollowersForUser(ctx context.Context, toUser pgtype.UUID) ([]sqlhandler.PublicUser, error) {
+func (m *mockDB) GetFollowersForUser(ctx context.Context, arg sqlhandler.GetFollowersForUserParams) ([]sqlhandler.PublicUser, error) {
 	if m.getFollowersForUserFn != nil {
-		return m.getFollowersForUserFn(ctx, toUser)
+		return m.getFollowersForUserFn(ctx, arg)
 	}
 	return nil, nil
 }
-func (m *mockDB) GetFollowingUsersForUser(ctx context.Context, fromUser pgtype.UUID) ([]sqlhandler.PublicUser, error) {
-	if m.getFollowingUsersForUserFn != nil {
-		return m.getFollowingUsersForUserFn(ctx, fromUser)
+func (m *mockDB) GetFollowsForUser(ctx context.Context, arg sqlhandler.GetFollowsForUserParams) ([]sqlhandler.PublicUser, error) {
+	if m.getFollowsForUserFn != nil {
+		return m.getFollowsForUserFn(ctx, arg)
 	}
 	return nil, nil
 }
-func (m *mockDB) GetFollowingArtistsForUser(ctx context.Context, fromUser pgtype.UUID) ([]sqlhandler.Artist, error) {
-	if m.getFollowingArtistsForUserFn != nil {
-		return m.getFollowingArtistsForUserFn(ctx, fromUser)
-	}
-	return nil, nil
-}
-func (m *mockDB) GetFollowersForArtist(ctx context.Context, toArtist pgtype.UUID) ([]sqlhandler.PublicUser, error) {
+func (m *mockDB) GetFollowersForArtist(ctx context.Context, arg sqlhandler.GetFollowersForArtistParams) ([]sqlhandler.PublicUser, error) {
 	if m.getFollowersForArtistFn != nil {
-		return m.getFollowersForArtistFn(ctx, toArtist)
+		return m.getFollowersForArtistFn(ctx, arg)
 	}
 	return nil, nil
 }
@@ -366,9 +351,9 @@ func (m *mockDB) UnfollowArtist(ctx context.Context, arg sqlhandler.UnfollowArti
 	}
 	return nil
 }
-func (m *mockDB) GetAllTags(ctx context.Context) ([]sqlhandler.MusicTag, error) {
+func (m *mockDB) GetAllTags(ctx context.Context, arg sqlhandler.GetAllTagsParams) ([]sqlhandler.MusicTag, error) {
 	if m.getAllTagsFn != nil {
-		return m.getAllTagsFn(ctx)
+		return m.getAllTagsFn(ctx, arg)
 	}
 	return nil, nil
 }
@@ -378,15 +363,15 @@ func (m *mockDB) GetTag(ctx context.Context, tagName string) (sqlhandler.MusicTa
 	}
 	return sqlhandler.MusicTag{}, nil
 }
-func (m *mockDB) GetMusicForTag(ctx context.Context, tagName string) ([]sqlhandler.Music, error) {
+func (m *mockDB) GetMusicForTag(ctx context.Context, arg sqlhandler.GetMusicForTagParams) ([]sqlhandler.Music, error) {
 	if m.getMusicForTagFn != nil {
-		return m.getMusicForTagFn(ctx, tagName)
+		return m.getMusicForTagFn(ctx, arg)
 	}
 	return nil, nil
 }
-func (m *mockDB) GetTagsForMusic(ctx context.Context, musicUuid pgtype.UUID) ([]sqlhandler.MusicTag, error) {
+func (m *mockDB) GetTagsForMusic(ctx context.Context, arg sqlhandler.GetTagsForMusicParams) ([]sqlhandler.MusicTag, error) {
 	if m.getTagsForMusicFn != nil {
-		return m.getTagsForMusicFn(ctx, musicUuid)
+		return m.getTagsForMusicFn(ctx, arg)
 	}
 	return nil, nil
 }
@@ -414,15 +399,15 @@ func (m *mockDB) GetPlaylist(ctx context.Context, uuid pgtype.UUID) (sqlhandler.
 	}
 	return sqlhandler.Playlist{}, nil
 }
-func (m *mockDB) GetPlaylistsForUser(ctx context.Context, fromUser pgtype.UUID) ([]sqlhandler.Playlist, error) {
+func (m *mockDB) GetPlaylistsForUser(ctx context.Context, arg sqlhandler.GetPlaylistsForUserParams) ([]sqlhandler.Playlist, error) {
 	if m.getPlaylistsForUserFn != nil {
-		return m.getPlaylistsForUserFn(ctx, fromUser)
+		return m.getPlaylistsForUserFn(ctx, arg)
 	}
 	return nil, nil
 }
-func (m *mockDB) GetPlaylistTracks(ctx context.Context, playlistUuid pgtype.UUID) ([]sqlhandler.Music, error) {
+func (m *mockDB) GetPlaylistTracks(ctx context.Context, arg sqlhandler.GetPlaylistTracksParams) ([]sqlhandler.Music, error) {
 	if m.getPlaylistTracksFn != nil {
-		return m.getPlaylistTracksFn(ctx, playlistUuid)
+		return m.getPlaylistTracksFn(ctx, arg)
 	}
 	return nil, nil
 }
@@ -462,15 +447,9 @@ func (m *mockDB) UpdateTrackPosition(ctx context.Context, arg sqlhandler.UpdateT
 	}
 	return nil
 }
-func (m *mockDB) GetListeningHistoryForUser(ctx context.Context, userUuid pgtype.UUID) ([]sqlhandler.ListeningHistory, error) {
+func (m *mockDB) GetListeningHistoryForUser(ctx context.Context, arg sqlhandler.GetListeningHistoryForUserParams) ([]sqlhandler.ListeningHistory, error) {
 	if m.getListeningHistoryForUserFn != nil {
-		return m.getListeningHistoryForUserFn(ctx, userUuid)
-	}
-	return nil, nil
-}
-func (m *mockDB) GetRecentlyPlayedForUser(ctx context.Context, arg sqlhandler.GetRecentlyPlayedForUserParams) ([]sqlhandler.ListeningHistory, error) {
-	if m.getRecentlyPlayedForUserFn != nil {
-		return m.getRecentlyPlayedForUserFn(ctx, arg)
+		return m.getListeningHistoryForUserFn(ctx, arg)
 	}
 	return nil, nil
 }

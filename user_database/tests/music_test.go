@@ -56,7 +56,7 @@ func TestGetMusic_Success(t *testing.T) {
 
 func TestGetMusicForArtist_Success(t *testing.T) {
 	db := &mockDB{
-		getMusicForArtistFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.Music, error) {
+		getMusicForArtistFn: func(_ context.Context, _ sqlhandler.GetMusicForArtistParams) ([]sqlhandler.Music, error) {
 			return []sqlhandler.Music{}, nil
 		},
 	}
@@ -70,7 +70,7 @@ func TestGetMusicForArtist_Success(t *testing.T) {
 
 func TestGetMusicForAlbum_Success(t *testing.T) {
 	db := &mockDB{
-		getMusicForAlbumFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.Music, error) {
+		getMusicForAlbumFn: func(_ context.Context, _ sqlhandler.GetMusicForAlbumParams) ([]sqlhandler.Music, error) {
 			return []sqlhandler.Music{}, nil
 		},
 	}
@@ -84,7 +84,7 @@ func TestGetMusicForAlbum_Success(t *testing.T) {
 
 func TestGetMusicForUser_Success(t *testing.T) {
 	db := &mockDB{
-		getMusicForUserFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.Music, error) {
+		getMusicForUserFn: func(_ context.Context, _ sqlhandler.GetMusicForUserParams) ([]sqlhandler.Music, error) {
 			return []sqlhandler.Music{}, nil
 		},
 	}

@@ -79,7 +79,12 @@ func (h *ArtistHandler) checkArtistAccessWithTarget(w http.ResponseWriter, r *ht
 }
 
 func (h *ArtistHandler) GetArtistsAlphabetically(w http.ResponseWriter, r *http.Request) {
-	artists, err := h.db.GetArtistsAlphabetically(r.Context())
+	limit, cursorName, cursorTS := parsePaginationAlpha(r)
+	artists, err := h.db.GetArtistsAlphabetically(r.Context(), sqlhandler.GetArtistsAlphabeticallyParams{
+		Limit:      limit,
+		ArtistName: cursorName,
+		Column3:    cursorTS,
+	})
 	if err != nil {
 		h.logger.Error("failed to get artists", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get artists", http.StatusInternalServerError)

@@ -56,7 +56,7 @@ func TestGetAlbum_Success(t *testing.T) {
 
 func TestGetAlbumsForArtist_Success(t *testing.T) {
 	db := &mockDB{
-		getAlbumsForArtistFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.Album, error) {
+		getAlbumsForArtistFn: func(_ context.Context, _ sqlhandler.GetAlbumsForArtistParams) ([]sqlhandler.Album, error) {
 			return []sqlhandler.Album{}, nil
 		},
 	}

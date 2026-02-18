@@ -9,7 +9,6 @@ import (
 	"backend/internal/handlers"
 	sqlhandler "backend/sql/sqlc"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +21,7 @@ func newFollowsHandler(db *mockDB) *handlers.FollowsHandler {
 
 func TestGetFollowersForUser_Success(t *testing.T) {
 	db := &mockDB{
-		getFollowersForUserFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.PublicUser, error) {
+		getFollowersForUserFn: func(_ context.Context, _ sqlhandler.GetFollowersForUserParams) ([]sqlhandler.PublicUser, error) {
 			return []sqlhandler.PublicUser{}, nil
 		},
 	}
@@ -43,7 +42,7 @@ func TestGetFollowersForUser_InvalidUUID(t *testing.T) {
 
 func TestGetFollowingUsersForUser_Success(t *testing.T) {
 	db := &mockDB{
-		getFollowingUsersForUserFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.PublicUser, error) {
+		getFollowsForUserFn: func(_ context.Context, _ sqlhandler.GetFollowsForUserParams) ([]sqlhandler.PublicUser, error) {
 			return []sqlhandler.PublicUser{}, nil
 		},
 	}
@@ -60,25 +59,11 @@ func TestGetFollowingUsersForUser_InvalidUUID(t *testing.T) {
 	assertStatus(t, w, http.StatusBadRequest)
 }
 
-// ── GetFollowingArtistsForUser ────────────────────────────────────────────────
-
-func TestGetFollowingArtistsForUser_Success(t *testing.T) {
-	db := &mockDB{
-		getFollowingArtistsForUserFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.Artist, error) {
-			return []sqlhandler.Artist{}, nil
-		},
-	}
-	w := httptest.NewRecorder()
-	r := withVars(newRequest(http.MethodGet, "/users/"+testUserUUID+"/following/artists", nil), map[string]string{"uuid": testUserUUID})
-	newFollowsHandler(db).GetFollowingArtistsForUser(w, r)
-	assertStatus(t, w, http.StatusOK)
-}
-
 // ── GetFollowersForArtist ─────────────────────────────────────────────────────
 
 func TestGetFollowersForArtist_Success(t *testing.T) {
 	db := &mockDB{
-		getFollowersForArtistFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.PublicUser, error) {
+		getFollowersForArtistFn: func(_ context.Context, _ sqlhandler.GetFollowersForArtistParams) ([]sqlhandler.PublicUser, error) {
 			return []sqlhandler.PublicUser{}, nil
 		},
 	}
