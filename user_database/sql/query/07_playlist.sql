@@ -43,6 +43,11 @@ UPDATE playlist_track
 SET position = $2
 WHERE uuid = $1;
 
+-- name: UpdatePlaylistImage :exec
+UPDATE playlist
+SET image_path = $2
+WHERE uuid = $1;
+
 ------ PUT
 -- name: CreatePlaylist :exec
 INSERT INTO playlist (from_user, original_name, description, is_public, image_path)

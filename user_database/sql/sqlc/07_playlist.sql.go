@@ -234,6 +234,22 @@ func (q *Queries) UpdatePlaylist(ctx context.Context, arg UpdatePlaylistParams) 
 	return err
 }
 
+const updatePlaylistImage = `-- name: UpdatePlaylistImage :exec
+UPDATE playlist
+SET image_path = $2
+WHERE uuid = $1
+`
+
+type UpdatePlaylistImageParams struct {
+	Uuid      pgtype.UUID
+	ImagePath pgtype.Text
+}
+
+func (q *Queries) UpdatePlaylistImage(ctx context.Context, arg UpdatePlaylistImageParams) error {
+	_, err := q.db.Exec(ctx, updatePlaylistImage, arg.Uuid, arg.ImagePath)
+	return err
+}
+
 const updateTrackPosition = `-- name: UpdateTrackPosition :exec
 UPDATE playlist_track
 SET position = $2
