@@ -189,7 +189,8 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 type updateEmailRequest struct {
-	Email string `json:"email" validate:"required,email"`
+	OldPassword string `json:"old_password" validate:"required"`
+	Email       string `json:"email" validate:"required,email"`
 }
 
 func (h *UserHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
@@ -200,6 +201,17 @@ func (h *UserHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 
 	body, ok := decodeBody[updateEmailRequest](w, r, h.returns)
 	if !ok {
+		return
+	}
+
+	hashedPassword, err := h.db.GetHashPassword(r.Context(), userUUID)
+	if err != nil {
+		h.returns.ReturnError(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	if !helpers.Verify(body.OldPassword, hashedPassword) {
+		h.returns.ReturnError(w, "invalid password", http.StatusUnauthorized)
 		return
 	}
 

@@ -86,12 +86,6 @@ func userUUIDFromCtx(w http.ResponseWriter, r *http.Request, config *di.Config, 
 	return userUUID, true
 }
 
-var roleWeight = map[sqlhandler.ArtistMemberRole]int{
-	sqlhandler.ArtistMemberRoleMember:  1,
-	sqlhandler.ArtistMemberRoleManager: 2,
-	sqlhandler.ArtistMemberRoleOwner:   3,
-}
-
 // parsePagination reads limit (default 20), cursor_ts, and cursor_id from the
 // request's URL query parameters.
 func parsePagination(r *http.Request) (limit int32, cursorTS pgtype.Timestamptz, cursorID pgtype.UUID) {
@@ -153,6 +147,12 @@ func parsePaginationPos(r *http.Request) (limit int32, cursorPos int32) {
 		}
 	}
 	return
+}
+
+var roleWeight = map[sqlhandler.ArtistMemberRole]int{
+	sqlhandler.ArtistMemberRoleMember:  1,
+	sqlhandler.ArtistMemberRoleManager: 2,
+	sqlhandler.ArtistMemberRoleOwner:   3,
 }
 
 func checkArtistRole(ctx context.Context, q DB, artistUUID pgtype.UUID, userUUID pgtype.UUID, minRole sqlhandler.ArtistMemberRole) bool {

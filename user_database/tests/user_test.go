@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"backend/internal/helpers"
 	"context"
 	"errors"
 	"net/http"
@@ -180,13 +181,58 @@ func TestUpdateEmail_InvalidEmail(t *testing.T) {
 }
 
 func TestUpdateEmail_Success(t *testing.T) {
+	password := "old_password"
+	hashed := helpers.Encode(password)
 	cfg := testConfig()
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), &mockDB{})
+	df := &mockDB{
+		getHashPasswordFn: func(_ context.Context, _ pgtype.UUID) (string, error) {
+			return hashed, nil
+		},
+	}
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), df)
 	w := httptest.NewRecorder()
-	r := newRequest(http.MethodPost, "/users/me/email", map[string]string{"email": "new@example.com"})
+	r := newRequest(http.MethodPost, "/users/me/email", map[string]string{
+		"email":        "new@example.com",
+		"old_password": password,
+	})
 	r = withUserUUID(r, cfg, testUserUUID)
 	h.UpdateEmail(w, r)
 	assertStatus(t, w, http.StatusOK)
+}
+
+func TestUpdateEmail_IncorrectPassword(t *testing.T) {
+	cfg := testConfig()
+	df := &mockDB{
+		getHashPasswordFn: func(_ context.Context, _ pgtype.UUID) (string, error) {
+			return helpers.Encode("random_password"), nil
+		},
+	}
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), df)
+	w := httptest.NewRecorder()
+	r := newRequest(http.MethodPost, "/users/me/email", map[string]string{
+		"email":        "new@example.com",
+		"old_password": "old_password",
+	})
+	r = withUserUUID(r, cfg, testUserUUID)
+	h.UpdateEmail(w, r)
+	assertStatus(t, w, http.StatusUnauthorized)
+}
+
+func TestUpdateEmail_MissingPassword(t *testing.T) {
+	cfg := testConfig()
+	df := &mockDB{
+		getHashPasswordFn: func(_ context.Context, _ pgtype.UUID) (string, error) {
+			return helpers.Encode("random_password"), nil
+		},
+	}
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), df)
+	w := httptest.NewRecorder()
+	r := newRequest(http.MethodPost, "/users/me/email", map[string]string{
+		"email": "new@example.com",
+	})
+	r = withUserUUID(r, cfg, testUserUUID)
+	h.UpdateEmail(w, r)
+	assertStatus(t, w, http.StatusBadRequest)
 }
 
 // ── UpdatePassword ────────────────────────────────────────────────────────────
