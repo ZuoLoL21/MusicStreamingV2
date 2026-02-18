@@ -71,12 +71,13 @@ type DB interface {
 	RemoveTagFromMusic(ctx context.Context, arg sqlhandler.RemoveTagFromMusicParams) error
 
 	GetPlaylist(ctx context.Context, uuid pgtype.UUID) (sqlhandler.Playlist, error)
+	GetPlaylists(ctx context.Context, arg sqlhandler.GetPlaylistsParams) ([]sqlhandler.Playlist, error)
 	GetPlaylistsForUser(ctx context.Context, arg sqlhandler.GetPlaylistsForUserParams) ([]sqlhandler.Playlist, error)
 	GetPlaylistTracks(ctx context.Context, arg sqlhandler.GetPlaylistTracksParams) ([]sqlhandler.Music, error)
 	CreatePlaylist(ctx context.Context, arg sqlhandler.CreatePlaylistParams) error
 	UpdatePlaylist(ctx context.Context, arg sqlhandler.UpdatePlaylistParams) error
 	UpdatePlaylistImage(ctx context.Context, arg sqlhandler.UpdatePlaylistImageParams) error
-	DeletePlaylist(ctx context.Context, uuid pgtype.UUID) error
+	DeletePlaylist(ctx context.Context, uuid sqlhandler.DeletePlaylistParams) error
 	AddTrackToPlaylist(ctx context.Context, arg sqlhandler.AddTrackToPlaylistParams) error
 	RemoveTrackFromPlaylist(ctx context.Context, arg sqlhandler.RemoveTrackFromPlaylistParams) error
 	UpdateTrackPosition(ctx context.Context, arg sqlhandler.UpdateTrackPositionParams) error

@@ -17,6 +17,23 @@ AND (
 ORDER BY updated_at DESC, uuid DESC
 LIMIT $2;
 
+-- name: GetPlaylists :many
+SELECT * FROM playlist
+WHERE (
+    from_user = $1
+    OR is_public = TRUE
+)
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        updated_at < $3
+        OR (updated_at = $3 AND uuid < $4)
+    )
+)
+ORDER BY updated_at DESC, uuid DESC
+    LIMIT $2;
+
+
 -- name: GetPlaylistTracks :many
 SELECT m.*
 FROM playlist_track pt
@@ -33,20 +50,23 @@ LIMIT $2;
 ------ POST
 -- name: UpdatePlaylist :exec
 UPDATE playlist
-SET original_name = $2,
-    description = $3,
-    is_public = $4
-WHERE uuid = $1;
+SET original_name = $3,
+    description = $4,
+    is_public = $5
+WHERE uuid = $2
+AND is_user_allowed_playlist_edit($1, $2);
 
 -- name: UpdateTrackPosition :exec
 UPDATE playlist_track
-SET position = $2
-WHERE uuid = $1;
+SET position = $4
+WHERE uuid = $3
+AND is_user_allowed_playlist_edit($1, $2);
 
 -- name: UpdatePlaylistImage :exec
 UPDATE playlist
-SET image_path = $2
-WHERE uuid = $1;
+SET image_path = $3
+WHERE uuid = $2
+AND is_user_allowed_playlist_edit($1, $2);
 
 ------ PUT
 -- name: CreatePlaylist :exec
@@ -60,8 +80,10 @@ VALUES ($1, $2, $3);
 ------ DELETE
 -- name: RemoveTrackFromPlaylist :exec
 DELETE FROM playlist_track
-WHERE music_uuid = $1 AND playlist_uuid = $2;
+WHERE music_uuid = $3 AND playlist_uuid = $2
+AND is_user_allowed_playlist_edit($1, $2);
 
 -- name: DeletePlaylist :exec
 DELETE FROM playlist
-WHERE uuid = $1;
+WHERE uuid = $2
+AND is_user_allowed_playlist_edit($1, $2);

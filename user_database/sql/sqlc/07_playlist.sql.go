@@ -54,11 +54,17 @@ func (q *Queries) CreatePlaylist(ctx context.Context, arg CreatePlaylistParams) 
 
 const deletePlaylist = `-- name: DeletePlaylist :exec
 DELETE FROM playlist
-WHERE uuid = $1
+WHERE uuid = $2
+AND is_user_allowed_playlist_edit($1, $2)
 `
 
-func (q *Queries) DeletePlaylist(ctx context.Context, uuid pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deletePlaylist, uuid)
+type DeletePlaylistParams struct {
+	UserUuid pgtype.UUID
+	Uuid     pgtype.UUID
+}
+
+func (q *Queries) DeletePlaylist(ctx context.Context, arg DeletePlaylistParams) error {
+	_, err := q.db.Exec(ctx, deletePlaylist, arg.UserUuid, arg.Uuid)
 	return err
 }
 
@@ -137,6 +143,64 @@ func (q *Queries) GetPlaylistTracks(ctx context.Context, arg GetPlaylistTracksPa
 	return items, nil
 }
 
+const getPlaylists = `-- name: GetPlaylists :many
+SELECT uuid, from_user, original_name, description, is_public, image_path, created_at, updated_at FROM playlist
+WHERE (
+    from_user = $1
+    OR is_public = TRUE
+)
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        updated_at < $3
+        OR (updated_at = $3 AND uuid < $4)
+    )
+)
+ORDER BY updated_at DESC, uuid DESC
+    LIMIT $2
+`
+
+type GetPlaylistsParams struct {
+	FromUser pgtype.UUID
+	Limit    int32
+	Column3  pgtype.Timestamptz
+	Uuid     pgtype.UUID
+}
+
+func (q *Queries) GetPlaylists(ctx context.Context, arg GetPlaylistsParams) ([]Playlist, error) {
+	rows, err := q.db.Query(ctx, getPlaylists,
+		arg.FromUser,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Playlist
+	for rows.Next() {
+		var i Playlist
+		if err := rows.Scan(
+			&i.Uuid,
+			&i.FromUser,
+			&i.OriginalName,
+			&i.Description,
+			&i.IsPublic,
+			&i.ImagePath,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPlaylistsForUser = `-- name: GetPlaylistsForUser :many
 SELECT uuid, from_user, original_name, description, is_public, image_path, created_at, updated_at FROM playlist
 WHERE from_user = $1
@@ -194,29 +258,33 @@ func (q *Queries) GetPlaylistsForUser(ctx context.Context, arg GetPlaylistsForUs
 
 const removeTrackFromPlaylist = `-- name: RemoveTrackFromPlaylist :exec
 DELETE FROM playlist_track
-WHERE music_uuid = $1 AND playlist_uuid = $2
+WHERE music_uuid = $3 AND playlist_uuid = $2
+AND is_user_allowed_playlist_edit($1, $2)
 `
 
 type RemoveTrackFromPlaylistParams struct {
-	MusicUuid    pgtype.UUID
+	UserUuid     pgtype.UUID
 	PlaylistUuid pgtype.UUID
+	MusicUuid    pgtype.UUID
 }
 
 // ---- DELETE
 func (q *Queries) RemoveTrackFromPlaylist(ctx context.Context, arg RemoveTrackFromPlaylistParams) error {
-	_, err := q.db.Exec(ctx, removeTrackFromPlaylist, arg.MusicUuid, arg.PlaylistUuid)
+	_, err := q.db.Exec(ctx, removeTrackFromPlaylist, arg.UserUuid, arg.PlaylistUuid, arg.MusicUuid)
 	return err
 }
 
 const updatePlaylist = `-- name: UpdatePlaylist :exec
 UPDATE playlist
-SET original_name = $2,
-    description = $3,
-    is_public = $4
-WHERE uuid = $1
+SET original_name = $3,
+    description = $4,
+    is_public = $5
+WHERE uuid = $2
+AND is_user_allowed_playlist_edit($1, $2)
 `
 
 type UpdatePlaylistParams struct {
+	UserUuid     pgtype.UUID
 	Uuid         pgtype.UUID
 	OriginalName string
 	Description  pgtype.Text
@@ -226,6 +294,7 @@ type UpdatePlaylistParams struct {
 // ---- POST
 func (q *Queries) UpdatePlaylist(ctx context.Context, arg UpdatePlaylistParams) error {
 	_, err := q.db.Exec(ctx, updatePlaylist,
+		arg.UserUuid,
 		arg.Uuid,
 		arg.OriginalName,
 		arg.Description,
@@ -236,32 +305,42 @@ func (q *Queries) UpdatePlaylist(ctx context.Context, arg UpdatePlaylistParams) 
 
 const updatePlaylistImage = `-- name: UpdatePlaylistImage :exec
 UPDATE playlist
-SET image_path = $2
-WHERE uuid = $1
+SET image_path = $3
+WHERE uuid = $2
+AND is_user_allowed_playlist_edit($1, $2)
 `
 
 type UpdatePlaylistImageParams struct {
+	UserUuid  pgtype.UUID
 	Uuid      pgtype.UUID
 	ImagePath pgtype.Text
 }
 
 func (q *Queries) UpdatePlaylistImage(ctx context.Context, arg UpdatePlaylistImageParams) error {
-	_, err := q.db.Exec(ctx, updatePlaylistImage, arg.Uuid, arg.ImagePath)
+	_, err := q.db.Exec(ctx, updatePlaylistImage, arg.UserUuid, arg.Uuid, arg.ImagePath)
 	return err
 }
 
 const updateTrackPosition = `-- name: UpdateTrackPosition :exec
 UPDATE playlist_track
-SET position = $2
-WHERE uuid = $1
+SET position = $4
+WHERE uuid = $3
+AND is_user_allowed_playlist_edit($1, $2)
 `
 
 type UpdateTrackPositionParams struct {
-	Uuid     pgtype.UUID
-	Position int32
+	UserUuid  pgtype.UUID
+	AlbumUuid pgtype.UUID
+	Uuid      pgtype.UUID
+	Position  int32
 }
 
 func (q *Queries) UpdateTrackPosition(ctx context.Context, arg UpdateTrackPositionParams) error {
-	_, err := q.db.Exec(ctx, updateTrackPosition, arg.Uuid, arg.Position)
+	_, err := q.db.Exec(ctx, updateTrackPosition,
+		arg.UserUuid,
+		arg.AlbumUuid,
+		arg.Uuid,
+		arg.Position,
+	)
 	return err
 }
