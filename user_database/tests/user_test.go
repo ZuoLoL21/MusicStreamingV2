@@ -80,6 +80,38 @@ func TestLogin_UserNotFound(t *testing.T) {
 	assertStatus(t, w, http.StatusUnauthorized)
 }
 
+// ── GetMe ─────────────────────────────────────────────────────────────────────
+
+func TestGetMe_Success(t *testing.T) {
+	cfg := testConfig()
+	db := &mockDB{
+		getPublicUserFn: func(_ context.Context, _ pgtype.UUID) (sqlhandler.PublicUser, error) {
+			return sqlhandler.PublicUser{Username: "alice", Email: "alice@example.com"}, nil
+		},
+	}
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), db)
+	w := httptest.NewRecorder()
+	r := newRequest(http.MethodGet, "/users/me", nil)
+	r = withUserUUID(r, cfg, testUserUUID)
+	h.GetMe(w, r)
+	assertStatus(t, w, http.StatusOK)
+}
+
+func TestGetMe_DBError(t *testing.T) {
+	cfg := testConfig()
+	db := &mockDB{
+		getPublicUserFn: func(_ context.Context, _ pgtype.UUID) (sqlhandler.PublicUser, error) {
+			return sqlhandler.PublicUser{}, errDB
+		},
+	}
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), db)
+	w := httptest.NewRecorder()
+	r := newRequest(http.MethodGet, "/users/me", nil)
+	r = withUserUUID(r, cfg, testUserUUID)
+	h.GetMe(w, r)
+	assertStatus(t, w, http.StatusNotFound)
+}
+
 // ── GetPublicUser ─────────────────────────────────────────────────────────────
 
 func TestGetPublicUser_InvalidUUID(t *testing.T) {

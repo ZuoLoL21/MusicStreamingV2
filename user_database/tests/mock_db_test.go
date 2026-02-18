@@ -73,6 +73,7 @@ type mockDB struct {
 	getPlaylistTracksFn          func(context.Context, sqlhandler.GetPlaylistTracksParams) ([]sqlhandler.Music, error)
 	createPlaylistFn             func(context.Context, sqlhandler.CreatePlaylistParams) error
 	updatePlaylistFn             func(context.Context, sqlhandler.UpdatePlaylistParams) error
+	updatePlaylistImageFn        func(context.Context, sqlhandler.UpdatePlaylistImageParams) error
 	deletePlaylistFn             func(context.Context, pgtype.UUID) error
 	addTrackToPlaylistFn         func(context.Context, sqlhandler.AddTrackToPlaylistParams) error
 	removeTrackFromPlaylistFn    func(context.Context, sqlhandler.RemoveTrackFromPlaylistParams) error
@@ -420,6 +421,12 @@ func (m *mockDB) CreatePlaylist(ctx context.Context, arg sqlhandler.CreatePlayli
 func (m *mockDB) UpdatePlaylist(ctx context.Context, arg sqlhandler.UpdatePlaylistParams) error {
 	if m.updatePlaylistFn != nil {
 		return m.updatePlaylistFn(ctx, arg)
+	}
+	return nil
+}
+func (m *mockDB) UpdatePlaylistImage(ctx context.Context, arg sqlhandler.UpdatePlaylistImageParams) error {
+	if m.updatePlaylistImageFn != nil {
+		return m.updatePlaylistImageFn(ctx, arg)
 	}
 	return nil
 }

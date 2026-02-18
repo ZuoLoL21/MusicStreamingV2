@@ -9,6 +9,7 @@ import (
 	"backend/internal/handlers"
 	sqlhandler "backend/sql/sqlc"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
@@ -122,10 +123,39 @@ func TestCreateTag_ValidationFail(t *testing.T) {
 // ── AssignTagToMusic ──────────────────────────────────────────────────────────
 
 func TestAssignTagToMusic_Success(t *testing.T) {
+	cfg := testConfig()
+	db := &mockDB{
+		getMusicFn: func(_ context.Context, _ pgtype.UUID) (sqlhandler.Music, error) {
+			return sqlhandler.Music{FromArtist: mustUUID(testArtistUUID)}, nil
+		},
+		getUsersRepresentingArtistFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.GetUsersRepresentingArtistRow, error) {
+			return []sqlhandler.GetUsersRepresentingArtistRow{{Uuid: mustUUID(testUserUUID), Role: sqlhandler.ArtistMemberRoleMember}}, nil
+		},
+	}
+	h := handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(cfg), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodPost, "/music/"+testMusicUUID+"/tags/jazz", nil), map[string]string{"uuid": testMusicUUID, "name": "jazz"})
-	newTagsHandler(&mockDB{}).AssignTagToMusic(w, r)
+	r = withUserUUID(r, cfg, testUserUUID)
+	h.AssignTagToMusic(w, r)
 	assertStatus(t, w, http.StatusOK)
+}
+
+func TestAssignTagToMusic_Forbidden(t *testing.T) {
+	cfg := testConfig()
+	db := &mockDB{
+		getMusicFn: func(_ context.Context, _ pgtype.UUID) (sqlhandler.Music, error) {
+			return sqlhandler.Music{FromArtist: mustUUID(testArtistUUID)}, nil
+		},
+		getUsersRepresentingArtistFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.GetUsersRepresentingArtistRow, error) {
+			return []sqlhandler.GetUsersRepresentingArtistRow{}, nil
+		},
+	}
+	h := handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	w := httptest.NewRecorder()
+	r := withVars(newRequest(http.MethodPost, "/music/"+testMusicUUID+"/tags/jazz", nil), map[string]string{"uuid": testMusicUUID, "name": "jazz"})
+	r = withUserUUID(r, cfg, testUserUUID)
+	h.AssignTagToMusic(w, r)
+	assertStatus(t, w, http.StatusForbidden)
 }
 
 func TestAssignTagToMusic_InvalidUUID(t *testing.T) {
@@ -138,20 +168,40 @@ func TestAssignTagToMusic_InvalidUUID(t *testing.T) {
 // ── RemoveTagFromMusic ────────────────────────────────────────────────────────
 
 func TestRemoveTagFromMusic_Success(t *testing.T) {
+	cfg := testConfig()
+	db := &mockDB{
+		getMusicFn: func(_ context.Context, _ pgtype.UUID) (sqlhandler.Music, error) {
+			return sqlhandler.Music{FromArtist: mustUUID(testArtistUUID)}, nil
+		},
+		getUsersRepresentingArtistFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.GetUsersRepresentingArtistRow, error) {
+			return []sqlhandler.GetUsersRepresentingArtistRow{{Uuid: mustUUID(testUserUUID), Role: sqlhandler.ArtistMemberRoleMember}}, nil
+		},
+	}
+	h := handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(cfg), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodDelete, "/music/"+testMusicUUID+"/tags/jazz", nil), map[string]string{"uuid": testMusicUUID, "name": "jazz"})
-	newTagsHandler(&mockDB{}).RemoveTagFromMusic(w, r)
+	r = withUserUUID(r, cfg, testUserUUID)
+	h.RemoveTagFromMusic(w, r)
 	assertStatus(t, w, http.StatusOK)
 }
 
 func TestRemoveTagFromMusic_DBError(t *testing.T) {
+	cfg := testConfig()
 	db := &mockDB{
+		getMusicFn: func(_ context.Context, _ pgtype.UUID) (sqlhandler.Music, error) {
+			return sqlhandler.Music{FromArtist: mustUUID(testArtistUUID)}, nil
+		},
+		getUsersRepresentingArtistFn: func(_ context.Context, _ pgtype.UUID) ([]sqlhandler.GetUsersRepresentingArtistRow, error) {
+			return []sqlhandler.GetUsersRepresentingArtistRow{{Uuid: mustUUID(testUserUUID), Role: sqlhandler.ArtistMemberRoleMember}}, nil
+		},
 		removeTagFromMusicFn: func(_ context.Context, _ sqlhandler.RemoveTagFromMusicParams) error {
 			return errDB
 		},
 	}
+	h := handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(cfg), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodDelete, "/music/"+testMusicUUID+"/tags/jazz", nil), map[string]string{"uuid": testMusicUUID, "name": "jazz"})
-	newTagsHandler(db).RemoveTagFromMusic(w, r)
+	r = withUserUUID(r, cfg, testUserUUID)
+	h.RemoveTagFromMusic(w, r)
 	assertStatus(t, w, http.StatusInternalServerError)
 }

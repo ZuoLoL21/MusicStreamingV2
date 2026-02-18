@@ -216,6 +216,62 @@ func TestRemoveTrackFromPlaylist_Success(t *testing.T) {
 	assertStatus(t, w, http.StatusOK)
 }
 
+// ── UpdatePlaylistImage ───────────────────────────────────────────────────────
+
+func TestUpdatePlaylistImage_Success(t *testing.T) {
+	cfg := testConfig()
+	db := &mockDB{
+		getPlaylistFn: func(_ context.Context, _ pgtype.UUID) (sqlhandler.Playlist, error) {
+			return sqlhandler.Playlist{FromUser: mustUUID(testUserUUID)}, nil
+		},
+	}
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	w := httptest.NewRecorder()
+	r := withVars(
+		newRequest(http.MethodPost, "/playlists/"+testPlaylistUUID+"/image", map[string]string{"image_path": "/img/cover.png"}),
+		map[string]string{"uuid": testPlaylistUUID},
+	)
+	r = withUserUUID(r, cfg, testUserUUID)
+	h.UpdatePlaylistImage(w, r)
+	assertStatus(t, w, http.StatusOK)
+}
+
+func TestUpdatePlaylistImage_Forbidden(t *testing.T) {
+	cfg := testConfig()
+	db := &mockDB{
+		getPlaylistFn: func(_ context.Context, _ pgtype.UUID) (sqlhandler.Playlist, error) {
+			return sqlhandler.Playlist{FromUser: mustUUID(testUser2UUID)}, nil
+		},
+	}
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	w := httptest.NewRecorder()
+	r := withVars(
+		newRequest(http.MethodPost, "/playlists/"+testPlaylistUUID+"/image", map[string]string{"image_path": "/img/cover.png"}),
+		map[string]string{"uuid": testPlaylistUUID},
+	)
+	r = withUserUUID(r, cfg, testUserUUID)
+	h.UpdatePlaylistImage(w, r)
+	assertStatus(t, w, http.StatusForbidden)
+}
+
+func TestUpdatePlaylistImage_ValidationFail(t *testing.T) {
+	cfg := testConfig()
+	db := &mockDB{
+		getPlaylistFn: func(_ context.Context, _ pgtype.UUID) (sqlhandler.Playlist, error) {
+			return sqlhandler.Playlist{FromUser: mustUUID(testUserUUID)}, nil
+		},
+	}
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	w := httptest.NewRecorder()
+	r := withVars(
+		newRequest(http.MethodPost, "/playlists/"+testPlaylistUUID+"/image", map[string]string{}),
+		map[string]string{"uuid": testPlaylistUUID},
+	)
+	r = withUserUUID(r, cfg, testUserUUID)
+	h.UpdatePlaylistImage(w, r)
+	assertStatus(t, w, http.StatusBadRequest)
+}
+
 // ── UpdateTrackPosition ───────────────────────────────────────────────────────
 
 func TestUpdateTrackPosition_Success(t *testing.T) {
