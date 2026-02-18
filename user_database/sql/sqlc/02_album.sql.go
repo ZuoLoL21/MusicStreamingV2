@@ -70,18 +70,31 @@ func (q *Queries) GetAlbum(ctx context.Context, uuid pgtype.UUID) (Album, error)
 const getAlbumsForArtist = `-- name: GetAlbumsForArtist :many
 SELECT uuid, from_artist, original_name, description, image_path, created_at, updated_at FROM album
 WHERE from_artist = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        created_at < $3
+        OR (created_at = $3 AND uuid < $4)
+    )
+)
+ORDER BY created_at DESC, uuid DESC
+LIMIT $2
 `
 
 type GetAlbumsForArtistParams struct {
 	FromArtist pgtype.UUID
 	Limit      int32
-	Offset     int32
+	Column3    pgtype.Timestamptz
+	Uuid       pgtype.UUID
 }
 
 func (q *Queries) GetAlbumsForArtist(ctx context.Context, arg GetAlbumsForArtistParams) ([]Album, error) {
-	rows, err := q.db.Query(ctx, getAlbumsForArtist, arg.FromArtist, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAlbumsForArtist,
+		arg.FromArtist,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -7,8 +7,15 @@ WHERE uuid = $1;
 -- name: GetPlaylistsForUser :many
 SELECT * FROM playlist
 WHERE from_user = $1
-ORDER BY updated_at DESC
-LIMIT $2 OFFSET $3;
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        updated_at < $3
+        OR (updated_at = $3 AND uuid < $4)
+    )
+)
+ORDER BY updated_at DESC, uuid DESC
+LIMIT $2;
 
 -- name: GetPlaylistTracks :many
 SELECT m.*

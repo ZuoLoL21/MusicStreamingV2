@@ -78,18 +78,31 @@ func (q *Queries) GetMusic(ctx context.Context, uuid pgtype.UUID) (Music, error)
 const getMusicForAlbum = `-- name: GetMusicForAlbum :many
 SELECT uuid, from_artist, uploaded_by, in_album, song_name, created_at, updated_at, path_in_file_storage, image_path, play_count, duration_seconds FROM music
 WHERE in_album = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        created_at < $3
+        OR (created_at = $3 AND uuid < $4)
+    )
+)
+ORDER BY created_at DESC, uuid DESC
+LIMIT $2
 `
 
 type GetMusicForAlbumParams struct {
 	InAlbum pgtype.UUID
 	Limit   int32
-	Offset  int32
+	Column3 pgtype.Timestamptz
+	Uuid    pgtype.UUID
 }
 
 func (q *Queries) GetMusicForAlbum(ctx context.Context, arg GetMusicForAlbumParams) ([]Music, error) {
-	rows, err := q.db.Query(ctx, getMusicForAlbum, arg.InAlbum, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getMusicForAlbum,
+		arg.InAlbum,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -123,18 +136,31 @@ func (q *Queries) GetMusicForAlbum(ctx context.Context, arg GetMusicForAlbumPara
 const getMusicForArtist = `-- name: GetMusicForArtist :many
 SELECT uuid, from_artist, uploaded_by, in_album, song_name, created_at, updated_at, path_in_file_storage, image_path, play_count, duration_seconds FROM music
 WHERE from_artist = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        created_at < $3
+        OR (created_at = $3 AND uuid < $4)
+    )
+)
+ORDER BY created_at DESC, uuid DESC
+LIMIT $2
 `
 
 type GetMusicForArtistParams struct {
 	FromArtist pgtype.UUID
 	Limit      int32
-	Offset     int32
+	Column3    pgtype.Timestamptz
+	Uuid       pgtype.UUID
 }
 
 func (q *Queries) GetMusicForArtist(ctx context.Context, arg GetMusicForArtistParams) ([]Music, error) {
-	rows, err := q.db.Query(ctx, getMusicForArtist, arg.FromArtist, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getMusicForArtist,
+		arg.FromArtist,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -168,18 +194,31 @@ func (q *Queries) GetMusicForArtist(ctx context.Context, arg GetMusicForArtistPa
 const getMusicForUser = `-- name: GetMusicForUser :many
 SELECT uuid, from_artist, uploaded_by, in_album, song_name, created_at, updated_at, path_in_file_storage, image_path, play_count, duration_seconds FROM music
 WHERE uploaded_by = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        created_at < $3
+        OR (created_at = $3 AND uuid < $4)
+    )
+)
+ORDER BY created_at DESC, uuid DESC
+LIMIT $2
 `
 
 type GetMusicForUserParams struct {
 	UploadedBy pgtype.UUID
 	Limit      int32
-	Offset     int32
+	Column3    pgtype.Timestamptz
+	Uuid       pgtype.UUID
 }
 
 func (q *Queries) GetMusicForUser(ctx context.Context, arg GetMusicForUserParams) ([]Music, error) {
-	rows, err := q.db.Query(ctx, getMusicForUser, arg.UploadedBy, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getMusicForUser,
+		arg.UploadedBy,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
 	if err != nil {
 		return nil, err
 	}

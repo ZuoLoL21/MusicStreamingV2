@@ -2,8 +2,12 @@
 ------ GET
 -- name: GetAllTags :many
 SELECT * FROM music_tags
+WHERE (
+    $2::text IS NULL
+    OR tag_name > $2
+)
 ORDER BY tag_name
-LIMIT $1 OFFSET $2;
+LIMIT $1;
 
 -- name: GetTag :one
 SELECT * FROM music_tags
@@ -15,7 +19,12 @@ FROM tag_assignment ta
 JOIN music_tags mt
     ON ta.tag_name = mt.tag_name
 WHERE ta.music_uuid = $1
-LIMIT $2 OFFSET $3;
+AND (
+    $3::text IS NULL
+    OR mt.tag_name > $3
+)
+ORDER BY mt.tag_name
+LIMIT $2;
 
 -- name: GetMusicForTag :many
 SELECT m.*

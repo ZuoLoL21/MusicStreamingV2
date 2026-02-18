@@ -15,12 +15,22 @@ ORDER BY played_at DESC, uuid DESC
 LIMIT $2;
 
 -- name: GetTopMusicForUser :many
-SELECT music_uuid, COUNT(*) as play_count
-FROM listening_history
-WHERE user_uuid = $1
-GROUP BY music_uuid
-ORDER BY COUNT(*) DESC
-LIMIT $2 OFFSET $3;
+WITH music_plays AS (
+    SELECT music_uuid, COUNT(*) as play_count
+    FROM listening_history
+    WHERE user_uuid = $1
+    GROUP BY music_uuid
+)
+SELECT * FROM music_plays
+WHERE (
+    $3::bigint IS NULL
+    OR (
+        play_count < $3
+        OR (play_count = $3 AND music_uuid < $4)
+    )
+)
+ORDER BY play_count DESC, music_uuid DESC
+LIMIT $2;
 
 ------ PUT
 -- name: AddListeningHistoryEntry :exec

@@ -74,17 +74,31 @@ FROM follows f
 JOIN public_user pu
     ON f.from_user = pu.uuid
 WHERE f.to_artist = $1
-LIMIT $2 OFFSET $3
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        f.created_at < $3
+        OR (f.created_at = $3 AND f.uuid < $4)
+    )
+)
+ORDER BY f.created_at DESC, f.uuid DESC
+LIMIT $2
 `
 
 type GetFollowersForArtistParams struct {
 	ToArtist pgtype.UUID
 	Limit    int32
-	Offset   int32
+	Column3  pgtype.Timestamptz
+	Uuid     pgtype.UUID
 }
 
 func (q *Queries) GetFollowersForArtist(ctx context.Context, arg GetFollowersForArtistParams) ([]PublicUser, error) {
-	rows, err := q.db.Query(ctx, getFollowersForArtist, arg.ToArtist, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getFollowersForArtist,
+		arg.ToArtist,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -117,19 +131,33 @@ FROM follows f
 JOIN public_user pu
     ON f.from_user = pu.uuid
 WHERE f.to_user = $1
-LIMIT $2 OFFSET $3
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        f.created_at < $3
+        OR (f.created_at = $3 AND f.uuid < $4)
+    )
+)
+ORDER BY f.created_at DESC, f.uuid DESC
+LIMIT $2
 `
 
 type GetFollowersForUserParams struct {
-	ToUser pgtype.UUID
-	Limit  int32
-	Offset int32
+	ToUser  pgtype.UUID
+	Limit   int32
+	Column3 pgtype.Timestamptz
+	Uuid    pgtype.UUID
 }
 
 // ------------- Follows -----------------
 // ---- GET
 func (q *Queries) GetFollowersForUser(ctx context.Context, arg GetFollowersForUserParams) ([]PublicUser, error) {
-	rows, err := q.db.Query(ctx, getFollowersForUser, arg.ToUser, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getFollowersForUser,
+		arg.ToUser,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -173,19 +201,33 @@ const getFollowsForUser = `-- name: GetFollowsForUser :many
 SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at
 FROM follows f
 JOIN public_user pu
-    ON f.from_user = pu.uuid
+    ON f.to_user = pu.uuid
 WHERE f.from_user = $1
-LIMIT $2 OFFSET $3
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        f.created_at < $3
+        OR (f.created_at = $3 AND f.uuid < $4)
+    )
+)
+ORDER BY f.created_at DESC, f.uuid DESC
+LIMIT $2
 `
 
 type GetFollowsForUserParams struct {
 	FromUser pgtype.UUID
 	Limit    int32
-	Offset   int32
+	Column3  pgtype.Timestamptz
+	Uuid     pgtype.UUID
 }
 
 func (q *Queries) GetFollowsForUser(ctx context.Context, arg GetFollowsForUserParams) ([]PublicUser, error) {
-	rows, err := q.db.Query(ctx, getFollowsForUser, arg.FromUser, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getFollowsForUser,
+		arg.FromUser,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
 	if err != nil {
 		return nil, err
 	}

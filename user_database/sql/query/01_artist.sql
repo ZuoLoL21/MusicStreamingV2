@@ -10,10 +10,10 @@ WHERE (
     $3::timestamptz IS NULL
     OR (
         artist_name > $2
-        OR (artist_name = $2 AND joined_at > $3)
+        OR (artist_name = $2 AND created_at > $3)
     )
 )
-ORDER BY artist_name, joined_at
+ORDER BY artist_name, created_at
 LIMIT $1;
 
 ------ POST

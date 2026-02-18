@@ -140,18 +140,31 @@ func (q *Queries) GetPlaylistTracks(ctx context.Context, arg GetPlaylistTracksPa
 const getPlaylistsForUser = `-- name: GetPlaylistsForUser :many
 SELECT uuid, from_user, original_name, description, is_public, image_path, created_at, updated_at FROM playlist
 WHERE from_user = $1
-ORDER BY updated_at DESC
-LIMIT $2 OFFSET $3
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        updated_at < $3
+        OR (updated_at = $3 AND uuid < $4)
+    )
+)
+ORDER BY updated_at DESC, uuid DESC
+LIMIT $2
 `
 
 type GetPlaylistsForUserParams struct {
 	FromUser pgtype.UUID
 	Limit    int32
-	Offset   int32
+	Column3  pgtype.Timestamptz
+	Uuid     pgtype.UUID
 }
 
 func (q *Queries) GetPlaylistsForUser(ctx context.Context, arg GetPlaylistsForUserParams) ([]Playlist, error) {
-	rows, err := q.db.Query(ctx, getPlaylistsForUser, arg.FromUser, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getPlaylistsForUser,
+		arg.FromUser,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
 	if err != nil {
 		return nil, err
 	}

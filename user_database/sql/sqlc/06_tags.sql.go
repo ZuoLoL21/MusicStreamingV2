@@ -44,19 +44,23 @@ func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) error {
 
 const getAllTags = `-- name: GetAllTags :many
 SELECT tag_name, tag_description, created_at FROM music_tags
+WHERE (
+    $2::text IS NULL
+    OR tag_name > $2
+)
 ORDER BY tag_name
-LIMIT $1 OFFSET $2
+LIMIT $1
 `
 
 type GetAllTagsParams struct {
-	Limit  int32
-	Offset int32
+	Limit   int32
+	Column2 string
 }
 
 // ------------- Tags -----------------
 // ---- GET
 func (q *Queries) GetAllTags(ctx context.Context, arg GetAllTagsParams) ([]MusicTag, error) {
-	rows, err := q.db.Query(ctx, getAllTags, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAllTags, arg.Limit, arg.Column2)
 	if err != nil {
 		return nil, err
 	}
@@ -154,17 +158,22 @@ FROM tag_assignment ta
 JOIN music_tags mt
     ON ta.tag_name = mt.tag_name
 WHERE ta.music_uuid = $1
-LIMIT $2 OFFSET $3
+AND (
+    $3::text IS NULL
+    OR mt.tag_name > $3
+)
+ORDER BY mt.tag_name
+LIMIT $2
 `
 
 type GetTagsForMusicParams struct {
 	MusicUuid pgtype.UUID
 	Limit     int32
-	Offset    int32
+	Column3   string
 }
 
 func (q *Queries) GetTagsForMusic(ctx context.Context, arg GetTagsForMusicParams) ([]MusicTag, error) {
-	rows, err := q.db.Query(ctx, getTagsForMusic, arg.MusicUuid, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getTagsForMusic, arg.MusicUuid, arg.Limit, arg.Column3)
 	if err != nil {
 		return nil, err
 	}

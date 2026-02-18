@@ -91,18 +91,29 @@ func (q *Queries) GetListeningHistoryForUser(ctx context.Context, arg GetListeni
 }
 
 const getTopMusicForUser = `-- name: GetTopMusicForUser :many
-SELECT music_uuid, COUNT(*) as play_count
-FROM listening_history
-WHERE user_uuid = $1
-GROUP BY music_uuid
-ORDER BY COUNT(*) DESC
-LIMIT $2 OFFSET $3
+WITH music_plays AS (
+    SELECT music_uuid, COUNT(*) as play_count
+    FROM listening_history
+    WHERE user_uuid = $1
+    GROUP BY music_uuid
+)
+SELECT music_uuid, play_count FROM music_plays
+WHERE (
+    $3::bigint IS NULL
+    OR (
+        play_count < $3
+        OR (play_count = $3 AND music_uuid < $4)
+    )
+)
+ORDER BY play_count DESC, music_uuid DESC
+LIMIT $2
 `
 
 type GetTopMusicForUserParams struct {
-	UserUuid pgtype.UUID
-	Limit    int32
-	Offset   int32
+	UserUuid  pgtype.UUID
+	Limit     int32
+	Column3   int64
+	MusicUuid pgtype.UUID
 }
 
 type GetTopMusicForUserRow struct {
@@ -111,7 +122,12 @@ type GetTopMusicForUserRow struct {
 }
 
 func (q *Queries) GetTopMusicForUser(ctx context.Context, arg GetTopMusicForUserParams) ([]GetTopMusicForUserRow, error) {
-	rows, err := q.db.Query(ctx, getTopMusicForUser, arg.UserUuid, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getTopMusicForUser,
+		arg.UserUuid,
+		arg.Limit,
+		arg.Column3,
+		arg.MusicUuid,
+	)
 	if err != nil {
 		return nil, err
 	}

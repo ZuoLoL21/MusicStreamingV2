@@ -6,7 +6,15 @@ FROM follows f
 JOIN public_user pu
     ON f.from_user = pu.uuid
 WHERE f.to_user = $1
-LIMIT $2 OFFSET $3;
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        f.created_at < $3
+        OR (f.created_at = $3 AND f.uuid < $4)
+    )
+)
+ORDER BY f.created_at DESC, f.uuid DESC
+LIMIT $2;
 
 -- name: GetFollowersForArtist :many
 SELECT pu.*
@@ -14,15 +22,31 @@ FROM follows f
 JOIN public_user pu
     ON f.from_user = pu.uuid
 WHERE f.to_artist = $1
-LIMIT $2 OFFSET $3;
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        f.created_at < $3
+        OR (f.created_at = $3 AND f.uuid < $4)
+    )
+)
+ORDER BY f.created_at DESC, f.uuid DESC
+LIMIT $2;
 
 -- name: GetFollowsForUser :many
 SELECT pu.*
 FROM follows f
 JOIN public_user pu
-    ON f.from_user = pu.uuid
+    ON f.to_user = pu.uuid
 WHERE f.from_user = $1
-LIMIT $2 OFFSET $3;
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        f.created_at < $3
+        OR (f.created_at = $3 AND f.uuid < $4)
+    )
+)
+ORDER BY f.created_at DESC, f.uuid DESC
+LIMIT $2;
 
 -- name: GetFollowerCountForUser :one
 SELECT COUNT(*)

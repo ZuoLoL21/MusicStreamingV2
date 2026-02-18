@@ -91,9 +91,10 @@ type Follow struct {
 }
 
 type Like struct {
-	Uuid     pgtype.UUID
-	FromUser pgtype.UUID
-	ToMusic  pgtype.UUID
+	Uuid      pgtype.UUID
+	FromUser  pgtype.UUID
+	ToMusic   pgtype.UUID
+	CreatedAt pgtype.Timestamp
 }
 
 type ListeningHistory struct {

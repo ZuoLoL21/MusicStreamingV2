@@ -7,8 +7,15 @@ WHERE uuid = $1;
 -- name: GetAlbumsForArtist :many
 SELECT * FROM album
 WHERE from_artist = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3;
+AND (
+    $3::timestamptz IS NULL
+    OR (
+        created_at < $3
+        OR (created_at = $3 AND uuid < $4)
+    )
+)
+ORDER BY created_at DESC, uuid DESC
+LIMIT $2;
 
 -- TODO: name: SearchForAlbum :many
 
