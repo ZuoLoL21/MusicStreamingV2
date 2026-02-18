@@ -14,10 +14,10 @@ type AlbumHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	returns *di.ReturnManager
-	db      *sqlhandler.Queries
+	db      DB
 }
 
-func NewAlbumHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sqlhandler.Queries) *AlbumHandler {
+func NewAlbumHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db DB) *AlbumHandler {
 	return &AlbumHandler{
 		logger:  logger,
 		config:  config,

@@ -13,10 +13,10 @@ type FollowsHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	returns *di.ReturnManager
-	db      *sqlhandler.Queries
+	db      DB
 }
 
-func NewFollowsHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sqlhandler.Queries) *FollowsHandler {
+func NewFollowsHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db DB) *FollowsHandler {
 	return &FollowsHandler{
 		logger:  logger,
 		config:  config,

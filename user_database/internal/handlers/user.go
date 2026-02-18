@@ -18,10 +18,10 @@ type UserHandler struct {
 	config  *di.Config
 	secrets *di.SecretsManager
 	returns *di.ReturnManager
-	db      *sqlhandler.Queries
+	db      DB
 }
 
-func NewUserHandler(logger *zap.Logger, config *di.Config, secrets *di.SecretsManager, returns *di.ReturnManager, db *sqlhandler.Queries) *UserHandler {
+func NewUserHandler(logger *zap.Logger, config *di.Config, secrets *di.SecretsManager, returns *di.ReturnManager, db DB) *UserHandler {
 	return &UserHandler{
 		logger:  logger,
 		config:  config,

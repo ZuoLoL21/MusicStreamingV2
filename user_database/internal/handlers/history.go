@@ -14,10 +14,10 @@ type HistoryHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	returns *di.ReturnManager
-	db      *sqlhandler.Queries
+	db      DB
 }
 
-func NewHistoryHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sqlhandler.Queries) *HistoryHandler {
+func NewHistoryHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db DB) *HistoryHandler {
 	return &HistoryHandler{
 		logger:  logger,
 		config:  config,

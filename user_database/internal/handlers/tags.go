@@ -15,10 +15,10 @@ type TagsHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	returns *di.ReturnManager
-	db      *sqlhandler.Queries
+	db      DB
 }
 
-func NewTagsHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sqlhandler.Queries) *TagsHandler {
+func NewTagsHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db DB) *TagsHandler {
 	return &TagsHandler{
 		logger:  logger,
 		config:  config,

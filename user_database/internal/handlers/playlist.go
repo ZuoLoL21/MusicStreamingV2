@@ -14,10 +14,10 @@ type PlaylistHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	returns *di.ReturnManager
-	db      *sqlhandler.Queries
+	db      DB
 }
 
-func NewPlaylistHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sqlhandler.Queries) *PlaylistHandler {
+func NewPlaylistHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db DB) *PlaylistHandler {
 	return &PlaylistHandler{
 		logger:  logger,
 		config:  config,

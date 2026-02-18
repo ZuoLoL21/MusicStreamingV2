@@ -90,7 +90,7 @@ var roleWeight = map[sqlhandler.ArtistMemberRole]int{
 	sqlhandler.ArtistMemberRoleOwner:   3,
 }
 
-func checkArtistRole(ctx context.Context, q *sqlhandler.Queries, artistUUID pgtype.UUID, userUUID pgtype.UUID, minRole sqlhandler.ArtistMemberRole) bool {
+func checkArtistRole(ctx context.Context, q DB, artistUUID pgtype.UUID, userUUID pgtype.UUID, minRole sqlhandler.ArtistMemberRole) bool {
 	members, err := q.GetUsersRepresentingArtist(ctx, artistUUID)
 	if err != nil {
 		return false

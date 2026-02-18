@@ -13,10 +13,10 @@ type LikesHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	returns *di.ReturnManager
-	db      *sqlhandler.Queries
+	db      DB
 }
 
-func NewLikesHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sqlhandler.Queries) *LikesHandler {
+func NewLikesHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db DB) *LikesHandler {
 	return &LikesHandler{
 		logger:  logger,
 		config:  config,
