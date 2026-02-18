@@ -55,6 +55,7 @@ func (a *App) Router() *mux.Router {
 	r.HandleFunc("/renew", userH.Renew).Methods("POST")
 
 	// Users — static /me routes BEFORE /{uuid}
+	r.HandleFunc("/users/me", userH.GetMe).Methods("GET")
 	r.HandleFunc("/users/me", userH.UpdateProfile).Methods("POST")
 	r.HandleFunc("/users/me/email", userH.UpdateEmail).Methods("POST")
 	r.HandleFunc("/users/me/password", userH.UpdatePassword).Methods("POST")
@@ -118,6 +119,7 @@ func (a *App) Router() *mux.Router {
 	r.HandleFunc("/playlists", playlistH.CreatePlaylist).Methods("PUT")
 	r.HandleFunc("/playlists/{uuid}", playlistH.GetPlaylist).Methods("GET")
 	r.HandleFunc("/playlists/{uuid}", playlistH.UpdatePlaylist).Methods("POST")
+	r.HandleFunc("/playlists/{uuid}/image", playlistH.UpdatePlaylistImage).Methods("POST")
 	r.HandleFunc("/playlists/{uuid}", playlistH.DeletePlaylist).Methods("DELETE")
 	r.HandleFunc("/playlists/{uuid}/tracks", playlistH.GetPlaylistTracks).Methods("GET")
 	r.HandleFunc("/playlists/{uuid}/tracks/{musicUuid}", playlistH.AddTrackToPlaylist).Methods("PUT")

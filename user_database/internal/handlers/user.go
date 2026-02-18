@@ -123,6 +123,21 @@ func (h *UserHandler) Renew(w http.ResponseWriter, r *http.Request) {
 	h.returns.ReturnJSON(w, map[string]string{"access_token": access}, http.StatusOK)
 }
 
+func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	if !ok {
+		return
+	}
+
+	user, err := h.db.GetPublicUser(r.Context(), userUUID)
+	if err != nil {
+		h.returns.ReturnError(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	h.returns.ReturnJSON(w, user, http.StatusOK)
+}
+
 func (h *UserHandler) GetPublicUser(w http.ResponseWriter, r *http.Request) {
 	userUUID, ok := parseUUID(r, "uuid")
 	if !ok {
