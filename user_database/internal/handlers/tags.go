@@ -123,10 +123,36 @@ func (h *TagsHandler) CreateTag(w http.ResponseWriter, r *http.Request) {
 	h.returns.ReturnText(w, "tag created", http.StatusCreated)
 }
 
-func (h *TagsHandler) AssignTagToMusic(w http.ResponseWriter, r *http.Request) {
-	musicUUID, ok := parseUUID(r, "uuid")
+func (h *TagsHandler) checkTagMusicAccess(w http.ResponseWriter, r *http.Request) (musicUUID pgtype.UUID, ok bool) {
+	musicUUID, ok = parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
+		return
+	}
+
+	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	if !ok {
+		return
+	}
+
+	music, err := h.db.GetMusic(r.Context(), musicUUID)
+	if err != nil {
+		h.returns.ReturnError(w, "music not found", http.StatusNotFound)
+		ok = false
+		return
+	}
+
+	if !checkArtistRole(r.Context(), h.db, music.FromArtist, userUUID, sqlhandler.ArtistMemberRoleMember) {
+		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
+		ok = false
+	}
+
+	return
+}
+
+func (h *TagsHandler) AssignTagToMusic(w http.ResponseWriter, r *http.Request) {
+	musicUUID, ok := h.checkTagMusicAccess(w, r)
+	if !ok {
 		return
 	}
 
@@ -145,9 +171,8 @@ func (h *TagsHandler) AssignTagToMusic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TagsHandler) RemoveTagFromMusic(w http.ResponseWriter, r *http.Request) {
-	musicUUID, ok := parseUUID(r, "uuid")
+	musicUUID, ok := h.checkTagMusicAccess(w, r)
 	if !ok {
-		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
 		return
 	}
 
