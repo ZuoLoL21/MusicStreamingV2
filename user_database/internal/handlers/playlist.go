@@ -279,6 +279,33 @@ func (h *PlaylistHandler) RemoveTrackFromPlaylist(w http.ResponseWriter, r *http
 	h.returns.ReturnText(w, "track removed from playlist", http.StatusOK)
 }
 
+type updatePlaylistImageRequest struct {
+	ImagePath string `json:"image_path" validate:"required"`
+}
+
+func (h *PlaylistHandler) UpdatePlaylistImage(w http.ResponseWriter, r *http.Request) {
+	playlistUUID, ok := h.checkPlaylistOwnership(w, r)
+	if !ok {
+		return
+	}
+
+	body, ok := decodeBody[updatePlaylistImageRequest](w, r, h.returns)
+	if !ok {
+		return
+	}
+
+	if err := h.db.UpdatePlaylistImage(r.Context(), sqlhandler.UpdatePlaylistImageParams{
+		Uuid:      playlistUUID,
+		ImagePath: pgtype.Text{String: body.ImagePath, Valid: true},
+	}); err != nil {
+		h.logger.Error("failed to update playlist image", zap.Error(err))
+		h.returns.ReturnError(w, "failed to update playlist image", http.StatusInternalServerError)
+		return
+	}
+
+	h.returns.ReturnText(w, "playlist image updated", http.StatusOK)
+}
+
 type updateTrackPositionRequest struct {
 	Position int32 `json:"position" validate:"gte=0"`
 }

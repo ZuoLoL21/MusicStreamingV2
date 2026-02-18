@@ -75,6 +75,7 @@ type DB interface {
 	GetPlaylistTracks(ctx context.Context, arg sqlhandler.GetPlaylistTracksParams) ([]sqlhandler.Music, error)
 	CreatePlaylist(ctx context.Context, arg sqlhandler.CreatePlaylistParams) error
 	UpdatePlaylist(ctx context.Context, arg sqlhandler.UpdatePlaylistParams) error
+	UpdatePlaylistImage(ctx context.Context, arg sqlhandler.UpdatePlaylistImageParams) error
 	DeletePlaylist(ctx context.Context, uuid pgtype.UUID) error
 	AddTrackToPlaylist(ctx context.Context, arg sqlhandler.AddTrackToPlaylistParams) error
 	RemoveTrackFromPlaylist(ctx context.Context, arg sqlhandler.RemoveTrackFromPlaylistParams) error
