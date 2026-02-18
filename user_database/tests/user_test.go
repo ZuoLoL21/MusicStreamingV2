@@ -255,6 +255,24 @@ func TestUpdatePassword_UserNotFound(t *testing.T) {
 	assertStatus(t, w, http.StatusNotFound)
 }
 
+func TestUpdatePassword_Success(t *testing.T) {
+	cfg := testConfig()
+	df := &mockDB{
+		getHashPasswordFn: func(_ context.Context, _ pgtype.UUID) (string, error) {
+			return helpers.Encode("old12345678"), nil
+		},
+	}
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), df)
+	w := httptest.NewRecorder()
+	r := newRequest(http.MethodPost, "/users/me/password", map[string]string{
+		"old_password": "old12345678",
+		"new_password": "new12345678",
+	})
+	r = withUserUUID(r, cfg, testUserUUID)
+	h.UpdatePassword(w, r)
+	assertStatus(t, w, http.StatusOK)
+}
+
 // ── UpdateImage ───────────────────────────────────────────────────────────────
 
 func TestUpdateImage_Success(t *testing.T) {
