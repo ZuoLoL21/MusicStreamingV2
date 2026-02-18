@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type contextKey string
+type ContextKey string
 
 type Config struct {
 	Provider             string
@@ -19,8 +19,8 @@ type Config struct {
 	JWTExpirationNormal  time.Duration
 	SubjectRefresh       string
 	JWTExpirationRefresh time.Duration
-	UserUUIDKey          contextKey
-	RequestIDKey         contextKey
+	UserUUIDKey          ContextKey
+	RequestIDKey         ContextKey
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -51,7 +51,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 		JWTExpirationNormal:  time.Minute * time.Duration(normalTime),
 		SubjectRefresh:       os.Getenv("SUBJECT_REFRESH"),
 		JWTExpirationRefresh: time.Hour * 24 * time.Duration(refreshTime),
-		UserUUIDKey:          contextKey("userUuid"),
-		RequestIDKey:         contextKey("requestId"),
+		UserUUIDKey:          ContextKey("userUuid"),
+		RequestIDKey:         ContextKey("requestId"),
 	}
 }
