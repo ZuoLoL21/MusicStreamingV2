@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"backend/internal/di"
-	sql_handler "backend/sql/sqlc"
+	sqlhandler "backend/sql/sqlc"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
@@ -14,10 +14,10 @@ type MusicHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	returns *di.ReturnManager
-	db      *sql_handler.Queries
+	db      *sqlhandler.Queries
 }
 
-func NewMusicHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sql_handler.Queries) *MusicHandler {
+func NewMusicHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sqlhandler.Queries) *MusicHandler {
 	return &MusicHandler{
 		logger:  logger,
 		config:  config,
@@ -28,7 +28,7 @@ func NewMusicHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnMa
 
 // checkMusicAccess parses the music UUID from the route, fetches the track to
 // resolve its artist, and verifies the calling user has at least the given role.
-func (h *MusicHandler) checkMusicAccess(w http.ResponseWriter, r *http.Request, role sql_handler.ArtistMemberRole) (musicUUID pgtype.UUID, ok bool) {
+func (h *MusicHandler) checkMusicAccess(w http.ResponseWriter, r *http.Request, role sqlhandler.ArtistMemberRole) (musicUUID pgtype.UUID, ok bool) {
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -147,7 +147,7 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !checkArtistRole(r.Context(), h.db, artistUUID, userUUID, sql_handler.ArtistMemberRoleMember) {
+	if !checkArtistRole(r.Context(), h.db, artistUUID, userUUID, sqlhandler.ArtistMemberRoleMember) {
 		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -160,7 +160,7 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := h.db.CreateMusic(r.Context(), sql_handler.CreateMusicParams{
+	if err := h.db.CreateMusic(r.Context(), sqlhandler.CreateMusicParams{
 		FromArtist:        artistUUID,
 		UploadedBy:        userUUID,
 		InAlbum:           inAlbum,
@@ -182,7 +182,7 @@ type updateMusicDetailsRequest struct {
 }
 
 func (h *MusicHandler) UpdateMusicDetails(w http.ResponseWriter, r *http.Request) {
-	musicUUID, ok := h.checkMusicAccess(w, r, sql_handler.ArtistMemberRoleManager)
+	musicUUID, ok := h.checkMusicAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
 		return
 	}
@@ -200,7 +200,7 @@ func (h *MusicHandler) UpdateMusicDetails(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	if err := h.db.UpdateMusicDetails(r.Context(), sql_handler.UpdateMusicDetailsParams{
+	if err := h.db.UpdateMusicDetails(r.Context(), sqlhandler.UpdateMusicDetailsParams{
 		Uuid:     musicUUID,
 		SongName: body.SongName,
 		InAlbum:  inAlbum,
@@ -219,7 +219,7 @@ type updateMusicStorageRequest struct {
 }
 
 func (h *MusicHandler) UpdateMusicStorage(w http.ResponseWriter, r *http.Request) {
-	musicUUID, ok := h.checkMusicAccess(w, r, sql_handler.ArtistMemberRoleManager)
+	musicUUID, ok := h.checkMusicAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
 		return
 	}
@@ -229,7 +229,7 @@ func (h *MusicHandler) UpdateMusicStorage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := h.db.UpdateMusicStorage(r.Context(), sql_handler.UpdateMusicStorageParams{
+	if err := h.db.UpdateMusicStorage(r.Context(), sqlhandler.UpdateMusicStorageParams{
 		Uuid:              musicUUID,
 		PathInFileStorage: body.PathInFileStorage,
 		DurationSeconds:   body.DurationSeconds,
@@ -243,7 +243,7 @@ func (h *MusicHandler) UpdateMusicStorage(w http.ResponseWriter, r *http.Request
 }
 
 func (h *MusicHandler) DeleteMusic(w http.ResponseWriter, r *http.Request) {
-	musicUUID, ok := h.checkMusicAccess(w, r, sql_handler.ArtistMemberRoleOwner)
+	musicUUID, ok := h.checkMusicAccess(w, r, sqlhandler.ArtistMemberRoleOwner)
 	if !ok {
 		return
 	}
@@ -305,7 +305,7 @@ func (h *MusicHandler) AddListeningHistoryEntry(w http.ResponseWriter, r *http.R
 		_ = completion.Scan(*body.CompletionPercentage)
 	}
 
-	if err := h.db.AddListeningHistoryEntry(r.Context(), sql_handler.AddListeningHistoryEntryParams{
+	if err := h.db.AddListeningHistoryEntry(r.Context(), sqlhandler.AddListeningHistoryEntryParams{
 		UserUuid:              userUUID,
 		MusicUuid:             musicUUID,
 		ListenDurationSeconds: duration,
