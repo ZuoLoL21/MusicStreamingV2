@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var possibleStorages = []string{"default", "music", "music_pictures", "profile_pictures"}
+var PossibleStorages = []string{"default", "music", "music_pictures", "profile_pictures"}
 
 type LocalStorageManager struct {
 	config *Config
@@ -30,7 +30,7 @@ func (h *LocalStorageManager) InitStorage() {
 
 	slogger.Infof("Data location set to %v", h.config.StorageLocation)
 
-	for _, storage := range possibleStorages {
+	for _, storage := range PossibleStorages {
 		directory, _ := h.GetDataFolder(storage)
 		err := os.MkdirAll(directory, 0o755)
 		if err != nil {
@@ -44,7 +44,7 @@ func (h *LocalStorageManager) InitStorage() {
 }
 
 func (h *LocalStorageManager) GetDataFolder(name string) (string, error) {
-	if !slices.Contains(possibleStorages, name) {
+	if !slices.Contains(PossibleStorages, name) {
 		return "", errors.New("invalid storage name")
 	}
 	return filepath.Join(h.config.StorageLocation, name), nil
