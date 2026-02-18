@@ -1,0 +1,303 @@
+package handlers
+
+import (
+	"net/http"
+
+	"backend/internal/di"
+	sqlhandler "backend/sql/sqlc"
+
+	"github.com/jackc/pgx/v5/pgtype"
+	"go.uber.org/zap"
+)
+
+type PlaylistHandler struct {
+	logger  *zap.Logger
+	config  *di.Config
+	returns *di.ReturnManager
+	db      *sqlhandler.Queries
+}
+
+func NewPlaylistHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db *sqlhandler.Queries) *PlaylistHandler {
+	return &PlaylistHandler{
+		logger:  logger,
+		config:  config,
+		returns: returns,
+		db:      db,
+	}
+}
+
+// checkPlaylistOwnership parses the playlist UUID from the route, fetches the
+// playlist, and verifies the calling user is its owner.
+func (h *PlaylistHandler) checkPlaylistOwnership(w http.ResponseWriter, r *http.Request) (playlistUUID pgtype.UUID, ok bool) {
+	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	if !ok {
+		return
+	}
+
+	playlistUUID, ok = parseUUID(r, "uuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
+		return
+	}
+
+	playlist, err := h.db.GetPlaylist(r.Context(), playlistUUID)
+	if err != nil {
+		h.returns.ReturnError(w, "playlist not found", http.StatusNotFound)
+		ok = false
+		return
+	}
+
+	if playlist.FromUser.Bytes != userUUID.Bytes {
+		h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
+		ok = false
+	}
+
+	return
+}
+
+func (h *PlaylistHandler) GetPlaylist(w http.ResponseWriter, r *http.Request) {
+	playlistUUID, ok := parseUUID(r, "uuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
+		return
+	}
+
+	playlist, err := h.db.GetPlaylist(r.Context(), playlistUUID)
+	if err != nil {
+		h.returns.ReturnError(w, "playlist not found", http.StatusNotFound)
+		return
+	}
+
+	h.returns.ReturnJSON(w, playlist, http.StatusOK)
+}
+
+func (h *PlaylistHandler) GetPlaylistsForUser(w http.ResponseWriter, r *http.Request) {
+	userUUID, ok := parseUUID(r, "uuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
+		return
+	}
+
+	playlists, err := h.db.GetPlaylistsForUser(r.Context(), userUUID)
+	if err != nil {
+		h.logger.Error("failed to get playlists for user", zap.Error(err))
+		h.returns.ReturnError(w, "failed to get playlists", http.StatusInternalServerError)
+		return
+	}
+
+	h.returns.ReturnJSON(w, playlists, http.StatusOK)
+}
+
+func (h *PlaylistHandler) GetPlaylistTracks(w http.ResponseWriter, r *http.Request) {
+	playlistUUID, ok := parseUUID(r, "uuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
+		return
+	}
+
+	tracks, err := h.db.GetPlaylistTracks(r.Context(), playlistUUID)
+	if err != nil {
+		h.logger.Error("failed to get playlist tracks", zap.Error(err))
+		h.returns.ReturnError(w, "failed to get playlist tracks", http.StatusInternalServerError)
+		return
+	}
+
+	h.returns.ReturnJSON(w, tracks, http.StatusOK)
+}
+
+type createPlaylistRequest struct {
+	OriginalName string  `json:"original_name" validate:"required,max=255"`
+	Description  *string `json:"description"`
+	IsPublic     *bool   `json:"is_public"`
+	ImagePath    *string `json:"image_path"`
+}
+
+func (h *PlaylistHandler) CreatePlaylist(w http.ResponseWriter, r *http.Request) {
+	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	if !ok {
+		return
+	}
+
+	body, ok := decodeBody[createPlaylistRequest](w, r, h.returns)
+	if !ok {
+		return
+	}
+
+	var description pgtype.Text
+	if body.Description != nil {
+		description = pgtype.Text{String: *body.Description, Valid: true}
+	}
+
+	var isPublic pgtype.Bool
+	if body.IsPublic != nil {
+		isPublic = pgtype.Bool{Bool: *body.IsPublic, Valid: true}
+	}
+
+	var imagePath pgtype.Text
+	if body.ImagePath != nil {
+		imagePath = pgtype.Text{String: *body.ImagePath, Valid: true}
+	}
+
+	if err := h.db.CreatePlaylist(r.Context(), sqlhandler.CreatePlaylistParams{
+		FromUser:     userUUID,
+		OriginalName: body.OriginalName,
+		Description:  description,
+		IsPublic:     isPublic,
+		ImagePath:    imagePath,
+	}); err != nil {
+		h.logger.Error("failed to create playlist", zap.Error(err))
+		h.returns.ReturnError(w, "failed to create playlist", http.StatusInternalServerError)
+		return
+	}
+
+	h.returns.ReturnText(w, "playlist created", http.StatusCreated)
+}
+
+type updatePlaylistRequest struct {
+	OriginalName string  `json:"original_name" validate:"required,max=255"`
+	Description  *string `json:"description"`
+	IsPublic     *bool   `json:"is_public"`
+}
+
+func (h *PlaylistHandler) UpdatePlaylist(w http.ResponseWriter, r *http.Request) {
+	playlistUUID, ok := h.checkPlaylistOwnership(w, r)
+	if !ok {
+		return
+	}
+
+	body, ok := decodeBody[updatePlaylistRequest](w, r, h.returns)
+	if !ok {
+		return
+	}
+
+	var description pgtype.Text
+	if body.Description != nil {
+		description = pgtype.Text{String: *body.Description, Valid: true}
+	}
+
+	var isPublic pgtype.Bool
+	if body.IsPublic != nil {
+		isPublic = pgtype.Bool{Bool: *body.IsPublic, Valid: true}
+	}
+
+	if err := h.db.UpdatePlaylist(r.Context(), sqlhandler.UpdatePlaylistParams{
+		Uuid:         playlistUUID,
+		OriginalName: body.OriginalName,
+		Description:  description,
+		IsPublic:     isPublic,
+	}); err != nil {
+		h.logger.Error("failed to update playlist", zap.Error(err))
+		h.returns.ReturnError(w, "failed to update playlist", http.StatusInternalServerError)
+		return
+	}
+
+	h.returns.ReturnText(w, "playlist updated", http.StatusOK)
+}
+
+func (h *PlaylistHandler) DeletePlaylist(w http.ResponseWriter, r *http.Request) {
+	playlistUUID, ok := h.checkPlaylistOwnership(w, r)
+	if !ok {
+		return
+	}
+
+	if err := h.db.DeletePlaylist(r.Context(), playlistUUID); err != nil {
+		h.logger.Error("failed to delete playlist", zap.Error(err))
+		h.returns.ReturnError(w, "failed to delete playlist", http.StatusInternalServerError)
+		return
+	}
+
+	h.returns.ReturnText(w, "playlist deleted", http.StatusOK)
+}
+
+type addTrackRequest struct {
+	Position int32 `json:"position" validate:"gte=0"`
+}
+
+func (h *PlaylistHandler) AddTrackToPlaylist(w http.ResponseWriter, r *http.Request) {
+	playlistUUID, ok := h.checkPlaylistOwnership(w, r)
+	if !ok {
+		return
+	}
+
+	musicUUID, ok := parseUUID(r, "musicUuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid music uuid", http.StatusBadRequest)
+		return
+	}
+
+	body, ok := decodeBody[addTrackRequest](w, r, h.returns)
+	if !ok {
+		return
+	}
+
+	if err := h.db.AddTrackToPlaylist(r.Context(), sqlhandler.AddTrackToPlaylistParams{
+		MusicUuid:    musicUUID,
+		Position:     body.Position,
+		PlaylistUuid: playlistUUID,
+	}); err != nil {
+		h.logger.Error("failed to add track to playlist", zap.Error(err))
+		h.returns.ReturnError(w, "failed to add track to playlist", http.StatusInternalServerError)
+		return
+	}
+
+	h.returns.ReturnText(w, "track added to playlist", http.StatusCreated)
+}
+
+func (h *PlaylistHandler) RemoveTrackFromPlaylist(w http.ResponseWriter, r *http.Request) {
+	playlistUUID, ok := h.checkPlaylistOwnership(w, r)
+	if !ok {
+		return
+	}
+
+	// musicUuid path param refers to the music UUID (matches query's music_uuid param)
+	musicUUID, ok := parseUUID(r, "musicUuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid music uuid", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.db.RemoveTrackFromPlaylist(r.Context(), sqlhandler.RemoveTrackFromPlaylistParams{
+		MusicUuid:    musicUUID,
+		PlaylistUuid: playlistUUID,
+	}); err != nil {
+		h.logger.Error("failed to remove track from playlist", zap.Error(err))
+		h.returns.ReturnError(w, "failed to remove track from playlist", http.StatusInternalServerError)
+		return
+	}
+
+	h.returns.ReturnText(w, "track removed from playlist", http.StatusOK)
+}
+
+type updateTrackPositionRequest struct {
+	Position int32 `json:"position" validate:"gte=0"`
+}
+
+func (h *PlaylistHandler) UpdateTrackPosition(w http.ResponseWriter, r *http.Request) {
+	_, ok := h.checkPlaylistOwnership(w, r)
+	if !ok {
+		return
+	}
+
+	// trackUuid is the playlist_track row UUID
+	trackUUID, ok := parseUUID(r, "trackUuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid track uuid", http.StatusBadRequest)
+		return
+	}
+
+	body, ok := decodeBody[updateTrackPositionRequest](w, r, h.returns)
+	if !ok {
+		return
+	}
+
+	if err := h.db.UpdateTrackPosition(r.Context(), sqlhandler.UpdateTrackPositionParams{
+		Uuid:     trackUUID,
+		Position: body.Position,
+	}); err != nil {
+		h.logger.Error("failed to update track position", zap.Error(err))
+		h.returns.ReturnError(w, "failed to update track position", http.StatusInternalServerError)
+		return
+	}
+
+	h.returns.ReturnText(w, "track position updated", http.StatusOK)
+}
