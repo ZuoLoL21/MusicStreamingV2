@@ -1,17 +1,15 @@
 package handlers
 
 import (
-	"context"
+	"backend/internal/di"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
 
-	sql_handler "backend/sql/sqlc"
-
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -27,6 +25,19 @@ func init() {
 		}
 		return name
 	})
+}
+
+func decodeBody[T any](w http.ResponseWriter, r *http.Request, returns *di.ReturnManager) (T, bool) {
+	var body T
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		returns.ReturnError(w, "invalid request body", http.StatusBadRequest)
+		return body, false
+	}
+	if err := validateBody(&body); err != nil {
+		returns.ReturnError(w, err.Error(), http.StatusBadRequest)
+		return body, false
+	}
+	return body, true
 }
 
 func validateBody(body any) error {
@@ -59,4 +70,14 @@ func uuidToPgtype(uuidStr string) (pgtype.UUID, error) {
 		return pgtype.UUID{}, err
 	}
 	return id, nil
+}
+
+func userUUIDFromCtx(w http.ResponseWriter, r *http.Request, config *di.Config, returns *di.ReturnManager) (pgtype.UUID, bool) {
+	uuidStr, _ := r.Context().Value(config.UserUUIDKey).(string)
+	userUUID, err := uuidToPgtype(uuidStr)
+	if err != nil {
+		returns.ReturnError(w, "invalid user uuid", http.StatusInternalServerError)
+		return pgtype.UUID{}, false
+	}
+	return userUUID, true
 }

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -53,13 +52,8 @@ type registerRequest struct {
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var body registerRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		h.returns.ReturnError(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-	if err := validateBody(&body); err != nil {
-		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
+	body, ok := decodeBody[registerRequest](w, r, h.returns)
+	if !ok {
 		return
 	}
 
@@ -102,13 +96,8 @@ type loginRequest struct {
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var body loginRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		h.returns.ReturnError(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-	if err := validateBody(&body); err != nil {
-		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
+	body, ok := decodeBody[loginRequest](w, r, h.returns)
+	if !ok {
 		return
 	}
 
@@ -156,20 +145,13 @@ type updateProfileRequest struct {
 }
 
 func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	uuidStr := r.Context().Value(h.config.UserUUIDKey).(string)
-	userUUID, err := uuidToPgtype(uuidStr)
-	if err != nil {
-		h.returns.ReturnError(w, "invalid user uuid", http.StatusInternalServerError)
+	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	if !ok {
 		return
 	}
 
-	var body updateProfileRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		h.returns.ReturnError(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-	if err := validateBody(&body); err != nil {
-		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
+	body, ok := decodeBody[updateProfileRequest](w, r, h.returns)
+	if !ok {
 		return
 	}
 
@@ -196,20 +178,13 @@ type updateEmailRequest struct {
 }
 
 func (h *UserHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
-	uuidStr := r.Context().Value(h.config.UserUUIDKey).(string)
-	userUUID, err := uuidToPgtype(uuidStr)
-	if err != nil {
-		h.returns.ReturnError(w, "invalid user uuid", http.StatusInternalServerError)
+	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	if !ok {
 		return
 	}
 
-	var body updateEmailRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		h.returns.ReturnError(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-	if err := validateBody(&body); err != nil {
-		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
+	body, ok := decodeBody[updateEmailRequest](w, r, h.returns)
+	if !ok {
 		return
 	}
 
@@ -231,20 +206,13 @@ type updatePasswordRequest struct {
 }
 
 func (h *UserHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
-	uuidStr := r.Context().Value(h.config.UserUUIDKey).(string)
-	userUUID, err := uuidToPgtype(uuidStr)
-	if err != nil {
-		h.returns.ReturnError(w, "invalid user uuid", http.StatusInternalServerError)
+	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	if !ok {
 		return
 	}
 
-	var body updatePasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		h.returns.ReturnError(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-	if err := validateBody(&body); err != nil {
-		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
+	body, ok := decodeBody[updatePasswordRequest](w, r, h.returns)
+	if !ok {
 		return
 	}
 
@@ -277,20 +245,13 @@ type updateImageRequest struct {
 }
 
 func (h *UserHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
-	uuidStr := r.Context().Value(h.config.UserUUIDKey).(string)
-	userUUID, err := uuidToPgtype(uuidStr)
-	if err != nil {
-		h.returns.ReturnError(w, "invalid user uuid", http.StatusInternalServerError)
+	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	if !ok {
 		return
 	}
 
-	var body updateImageRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		h.returns.ReturnError(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-	if err := validateBody(&body); err != nil {
-		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
+	body, ok := decodeBody[updateImageRequest](w, r, h.returns)
+	if !ok {
 		return
 	}
 
