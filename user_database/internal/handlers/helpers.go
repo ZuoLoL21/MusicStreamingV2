@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"backend/internal/di"
+	sqlhandler "backend/sql/sqlc"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -80,4 +82,23 @@ func userUUIDFromCtx(w http.ResponseWriter, r *http.Request, config *di.Config, 
 		return pgtype.UUID{}, false
 	}
 	return userUUID, true
+}
+
+var roleWeight = map[sqlhandler.ArtistMemberRole]int{
+	sqlhandler.ArtistMemberRoleMember:  1,
+	sqlhandler.ArtistMemberRoleManager: 2,
+	sqlhandler.ArtistMemberRoleOwner:   3,
+}
+
+func checkArtistRole(ctx context.Context, q *sqlhandler.Queries, artistUUID pgtype.UUID, userUUID pgtype.UUID, minRole sqlhandler.ArtistMemberRole) bool {
+	members, err := q.GetUsersRepresentingArtist(ctx, artistUUID)
+	if err != nil {
+		return false
+	}
+	for _, m := range members {
+		if m.Uuid.Bytes == userUUID.Bytes {
+			return roleWeight[m.Role] >= roleWeight[minRole]
+		}
+	}
+	return false
 }
