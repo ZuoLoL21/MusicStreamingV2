@@ -75,11 +75,13 @@ CREATE TABLE likes (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     from_user UUID NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
     to_music UUID NOT NULL REFERENCES music(uuid) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(from_user, to_music)
 );
 
 CREATE INDEX idx_likes_to_music ON likes(to_music);
 CREATE INDEX idx_likes_from_user ON likes(from_user);
+CREATE INDEX idx_likes_default ON likes(created_at);
 
 -- Follows Table
 CREATE TABLE follows (

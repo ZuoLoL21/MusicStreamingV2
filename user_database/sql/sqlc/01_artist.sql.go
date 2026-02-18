@@ -146,11 +146,25 @@ func (q *Queries) GetArtistForUser(ctx context.Context, userUuid pgtype.UUID) ([
 
 const getArtistsAlphabetically = `-- name: GetArtistsAlphabetically :many
 SELECT uuid, artist_name, bio, profile_image_path, created_at, updated_at FROM artist
-ORDER BY artist_name
+WHERE (
+    $3::timestamptz IS NULL
+    OR (
+        artist_name > $2
+        OR (artist_name = $2 AND joined_at > $3)
+    )
+)
+ORDER BY artist_name, created_at
+LIMIT $1
 `
 
-func (q *Queries) GetArtistsAlphabetically(ctx context.Context) ([]Artist, error) {
-	rows, err := q.db.Query(ctx, getArtistsAlphabetically)
+type GetArtistsAlphabeticallyParams struct {
+	Limit      int32
+	ArtistName string
+	Column3    pgtype.Timestamptz
+}
+
+func (q *Queries) GetArtistsAlphabetically(ctx context.Context, arg GetArtistsAlphabeticallyParams) ([]Artist, error) {
+	rows, err := q.db.Query(ctx, getArtistsAlphabetically, arg.Limit, arg.ArtistName, arg.Column3)
 	if err != nil {
 		return nil, err
 	}

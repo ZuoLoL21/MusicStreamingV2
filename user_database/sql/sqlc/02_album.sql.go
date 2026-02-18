@@ -71,10 +71,17 @@ const getAlbumsForArtist = `-- name: GetAlbumsForArtist :many
 SELECT uuid, from_artist, original_name, description, image_path, created_at, updated_at FROM album
 WHERE from_artist = $1
 ORDER BY created_at DESC
+LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) GetAlbumsForArtist(ctx context.Context, fromArtist pgtype.UUID) ([]Album, error) {
-	rows, err := q.db.Query(ctx, getAlbumsForArtist, fromArtist)
+type GetAlbumsForArtistParams struct {
+	FromArtist pgtype.UUID
+	Limit      int32
+	Offset     int32
+}
+
+func (q *Queries) GetAlbumsForArtist(ctx context.Context, arg GetAlbumsForArtistParams) ([]Album, error) {
+	rows, err := q.db.Query(ctx, getAlbumsForArtist, arg.FromArtist, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

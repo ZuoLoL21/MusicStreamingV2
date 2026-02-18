@@ -91,11 +91,22 @@ FROM playlist_track pt
 JOIN music m
     ON pt.music_uuid = m.uuid
 WHERE pt.playlist_uuid = $1
+AND (
+    $3::int IS NULL
+    OR pt.position > $3
+    )
 ORDER BY pt.position
+LIMIT $2
 `
 
-func (q *Queries) GetPlaylistTracks(ctx context.Context, playlistUuid pgtype.UUID) ([]Music, error) {
-	rows, err := q.db.Query(ctx, getPlaylistTracks, playlistUuid)
+type GetPlaylistTracksParams struct {
+	PlaylistUuid pgtype.UUID
+	Limit        int32
+	Column3      int32
+}
+
+func (q *Queries) GetPlaylistTracks(ctx context.Context, arg GetPlaylistTracksParams) ([]Music, error) {
+	rows, err := q.db.Query(ctx, getPlaylistTracks, arg.PlaylistUuid, arg.Limit, arg.Column3)
 	if err != nil {
 		return nil, err
 	}
@@ -129,10 +140,18 @@ func (q *Queries) GetPlaylistTracks(ctx context.Context, playlistUuid pgtype.UUI
 const getPlaylistsForUser = `-- name: GetPlaylistsForUser :many
 SELECT uuid, from_user, original_name, description, is_public, image_path, created_at, updated_at FROM playlist
 WHERE from_user = $1
+ORDER BY updated_at DESC
+LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) GetPlaylistsForUser(ctx context.Context, fromUser pgtype.UUID) ([]Playlist, error) {
-	rows, err := q.db.Query(ctx, getPlaylistsForUser, fromUser)
+type GetPlaylistsForUserParams struct {
+	FromUser pgtype.UUID
+	Limit    int32
+	Offset   int32
+}
+
+func (q *Queries) GetPlaylistsForUser(ctx context.Context, arg GetPlaylistsForUserParams) ([]Playlist, error) {
+	rows, err := q.db.Query(ctx, getPlaylistsForUser, arg.FromUser, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

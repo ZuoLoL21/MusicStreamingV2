@@ -2,7 +2,8 @@
 ------ GET
 -- name: GetAllTags :many
 SELECT * FROM music_tags
-ORDER BY tag_name;
+ORDER BY tag_name
+LIMIT $1 OFFSET $2;
 
 -- name: GetTag :one
 SELECT * FROM music_tags
@@ -13,14 +14,24 @@ SELECT mt.*
 FROM tag_assignment ta
 JOIN music_tags mt
     ON ta.tag_name = mt.tag_name
-WHERE ta.music_uuid = $1;
+WHERE ta.music_uuid = $1
+LIMIT $2 OFFSET $3;
 
 -- name: GetMusicForTag :many
 SELECT m.*
 FROM tag_assignment ta
 JOIN music m
     ON ta.music_uuid = m.uuid
-WHERE ta.tag_name = $1;
+WHERE ta.tag_name = $1
+AND (
+    $3::timestamptz IS NULL
+    OR (
+         m.created_at < $3
+         OR (m.created_at = $3 AND m.uuid < $4)
+       )
+    )
+ORDER BY m.created_at DESC, m.uuid DESC
+LIMIT $2;
 
 ------ PUT
 -- name: CreateTag :exec

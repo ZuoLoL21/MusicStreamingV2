@@ -1,14 +1,17 @@
 --------------- ListeningHistory -----------------
 ------ GET
 -- name: GetListeningHistoryForUser :many
-SELECT * FROM listening_history
+SELECT *
+FROM listening_history
 WHERE user_uuid = $1
-ORDER BY played_at DESC;
-
--- name: GetRecentlyPlayedForUser :many
-SELECT * FROM listening_history
-WHERE user_uuid = $1
-ORDER BY played_at DESC
+AND (
+    $3::timestamptz IS NULL
+    OR (
+         played_at < $3
+         OR (played_at = $3 AND uuid < $4)
+       )
+)
+ORDER BY played_at DESC, uuid DESC
 LIMIT $2;
 
 -- name: GetTopMusicForUser :many
@@ -17,7 +20,7 @@ FROM listening_history
 WHERE user_uuid = $1
 GROUP BY music_uuid
 ORDER BY COUNT(*) DESC
-LIMIT $2;
+LIMIT $2 OFFSET $3;
 
 ------ PUT
 -- name: AddListeningHistoryEntry :exec

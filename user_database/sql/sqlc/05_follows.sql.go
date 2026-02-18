@@ -42,16 +42,49 @@ func (q *Queries) FollowUser(ctx context.Context, arg FollowUserParams) error {
 	return err
 }
 
+const getFollowCount = `-- name: GetFollowCount :one
+SELECT COUNT(*)
+FROM follows
+WHERE from_user = $1
+`
+
+func (q *Queries) GetFollowCount(ctx context.Context, fromUser pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, getFollowCount, fromUser)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getFollowerCountForUser = `-- name: GetFollowerCountForUser :one
+SELECT COUNT(*)
+FROM follows
+WHERE to_user = $1
+`
+
+func (q *Queries) GetFollowerCountForUser(ctx context.Context, toUser pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, getFollowerCountForUser, toUser)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getFollowersForArtist = `-- name: GetFollowersForArtist :many
 SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at
 FROM follows f
 JOIN public_user pu
     ON f.from_user = pu.uuid
 WHERE f.to_artist = $1
+LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) GetFollowersForArtist(ctx context.Context, toArtist pgtype.UUID) ([]PublicUser, error) {
-	rows, err := q.db.Query(ctx, getFollowersForArtist, toArtist)
+type GetFollowersForArtistParams struct {
+	ToArtist pgtype.UUID
+	Limit    int32
+	Offset   int32
+}
+
+func (q *Queries) GetFollowersForArtist(ctx context.Context, arg GetFollowersForArtistParams) ([]PublicUser, error) {
+	rows, err := q.db.Query(ctx, getFollowersForArtist, arg.ToArtist, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -84,12 +117,19 @@ FROM follows f
 JOIN public_user pu
     ON f.from_user = pu.uuid
 WHERE f.to_user = $1
+LIMIT $2 OFFSET $3
 `
+
+type GetFollowersForUserParams struct {
+	ToUser pgtype.UUID
+	Limit  int32
+	Offset int32
+}
 
 // ------------- Follows -----------------
 // ---- GET
-func (q *Queries) GetFollowersForUser(ctx context.Context, toUser pgtype.UUID) ([]PublicUser, error) {
-	rows, err := q.db.Query(ctx, getFollowersForUser, toUser)
+func (q *Queries) GetFollowersForUser(ctx context.Context, arg GetFollowersForUserParams) ([]PublicUser, error) {
+	rows, err := q.db.Query(ctx, getFollowersForUser, arg.ToUser, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -116,53 +156,36 @@ func (q *Queries) GetFollowersForUser(ctx context.Context, toUser pgtype.UUID) (
 	return items, nil
 }
 
-const getFollowingArtistsForUser = `-- name: GetFollowingArtistsForUser :many
-SELECT art.uuid, art.artist_name, art.bio, art.profile_image_path, art.created_at, art.updated_at
-FROM follows f
-    JOIN artist art
-        ON f.to_artist = art.uuid
-WHERE f.from_user = $1
-    AND f.to_artist IS NOT NULL
+const getFollowingCountForArtist = `-- name: GetFollowingCountForArtist :one
+SELECT COUNT(*)
+FROM follows
+WHERE to_artist = $1
 `
 
-func (q *Queries) GetFollowingArtistsForUser(ctx context.Context, fromUser pgtype.UUID) ([]Artist, error) {
-	rows, err := q.db.Query(ctx, getFollowingArtistsForUser, fromUser)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Artist
-	for rows.Next() {
-		var i Artist
-		if err := rows.Scan(
-			&i.Uuid,
-			&i.ArtistName,
-			&i.Bio,
-			&i.ProfileImagePath,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) GetFollowingCountForArtist(ctx context.Context, toArtist pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, getFollowingCountForArtist, toArtist)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
-const getFollowingUsersForUser = `-- name: GetFollowingUsersForUser :many
+const getFollowsForUser = `-- name: GetFollowsForUser :many
 SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at
 FROM follows f
 JOIN public_user pu
-    ON f.to_user = pu.uuid
+    ON f.from_user = pu.uuid
 WHERE f.from_user = $1
-    AND f.to_user IS NOT NULL
+LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) GetFollowingUsersForUser(ctx context.Context, fromUser pgtype.UUID) ([]PublicUser, error) {
-	rows, err := q.db.Query(ctx, getFollowingUsersForUser, fromUser)
+type GetFollowsForUserParams struct {
+	FromUser pgtype.UUID
+	Limit    int32
+	Offset   int32
+}
+
+func (q *Queries) GetFollowsForUser(ctx context.Context, arg GetFollowsForUserParams) ([]PublicUser, error) {
+	rows, err := q.db.Query(ctx, getFollowsForUser, arg.FromUser, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

@@ -11,54 +11,30 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const getLikeCount = `-- name: GetLikeCount :one
+const getLikeCountMusic = `-- name: GetLikeCountMusic :one
 SELECT COUNT(*) FROM likes
 WHERE to_music = $1
 `
 
-func (q *Queries) GetLikeCount(ctx context.Context, toMusic pgtype.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, getLikeCount, toMusic)
+// ------------- Likes -----------------
+// ---- GET
+func (q *Queries) GetLikeCountMusic(ctx context.Context, toMusic pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, getLikeCountMusic, toMusic)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
-const getLikesForMusic = `-- name: GetLikesForMusic :many
-SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at
-FROM likes l
-JOIN public_user pu
-    ON l.from_user = pu.uuid
-WHERE l.to_music = $1
+const getLikeCountUser = `-- name: GetLikeCountUser :one
+SELECT COUNT(*) FROM likes
+WHERE from_user = $1
 `
 
-// ------------- Likes -----------------
-// ---- GET
-func (q *Queries) GetLikesForMusic(ctx context.Context, toMusic pgtype.UUID) ([]PublicUser, error) {
-	rows, err := q.db.Query(ctx, getLikesForMusic, toMusic)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []PublicUser
-	for rows.Next() {
-		var i PublicUser
-		if err := rows.Scan(
-			&i.Uuid,
-			&i.Username,
-			&i.Email,
-			&i.Bio,
-			&i.ProfileImagePath,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) GetLikeCountUser(ctx context.Context, fromUser pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, getLikeCountUser, fromUser)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const getLikesForUser = `-- name: GetLikesForUser :many
@@ -67,10 +43,31 @@ FROM likes l
 JOIN music m
     ON l.to_music = m.uuid
 WHERE l.from_user = $1
+AND (
+    $3::timestamptz IS NULL
+    OR (
+         l.created_at < $3
+         OR (l.created_at = $3 AND l.uuid < $4)
+       )
+    )
+ORDER BY l.created_at DESC, l.uuid DESC
+LIMIT $2
 `
 
-func (q *Queries) GetLikesForUser(ctx context.Context, fromUser pgtype.UUID) ([]Music, error) {
-	rows, err := q.db.Query(ctx, getLikesForUser, fromUser)
+type GetLikesForUserParams struct {
+	FromUser pgtype.UUID
+	Limit    int32
+	Column3  pgtype.Timestamptz
+	Uuid     pgtype.UUID
+}
+
+func (q *Queries) GetLikesForUser(ctx context.Context, arg GetLikesForUserParams) ([]Music, error) {
+	rows, err := q.db.Query(ctx, getLikesForUser,
+		arg.FromUser,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
 	if err != nil {
 		return nil, err
 	}

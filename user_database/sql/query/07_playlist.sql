@@ -6,7 +6,9 @@ WHERE uuid = $1;
 
 -- name: GetPlaylistsForUser :many
 SELECT * FROM playlist
-WHERE from_user = $1;
+WHERE from_user = $1
+ORDER BY updated_at DESC
+LIMIT $2 OFFSET $3;
 
 -- name: GetPlaylistTracks :many
 SELECT m.*
@@ -14,7 +16,12 @@ FROM playlist_track pt
 JOIN music m
     ON pt.music_uuid = m.uuid
 WHERE pt.playlist_uuid = $1
-ORDER BY pt.position;
+AND (
+    $3::int IS NULL
+    OR pt.position > $3
+    )
+ORDER BY pt.position
+LIMIT $2;
 
 ------ POST
 -- name: UpdatePlaylist :exec

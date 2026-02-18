@@ -5,30 +5,39 @@ SELECT pu.*
 FROM follows f
 JOIN public_user pu
     ON f.from_user = pu.uuid
-WHERE f.to_user = $1;
-
--- name: GetFollowingUsersForUser :many
-SELECT pu.*
-FROM follows f
-JOIN public_user pu
-    ON f.to_user = pu.uuid
-WHERE f.from_user = $1
-    AND f.to_user IS NOT NULL;
+WHERE f.to_user = $1
+LIMIT $2 OFFSET $3;
 
 -- name: GetFollowersForArtist :many
 SELECT pu.*
 FROM follows f
 JOIN public_user pu
     ON f.from_user = pu.uuid
-WHERE f.to_artist = $1;
+WHERE f.to_artist = $1
+LIMIT $2 OFFSET $3;
 
--- name: GetFollowingArtistsForUser :many
-SELECT art.*
+-- name: GetFollowsForUser :many
+SELECT pu.*
 FROM follows f
-    JOIN artist art
-        ON f.to_artist = art.uuid
+JOIN public_user pu
+    ON f.from_user = pu.uuid
 WHERE f.from_user = $1
-    AND f.to_artist IS NOT NULL;
+LIMIT $2 OFFSET $3;
+
+-- name: GetFollowerCountForUser :one
+SELECT COUNT(*)
+FROM follows
+WHERE to_user = $1;
+
+-- name: GetFollowingCountForArtist :one
+SELECT COUNT(*)
+FROM follows
+WHERE to_artist = $1;
+
+-- name: GetFollowCount :one
+SELECT COUNT(*)
+FROM follows
+WHERE from_user = $1;
 
 -- name: IsFollowingUser :one
 SELECT EXISTS (

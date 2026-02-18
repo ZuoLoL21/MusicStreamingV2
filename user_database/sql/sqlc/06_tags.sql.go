@@ -45,12 +45,18 @@ func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) error {
 const getAllTags = `-- name: GetAllTags :many
 SELECT tag_name, tag_description, created_at FROM music_tags
 ORDER BY tag_name
+LIMIT $1 OFFSET $2
 `
+
+type GetAllTagsParams struct {
+	Limit  int32
+	Offset int32
+}
 
 // ------------- Tags -----------------
 // ---- GET
-func (q *Queries) GetAllTags(ctx context.Context) ([]MusicTag, error) {
-	rows, err := q.db.Query(ctx, getAllTags)
+func (q *Queries) GetAllTags(ctx context.Context, arg GetAllTagsParams) ([]MusicTag, error) {
+	rows, err := q.db.Query(ctx, getAllTags, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -75,10 +81,31 @@ FROM tag_assignment ta
 JOIN music m
     ON ta.music_uuid = m.uuid
 WHERE ta.tag_name = $1
+AND (
+    $3::timestamptz IS NULL
+    OR (
+         m.created_at < $3
+         OR (m.created_at = $3 AND m.uuid < $4)
+       )
+    )
+ORDER BY m.created_at DESC, m.uuid DESC
+LIMIT $2
 `
 
-func (q *Queries) GetMusicForTag(ctx context.Context, tagName string) ([]Music, error) {
-	rows, err := q.db.Query(ctx, getMusicForTag, tagName)
+type GetMusicForTagParams struct {
+	TagName string
+	Limit   int32
+	Column3 pgtype.Timestamptz
+	Uuid    pgtype.UUID
+}
+
+func (q *Queries) GetMusicForTag(ctx context.Context, arg GetMusicForTagParams) ([]Music, error) {
+	rows, err := q.db.Query(ctx, getMusicForTag,
+		arg.TagName,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -127,10 +154,17 @@ FROM tag_assignment ta
 JOIN music_tags mt
     ON ta.tag_name = mt.tag_name
 WHERE ta.music_uuid = $1
+LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) GetTagsForMusic(ctx context.Context, musicUuid pgtype.UUID) ([]MusicTag, error) {
-	rows, err := q.db.Query(ctx, getTagsForMusic, musicUuid)
+type GetTagsForMusicParams struct {
+	MusicUuid pgtype.UUID
+	Limit     int32
+	Offset    int32
+}
+
+func (q *Queries) GetTagsForMusic(ctx context.Context, arg GetTagsForMusicParams) ([]MusicTag, error) {
+	rows, err := q.db.Query(ctx, getTagsForMusic, arg.MusicUuid, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

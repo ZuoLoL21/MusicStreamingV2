@@ -7,7 +7,8 @@ WHERE uuid = $1;
 -- name: GetAlbumsForArtist :many
 SELECT * FROM album
 WHERE from_artist = $1
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3;
 
 -- TODO: name: SearchForAlbum :many
 

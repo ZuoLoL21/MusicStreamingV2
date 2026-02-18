@@ -35,54 +35,36 @@ func (q *Queries) AddListeningHistoryEntry(ctx context.Context, arg AddListening
 }
 
 const getListeningHistoryForUser = `-- name: GetListeningHistoryForUser :many
-SELECT uuid, user_uuid, music_uuid, played_at, listen_duration_seconds, completion_percentage FROM listening_history
+SELECT uuid, user_uuid, music_uuid, played_at, listen_duration_seconds, completion_percentage
+FROM listening_history
 WHERE user_uuid = $1
-ORDER BY played_at DESC
-`
-
-// ------------- ListeningHistory -----------------
-// ---- GET
-func (q *Queries) GetListeningHistoryForUser(ctx context.Context, userUuid pgtype.UUID) ([]ListeningHistory, error) {
-	rows, err := q.db.Query(ctx, getListeningHistoryForUser, userUuid)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListeningHistory
-	for rows.Next() {
-		var i ListeningHistory
-		if err := rows.Scan(
-			&i.Uuid,
-			&i.UserUuid,
-			&i.MusicUuid,
-			&i.PlayedAt,
-			&i.ListenDurationSeconds,
-			&i.CompletionPercentage,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getRecentlyPlayedForUser = `-- name: GetRecentlyPlayedForUser :many
-SELECT uuid, user_uuid, music_uuid, played_at, listen_duration_seconds, completion_percentage FROM listening_history
-WHERE user_uuid = $1
-ORDER BY played_at DESC
+AND (
+    $3::timestamptz IS NULL
+    OR (
+         played_at < $3
+         OR (played_at = $3 AND uuid < $4)
+       )
+)
+ORDER BY played_at DESC, uuid DESC
 LIMIT $2
 `
 
-type GetRecentlyPlayedForUserParams struct {
+type GetListeningHistoryForUserParams struct {
 	UserUuid pgtype.UUID
 	Limit    int32
+	Column3  pgtype.Timestamptz
+	Uuid     pgtype.UUID
 }
 
-func (q *Queries) GetRecentlyPlayedForUser(ctx context.Context, arg GetRecentlyPlayedForUserParams) ([]ListeningHistory, error) {
-	rows, err := q.db.Query(ctx, getRecentlyPlayedForUser, arg.UserUuid, arg.Limit)
+// ------------- ListeningHistory -----------------
+// ---- GET
+func (q *Queries) GetListeningHistoryForUser(ctx context.Context, arg GetListeningHistoryForUserParams) ([]ListeningHistory, error) {
+	rows, err := q.db.Query(ctx, getListeningHistoryForUser,
+		arg.UserUuid,
+		arg.Limit,
+		arg.Column3,
+		arg.Uuid,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -114,12 +96,13 @@ FROM listening_history
 WHERE user_uuid = $1
 GROUP BY music_uuid
 ORDER BY COUNT(*) DESC
-LIMIT $2
+LIMIT $2 OFFSET $3
 `
 
 type GetTopMusicForUserParams struct {
 	UserUuid pgtype.UUID
 	Limit    int32
+	Offset   int32
 }
 
 type GetTopMusicForUserRow struct {
@@ -128,7 +111,7 @@ type GetTopMusicForUserRow struct {
 }
 
 func (q *Queries) GetTopMusicForUser(ctx context.Context, arg GetTopMusicForUserParams) ([]GetTopMusicForUserRow, error) {
-	rows, err := q.db.Query(ctx, getTopMusicForUser, arg.UserUuid, arg.Limit)
+	rows, err := q.db.Query(ctx, getTopMusicForUser, arg.UserUuid, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

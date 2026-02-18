@@ -6,7 +6,15 @@ WHERE uuid = $1;
 
 -- name: GetArtistsAlphabetically :many
 SELECT * FROM artist
-ORDER BY artist_name;
+WHERE (
+    $3::timestamptz IS NULL
+    OR (
+        artist_name > $2
+        OR (artist_name = $2 AND joined_at > $3)
+    )
+)
+ORDER BY artist_name, joined_at
+LIMIT $1;
 
 ------ POST
 -- name: UpdateArtistProfile :exec

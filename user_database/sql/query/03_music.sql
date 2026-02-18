@@ -7,17 +7,20 @@ WHERE uuid = $1;
 -- name: GetMusicForArtist :many
 SELECT * FROM music
 WHERE from_artist = $1
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3;
 
 -- name: GetMusicForAlbum :many
 SELECT * FROM music
 WHERE in_album = $1
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3;
 
 -- name: GetMusicForUser :many
 SELECT * FROM music
 WHERE uploaded_by = $1
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3;
 
 -- TODO: name: SearchForMusic :many
 
