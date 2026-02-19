@@ -73,6 +73,9 @@ services:
         ports:
             - "9000:9000"
             - "8123:8123"
+        environment:
+          CLICKHOUSE_USER: "clickhouse"
+          CLICKHOUSE_PASSWORD: "clickhouse"
         volumes:
             - clickhouse_data:/var/lib/clickhouse/
             - clickhouse_logs:/var/log/clickhouse-server/
