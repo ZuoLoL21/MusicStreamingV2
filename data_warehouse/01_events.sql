@@ -1,6 +1,6 @@
 CREATE TABLE music_listen_events
 (
-    event_time DateTime,
+    event_time DateTime64(3, 'UTC') DEFAULT now64(3),
     user_uuid UUID,
     music_uuid UUID,
     artist_uuid UUID,
@@ -17,7 +17,7 @@ ORDER BY (user_uuid, event_time);
 
 CREATE TABLE music_like_events
 (
-    event_time DateTime,
+    event_time DateTime64(3, 'UTC') DEFAULT now64(3),
     user_uuid UUID,
     music_uuid UUID,
     artist_uuid UUID
