@@ -36,3 +36,64 @@ JOIN music_theme t
 GROUP BY
     l.user_uuid,
     t.theme;
+
+
+CREATE MATERIALIZED VIEW global_user_stats
+ENGINE = AggregatingMergeTree
+ORDER BY user_uuid
+AS
+SELECT
+    user_uuid,
+    exponentialTimeDecayedCountState(2592000)(event_time) AS decay_impressions,
+    countState() AS impressions,
+    sumState(listen_duration_seconds) AS total_listen_seconds,
+    exponentialTimeDecayedAvgState(2592000)(completion_ratio, event_time) AS decay_completion,
+    avgState(completion_ratio) AS avg_completion
+FROM music_listen_events
+GROUP BY
+    user_uuid;
+
+
+CREATE MATERIALIZED VIEW global_user_positive_event_stats
+ENGINE = AggregatingMergeTree
+ORDER BY user_uuid
+AS
+SELECT
+    user_uuid,
+    exponentialTimeDecayedCountState(2592000)(event_time) AS decay_likes,
+    countState() AS likes
+FROM music_like_events
+GROUP BY
+    user_uuid;
+
+CREATE MATERIALIZED VIEW global_theme_stats
+ENGINE = AggregatingMergeTree
+ORDER BY theme
+AS
+SELECT
+    t.theme,
+    exponentialTimeDecayedCountState(2592000)(e.event_time) AS decay_impressions,
+    countState() AS impressions,
+    sumState(e.listen_duration_seconds) AS total_listen_seconds,
+    exponentialTimeDecayedAvgState(2592000)(e.completion_ratio, e.event_time) AS decay_completion,
+    avgState(e.completion_ratio) AS avg_completion
+FROM music_listen_events e
+JOIN music_theme t
+    ON e.music_uuid = t.music_uuid
+GROUP BY
+    t.theme;
+
+
+CREATE MATERIALIZED VIEW global_theme_positive_event_stats
+ENGINE = AggregatingMergeTree
+ORDER BY theme
+AS
+SELECT
+    t.theme,
+    exponentialTimeDecayedCountState(2592000)(l.event_time) AS decay_likes,
+    countState() AS likes
+FROM music_like_events l
+JOIN music_theme t
+    ON l.music_uuid = t.music_uuid
+GROUP BY
+    t.theme;
