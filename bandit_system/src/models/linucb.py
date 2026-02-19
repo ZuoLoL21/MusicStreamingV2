@@ -4,6 +4,7 @@ from typing import Tuple, List
 
 from src.dependencies.config import Config
 
+
 class ArmResultLinUCB(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -11,7 +12,9 @@ class ArmResultLinUCB(BaseModel):
     Weights: np.ndarray
     Biases: np.ndarray
 
+
 config = Config()
+
 
 class LinUCB:
     @staticmethod
@@ -36,7 +39,9 @@ class LinUCB:
         return int(np.argmax(weights))
 
     @staticmethod
-    def update(arms: List[ArmResultLinUCB], features: np.ndarray, action: int, reward: float) -> List[ArmResultLinUCB]:
+    def update(
+        arms: List[ArmResultLinUCB], features: np.ndarray, action: int, reward: float
+    ) -> List[ArmResultLinUCB]:
         reward = max(0.0, min(reward, 1.0))
 
         weightAdjustment = features @ features.T

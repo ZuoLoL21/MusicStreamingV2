@@ -22,4 +22,3 @@ for trial in range(101):
     # logging
     if trial % 10 == 0:
         print(f"trial: {trial}\tdata: {data}")
-

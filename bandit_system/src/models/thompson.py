@@ -2,10 +2,12 @@ import numpy as np
 from pydantic import BaseModel
 from typing import List
 
+
 class ArmResultThompson(BaseModel):
     ArmName: str
     Success: int
     Failures: int
+
 
 class Thompson:
     @staticmethod
