@@ -7,12 +7,9 @@ class ArmResult(BaseModel):
     Success: int
     Failures: int
 
-class TrainingData(BaseModel):
-    Arms: List[ArmResult]
 
-
-def predict(data: TrainingData) -> int:
-    samples = [np.random.beta(arm.Success + 1, arm.Failures + 1) for arm in data.Arms]
+def predict(data: List[ArmResult]) -> int:
+    samples = [np.random.beta(arm.Success + 1, arm.Failures + 1) for arm in data]
     best_arm = np.argmax(samples)
 
     return int(best_arm)
