@@ -8,7 +8,9 @@ from src.dependencies.config import Config
 class ArmResultLinUCB(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    ArmName: str
+    Theme: str
+    Version: int
+
     Weights: np.ndarray
     Biases: np.ndarray
 
