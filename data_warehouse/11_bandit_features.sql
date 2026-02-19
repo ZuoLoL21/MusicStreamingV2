@@ -6,13 +6,13 @@ SELECT
     e.user_uuid,
     t.theme,
 
-    exponentialTimeDecayedCountState(10)(e.event_time) AS decay_impressions,
+    exponentialTimeDecayedCountState(2592000)(e.event_time) AS decay_impressions,
     countState() AS impressions,
     sumState(e.listen_duration_seconds) AS total_listen_seconds,
-    exponentialTimeDecayedAvgState(10)(e.completion_ratio, e.event_time) AS decay_completion,
+    exponentialTimeDecayedAvgState(2592000)(e.completion_ratio, e.event_time) AS decay_completion,
     avgState(e.completion_ratio) AS avg_completion,
 
-    sumIfState(1, e.completion_ratio < 0.9 = 0) AS full_plays
+    sumIfState(1, e.completion_ratio >= 0.9) AS full_plays
 FROM music_listen_events e
 JOIN music_theme t
     ON e.music_uuid = t.music_uuid
@@ -28,7 +28,7 @@ AS
 SELECT
     l.user_uuid,
     t.theme,
-    exponentialTimeDecayedCountState(10)(l.event_time) AS decay_likes,
+    exponentialTimeDecayedCountState(2592000)(l.event_time) AS decay_likes,
     countState() AS likes
 FROM music_like_events l
 JOIN music_theme t
@@ -42,10 +42,10 @@ CREATE VIEW user_theme_stats AS
 SELECT
     user_uuid,
     theme,
-    exponentialTimeDecayedCountMerge(10)(decay_impressions) AS decay_impressions,
+    exponentialTimeDecayedCountMerge(2592000)(decay_impressions) AS decay_impressions,
     countMerge(impressions) AS impressions,
     sumMerge(total_listen_seconds) AS total_listen_seconds,
-    exponentialTimeDecayedAvgMerge(10)(decay_completion) AS decay_completion,
+    exponentialTimeDecayedAvgMerge(2592000)(decay_completion) AS decay_completion,
     avgMerge(avg_completion) AS avg_completion,
     sumIfMerge(full_plays) AS full_plays
 FROM user_theme_stats_inter
@@ -56,7 +56,7 @@ CREATE VIEW user_theme_positive_events AS
 SELECT
     user_uuid,
     theme,
-    exponentialTimeDecayedCountMerge(10)(decay_likes) AS decay_likes,
+    exponentialTimeDecayedCountMerge(2592000)(decay_likes) AS decay_likes,
     countMerge(likes) AS likes
 FROM user_theme_positive_events_inter
 GROUP BY user_uuid, theme;
