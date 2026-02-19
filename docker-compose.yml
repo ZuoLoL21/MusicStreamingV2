@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-    postgres:
+    user-database:
         image: postgres:16
         environment:
             POSTGRES_DB: ${POSTGRES_DB}
@@ -26,5 +26,26 @@ services:
         ports:
             - "8200:8200"
 
+    clickhouse-database:
+        image: clickhouse/clickhouse-server:latest
+
+        ports:
+            - "9000:9000"
+            - "8123:8123"
+        volumes:
+            - clickhouse_data:/var/lib/clickhouse/
+            - clickhouse_logs:/var/log/clickhouse-server/
+            - ./data_warehouse:/docker-entrypoint-initdb.d/
+        networks:
+            - clickhouse-net
+
 volumes:
     postgres_data:
+    clickhouse_data:
+    clickhouse_logs:
+
+networks:
+    clickhouse-net:
+    postgres-net:
+    general:
+
