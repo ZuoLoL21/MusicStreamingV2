@@ -45,7 +45,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 
 	return &Config{
 		Provider:             os.Getenv("PROVIDER"),
-		DatabaseURL:          os.Getenv("DATABASE_URL"),
+		DatabaseURL:          os.Getenv("DB_CONNECTION_STRING"),
 		JWTStorePath:         os.Getenv("JWT_STORE_PATH"),
 		SubjectNormal:        os.Getenv("SUBJECT_NORMAL"),
 		JWTExpirationNormal:  time.Minute * time.Duration(normalTime),
