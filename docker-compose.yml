@@ -44,7 +44,7 @@ services:
         networks:
             - vault-net
 
-    backend-api:
+    user-database-crud:
         build:
             context: ./user_database
             dockerfile: Dockerfile
@@ -65,12 +65,9 @@ services:
                 condition: service_healthy
             hashicorp-vault-dev:
                 condition: service_started
-            file-storage:
-                condition: service_started
         networks:
             - postgres-net
             - general
-            - file-storage-net
             - vault-net
 
     clickhouse-database:
