@@ -7,9 +7,10 @@ class ArmResult(BaseModel):
     Success: int
     Failures: int
 
+class Thompson:
+    @staticmethod
+    def predict(data: List[ArmResult]) -> int:
+        samples = [np.random.beta(arm.Success + 1, arm.Failures + 1) for arm in data]
+        best_arm = np.argmax(samples)
 
-def predict(data: List[ArmResult]) -> int:
-    samples = [np.random.beta(arm.Success + 1, arm.Failures + 1) for arm in data]
-    best_arm = np.argmax(samples)
-
-    return int(best_arm)
+        return int(best_arm)
