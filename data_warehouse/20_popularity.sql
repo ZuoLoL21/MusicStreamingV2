@@ -1,3 +1,29 @@
+CREATE MATERIALIZED VIEW track_popularity_inter
+ENGINE = AggregatingMergeTree
+ORDER BY (music_uuid)
+AS
+SELECT
+    music_uuid,
+    exponentialTimeDecayedSumState(30)(event_time, 1) AS decay_plays,
+    exponentialTimeDecayedSumState(30)(event_time, listen_duration_seconds) AS decay_listen_seconds
+FROM music_listen_events
+GROUP BY
+    music_uuid;
+
+
+CREATE MATERIALIZED VIEW artist_popularity_inter
+ENGINE = AggregatingMergeTree
+ORDER BY (artist_uuid)
+AS
+SELECT
+    artist_uuid,
+    exponentialTimeDecayedSumState(30)(event_time, 1) AS decay_plays,
+    exponentialTimeDecayedSumState(30)(event_time, listen_duration_seconds) AS decay_listen_seconds
+FROM music_listen_events
+GROUP BY
+    artist_uuid;
+
+
 CREATE MATERIALIZED VIEW track_popularity_daily
 ENGINE = SummingMergeTree
 ORDER BY (music_uuid, for_day)
@@ -21,34 +47,26 @@ SELECT
     artist_uuid,
     toDate(event_time) AS for_day,
     count() AS plays,
-    sum(listen_durection_seconds) AS listen_seconds
+    sum(listen_duration_seconds) AS listen_seconds
 FROM music_listen_events
 GROUP BY
     artist_uuid,
     for_day;
 
 
-CREATE MATERIALIZED VIEW track_popularity
-ENGINE = SummingMergeTree
-ORDER BY (music_uuid)
-AS
+CREATE VIEW track_popularity AS
 SELECT
     music_uuid,
-    exponentialTimeDecayedSum(30)(for_day, plays),
-    exponentialTimeDecayedSum(30)(for_day, listen_seconds)
-FROM track_popularity_daily
-GROUP BY
-    music_uuid;
+    exponentialTimeDecayedSumMerge(30)(decay_plays) AS decay_plays,
+    exponentialTimeDecayedSumMerge(30)(decay_listen_seconds) AS decay_listen_seconds
+FROM track_popularity_inter
+GROUP BY music_uuid;
 
 
-CREATE MATERIALIZED VIEW artist_popularity
-ENGINE = SummingMergeTree
-ORDER BY (artist_uuid)
-AS
+CREATE VIEW artist_popularity AS
 SELECT
     artist_uuid,
-    exponentialTimeDecayedSum(30)(for_day, plays),
-    exponentialTimeDecayedSum(30)(for_day, listen_seconds)
-FROM artist_popularity_daily
-GROUP BY
-    artist_uuid;
+    exponentialTimeDecayedSumMerge(30)(decay_plays) AS decay_plays,
+    exponentialTimeDecayedSumMerge(30)(decay_listen_seconds) AS decay_listen_seconds
+FROM artist_popularity_inter
+GROUP BY artist_uuid;
