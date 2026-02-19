@@ -4,8 +4,8 @@ ORDER BY (music_uuid)
 AS
 SELECT
     music_uuid,
-    exponentialTimeDecayedSumState(2592000)(event_time, 1) AS decay_plays,
-    exponentialTimeDecayedSumState(2592000)(event_time, listen_duration_seconds) AS decay_listen_seconds
+    exponentialTimeDecayedSumState(2592000)(toUnixTimestamp(event_time), 1) AS decay_plays,
+    exponentialTimeDecayedSumState(2592000)(toUnixTimestamp(event_time), listen_duration_seconds) AS decay_listen_seconds
 FROM music_listen_events
 GROUP BY
     music_uuid;
@@ -17,8 +17,8 @@ ORDER BY (artist_uuid)
 AS
 SELECT
     artist_uuid,
-    exponentialTimeDecayedSumState(2592000)(event_time, 1) AS decay_plays,
-    exponentialTimeDecayedSumState(2592000)(event_time, listen_duration_seconds) AS decay_listen_seconds
+    exponentialTimeDecayedSumState(2592000)(toUnixTimestamp(event_time), 1) AS decay_plays,
+    exponentialTimeDecayedSumState(2592000)(toUnixTimestamp(event_time), listen_duration_seconds) AS decay_listen_seconds
 FROM music_listen_events
 GROUP BY
     artist_uuid;
