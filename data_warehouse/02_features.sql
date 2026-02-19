@@ -13,7 +13,8 @@ CREATE TABLE user_dim
 (
     user_uuid UUID,
     created_at DateTime,
-    country LowCardinality(String)
+    country LowCardinality(String),
+    updated_at DateTime DEFAULT now()
 )
-    ENGINE = ReplacingMergeTree
+    ENGINE = ReplacingMergeTree(updated_at)
 ORDER BY user_uuid;
