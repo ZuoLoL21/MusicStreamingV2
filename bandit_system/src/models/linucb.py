@@ -4,7 +4,7 @@ from typing import Tuple, List
 
 from src.dependencies.config import Config
 
-class ArmResult(BaseModel):
+class ArmResultLinUCB(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     ArmName: str
@@ -19,7 +19,7 @@ class LinUCB:
         return np.identity(dim), np.zeros(dim)
 
     @staticmethod
-    def _compute_weight(arm: ArmResult, features: np.ndarray) -> float:
+    def _compute_weight(arm: ArmResultLinUCB, features: np.ndarray) -> float:
         A = arm.Weights
         B = arm.Biases
         A_1 = np.linalg.inv(A)
@@ -31,12 +31,14 @@ class LinUCB:
         return ls + weight.item()
 
     @staticmethod
-    def predict(arms: List[ArmResult], features: np.ndarray) -> int:
+    def predict(arms: List[ArmResultLinUCB], features: np.ndarray) -> int:
         weights = [LinUCB._compute_weight(arm, features) for arm in arms]
         return int(np.argmax(weights))
 
     @staticmethod
-    def update(arms: List[ArmResult], features: np.ndarray, action: int, reward: int) -> List[ArmResult]:
+    def update(arms: List[ArmResultLinUCB], features: np.ndarray, action: int, reward: float) -> List[ArmResultLinUCB]:
+        reward = max(0.0, min(reward, 1.0))
+
         weightAdjustment = features @ features.T
         biasAdjustment = reward * features
 
