@@ -14,7 +14,6 @@ class ArmResultLinUCB(BaseModel):
     Weights: np.ndarray
     Biases: np.ndarray
 
-
 config = Config()
 
 
@@ -22,6 +21,11 @@ class LinUCB:
     @staticmethod
     def get_basic(dim: int) -> Tuple[np.ndarray, np.ndarray]:
         return np.identity(dim), np.zeros(dim)
+
+    @staticmethod
+    def get_new_arm_result(theme: str, dim: int) -> ArmResultLinUCB:
+        weight, bias = LinUCB.get_basic(dim)
+        return ArmResultLinUCB(Theme=theme, Version=0, Weights=weight, Biases=bias)
 
     @staticmethod
     def _compute_weight(arm: ArmResultLinUCB, features: np.ndarray) -> float:
@@ -36,8 +40,11 @@ class LinUCB:
         return ls + weight.item()
 
     @staticmethod
-    def predict(arms: List[ArmResultLinUCB], features: np.ndarray) -> int:
-        weights = [LinUCB._compute_weight(arm, features) for arm in arms]
+    def predict(arms: List[ArmResultLinUCB], features: List[np.ndarray]) -> int:
+        if len(arms) != len(features):
+            return -1
+
+        weights = [LinUCB._compute_weight(arm, feature) for arm, feature in zip(arms, features)]
         return int(np.argmax(weights))
 
     @staticmethod

@@ -23,6 +23,7 @@ _FEATURE_COLS = [
     "f_relative_completion",
     "f_relative_exposure",
 ]
+NUMB_FEATURES = len(_FEATURE_COLS)
 
 
 class DBManagers:
