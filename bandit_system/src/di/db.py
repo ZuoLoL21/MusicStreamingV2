@@ -6,8 +6,7 @@ from pydantic import UUID4
 from sqlalchemy import create_engine, text
 
 from src.di.config import Config
-from src.models.linucb import ArmResultLinUCB
-
+from src.models.linucb import ArmResultLinUCB, LinUCB
 
 _FEATURE_COLS = [
     "f_user_theme_decay_impressions",
@@ -66,6 +65,30 @@ class DBManagers:
                 )
             )
         return arms
+
+
+    def get_weight_bias_for_one(self, uuid: UUID4, theme: str) -> ArmResultLinUCB:
+        query = text(
+            f"SELECT weights, biases, version"
+            f" FROM {self._config.bandit_params_table}"
+            f" WHERE user_uuid = :uuid"
+            f" AND theme = :theme"
+        )
+        with self._storage_engine.connect() as conn:
+            rows = conn.execute(query, {"uuid": str(uuid), "theme": theme}).fetchall()
+
+        if len(rows) == 0:
+            return LinUCB.get_new_arm_result(theme, NUMB_FEATURES)
+
+        weights_json, biases_json, version = rows[0]
+        return (
+            ArmResultLinUCB(
+                Theme=theme,
+                Version=int(version),
+                Weights=np.array(json.loads(weights_json), dtype=np.float64),
+                Biases=np.array(json.loads(biases_json), dtype=np.float64),
+            )
+        )
 
     def update_weight_bias(
         self,

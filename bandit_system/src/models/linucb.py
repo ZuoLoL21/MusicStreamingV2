@@ -49,16 +49,15 @@ class LinUCB:
 
     @staticmethod
     def update(
-        arms: List[ArmResultLinUCB], features: np.ndarray, action: int, reward: float
-    ) -> List[ArmResultLinUCB]:
+        arm: ArmResultLinUCB, features: np.ndarray, reward: float
+    ) -> ArmResultLinUCB:
         reward = max(0.0, min(reward, 1.0))
 
         weightAdjustment = features @ features.T
         biasAdjustment = reward * features
 
-        arm = arms[action]
         arm.Weights += weightAdjustment
         arm.Biases += biasAdjustment
-        arms[action] = arm
 
-        return arms
+        return arm
+
