@@ -30,6 +30,7 @@ class DBManagers:
         self.config = config
         self.storage_engine = create_engine(config.db_params_string)
         self.warehouse_engine = create_engine(config.db_warehouse_string)
+        self.themes_engine = create_engine(config.db_themes_string)
 
     def get_input_data(self, uuid: UUID4) -> Dict[str, np.ndarray]:
         cols = ", ".join(_FEATURE_COLS)
@@ -95,6 +96,18 @@ class DBManagers:
 
         return result.rowcount() > 0
 
+    def get_themes(self):
+        query = text(
+                f"SELECT tag_name FROM {self.config.themes_table}"
+        )
+
+        with self.themes_engine.connect() as conn:
+            result = conn.execute(
+                    query,
+            )
+
+        return [row.tag_name for row in result]
+
 if __name__ == "__main__":
     _config = Config()
     _db = DBManagers(_config)
@@ -105,3 +118,5 @@ if __name__ == "__main__":
         print(_theme_dict[key])
         print(len(_theme_dict[key]))
         print("")
+
+    print(_db.get_themes())
