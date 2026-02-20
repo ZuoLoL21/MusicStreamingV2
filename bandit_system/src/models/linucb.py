@@ -1,6 +1,6 @@
 import numpy as np
 from pydantic import BaseModel, ConfigDict
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 from src.di.config import Config
 
@@ -40,9 +40,9 @@ class LinUCB:
         return ls + weight.item()
 
     @staticmethod
-    def predict(arms: List[ArmResultLinUCB], features: List[np.ndarray]) -> int:
+    def predict(arms: List[ArmResultLinUCB], features: List[np.ndarray]) -> Optional[int]:
         if len(arms) != len(features):
-            return -1
+            return None
 
         weights = [LinUCB._compute_weight(arm, feature) for arm, feature in zip(arms, features)]
         return int(np.argmax(weights))

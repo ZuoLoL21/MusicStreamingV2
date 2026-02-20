@@ -36,11 +36,6 @@ class BanditHandler:
                         "deleted/added features WITHOUT modifying weight bias",
                 )
                 raise RuntimeError("deleted/added features WITHOUT modifying weight bias")
-            elif NUMB_FEATURES == 0:
-                self.logger.error(
-                        "features are empty"
-                )
-                raise RuntimeError("features are empty")
 
             to_use_arm_result.append(found_result)
 
@@ -51,7 +46,7 @@ class BanditHandler:
             )
 
         chosen_index = LinUCB.predict(to_use_arm_result, to_use_input)
-        if chosen_index == -1:
+        if chosen_index is None:
             self.logger.error(
                     "unknown error"
             )
