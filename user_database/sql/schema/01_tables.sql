@@ -128,8 +128,7 @@ CREATE TABLE playlist (
     image_path VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(from_user, original_name),
-    UNIQUE (playlist_uuid, position)
+    UNIQUE(from_user, original_name)
 );
 
 CREATE INDEX idx_playlist_from_user ON playlist(from_user);
@@ -140,7 +139,8 @@ CREATE TABLE playlist_track (
     music_uuid UUID NOT NULL REFERENCES music(uuid) ON DELETE CASCADE,
     position INTEGER NOT NULL,
     playlist_uuid UUID NOT NULL REFERENCES playlist(uuid) ON DELETE CASCADE,
-    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (playlist_uuid, position)
 );
 
 CREATE INDEX idx_playlisttrack_playlist_position ON playlist_track(playlist_uuid, position);
