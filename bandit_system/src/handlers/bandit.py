@@ -51,7 +51,7 @@ class BanditHandler:
             )
 
         chosen_index = LinUCB.predict(to_use_arm_result, to_use_input)
-        if chosen_index is -1:
+        if chosen_index == -1:
             self.logger.error(
                     "unknown error"
             )
