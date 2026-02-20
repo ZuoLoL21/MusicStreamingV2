@@ -98,7 +98,8 @@ class DBManagers:
 
     def get_themes(self):
         query = text(
-                f"SELECT tag_name FROM {self.config.themes_table}"
+                f"SELECT tag_name FROM {self.config.themes_table} "
+                "ORDER BY tag_name"
         )
 
         with self.themes_engine.connect() as conn:
