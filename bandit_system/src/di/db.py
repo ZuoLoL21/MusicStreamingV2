@@ -5,7 +5,7 @@ import numpy as np
 from pydantic import UUID4
 from sqlalchemy import create_engine, text
 
-from src.dependencies.config import Config
+from src.di.config import Config
 from src.models.linucb import ArmResultLinUCB
 
 

@@ -2,7 +2,7 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict
 from typing import Tuple, List
 
-from src.dependencies.config import Config
+from src.di.config import Config
 
 
 class ArmResultLinUCB(BaseModel):
