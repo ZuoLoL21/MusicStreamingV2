@@ -2,21 +2,21 @@ services:
     user-database:
         image: postgres:16
         environment:
-            POSTGRES_DB: ${POSTGRES_DB}
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${USER_CRUD_DB}
+            POSTGRES_USER: ${USER_CRUD_USER}
+            POSTGRES_PASSWORD: ${USER_CRUD_PASSWORD}
         ports:
-            - "${POSTGRES_PORT}:5432"
+            - "${USER_CRUD_PORT}:5432"
         volumes:
-            - postgres_data:/var/lib/postgresql/data
-            - ./backend/sql/query:/docker-entrypoint-initdb.d/query
+            - user_data:/var/lib/postgresql/data
+            - ./user)database/sql/schema:/docker-entrypoint-initdb.d/schema
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U postgres"]
             interval: 10s
             timeout: 5s
             retries: 5
         networks:
-            - postgres-net
+            - user-db-net
 
     file-storage:
         build:
@@ -25,8 +25,8 @@ services:
         ports:
             - "8000:8000"
         environment:
-            LISTEN_ADDR: 0.0.0.0:8000
-            DATA_LOCATION: /data
+            LISTEN_ADDR: ${FILE_STORAGE_LISTEN_ADDR}
+            DATA_LOCATION: ${FILE_STORAGE_DATA_LOCATION}
         volumes:
             - file_storage_data:/data
         networks:
@@ -49,13 +49,13 @@ services:
         ports:
             - "8080:8080"
         environment:
-            PROVIDER: ${PROVIDER}
-            DB_CONNECTION_STRING: ${DB_CONNECTION_STRING}
+            USER_CRUD_CONNECTION_STRING: ${USER_CRUD_CONNECTION_STRING}
+            USER_CRUD_JWT_PROVIDER_NAME: ${USER_CRUD_JWT_PROVIDER_NAME}
             JWT_STORE_PATH: ${JWT_STORE_PATH}
-            SUBJECT_NORMAL: ${SUBJECT_NORMAL}
-            TIME_IN_M_NORMAL: ${TIME_IN_M_NORMAL}
-            SUBJECT_REFRESH: ${SUBJECT_REFRESH}
-            TIME_IN_D_REFRESH: ${TIME_IN_D_REFRESH}
+            JWT_SUBJECT_NORMAL: ${JWT_SUBJECT_NORMAL}
+            JWT_TIME_IN_M_NORMAL: ${JWT_TIME_IN_M_NORMAL}
+            JWT_SUBJECT_REFRESH: ${JWT_SUBJECT_REFRESH}
+            JWT_TIME_IN_D_REFRESH: ${JWT_TIME_IN_D_REFRESH}
             VAULT_ADDR: http://hashicorp-vault-dev:8200
             VAULT_TOKEN: root
         depends_on:
@@ -64,18 +64,18 @@ services:
             hashicorp-vault-dev:
                 condition: service_started
         networks:
-            - postgres-net
+            - user-db-net
             - general
             - vault-net
 
     clickhouse-database:
         image: clickhouse/clickhouse-server:latest
         ports:
-            - "9000:9000"
-            - "8123:8123"
+            - "${CLICKHOUSE_PORT}:9000"
         environment:
-          CLICKHOUSE_USER: "clickhouse"
-          CLICKHOUSE_PASSWORD: "clickhouse"
+          CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+          CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+          CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
         volumes:
             - clickhouse_data:/var/lib/clickhouse/
             - clickhouse_logs:/var/log/clickhouse-server/
@@ -83,16 +83,38 @@ services:
         networks:
             - clickhouse-net
 
+    bandit-database:
+        image: postgres:16
+        environment:
+            POSTGRES_DB: ${POSTGRES_DB}
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        ports:
+            - "${POSTGRES_PORT}:5432"
+        volumes:
+            - bandit_data:/var/lib/postgresql/data
+            - ./bandit_system/sql:/docker-entrypoint-initdb.d
+        healthcheck:
+            test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+            - bandit-db-net
+
+
 volumes:
-    postgres_data:
+    user_data:
     clickhouse_data:
     clickhouse_logs:
     file_storage_data:
+    bandit_data:
 
 networks:
     clickhouse-net:
-    postgres-net:
+    user-db-net:
     file-storage-net:
     vault-net:
+    bandit-db-net:
     general:
 
