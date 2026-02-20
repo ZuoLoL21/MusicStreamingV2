@@ -12,7 +12,6 @@ class BanditHandler:
     def __init__(self, config:Config, db:DBManagers, logger: structlog.BoundLogger):
         self._config = config
         self._db = db
-        self._bandit = LinUCB
         self.logger = logger
 
     def predict(self, uuid: UUID4) -> str:
@@ -31,7 +30,7 @@ class BanditHandler:
             found_result = weight_bias.pop(key, None)
 
             if found_result is None:
-                found_result = self._bandit.get_new_arm_result(key, NUMB_FEATURES)
+                found_result = LinUCB.get_new_arm_result(key, NUMB_FEATURES)
             elif found_result.Weights.shape != (NUMB_FEATURES,NUMB_FEATURES) or found_result.Biases.shape != (NUMB_FEATURES,):
                 self.logger.error(
                         "deleted/added features WITHOUT modifying weight bias",
@@ -51,7 +50,7 @@ class BanditHandler:
                     "useless data is still in db",
             )
 
-        chosen_index = self._bandit.predict(to_use_arm_result, to_use_input)
+        chosen_index = LinUCB.predict(to_use_arm_result, to_use_input)
         if chosen_index is -1:
             self.logger.error(
                     "unknown error"
