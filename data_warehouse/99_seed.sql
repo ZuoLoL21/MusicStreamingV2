@@ -12,24 +12,15 @@ INSERT INTO user_dim (user_uuid, created_at, country) VALUES
 -- ============================================================================
 -- Map the music tracks to themes (similar to tags but for the bandit system)
 INSERT INTO music_theme (music_uuid, theme) VALUES
-    -- Sunset Boulevard (indie, chill)
     ('76eebc99-9c0b-4ef8-bb6d-6bb9bd380a24', 'indie'),
     ('76eebc99-9c0b-4ef8-bb6d-6bb9bd380a24', 'chill'),
-
-    -- Morning Coffee (indie)
     ('86eebc99-9c0b-4ef8-bb6d-6bb9bd380a25', 'indie'),
     ('86eebc99-9c0b-4ef8-bb6d-6bb9bd380a25', 'chill'),
-
-    -- Broken Wings (folk)
     ('96eebc99-9c0b-4ef8-bb6d-6bb9bd380a26', 'folk'),
     ('96eebc99-9c0b-4ef8-bb6d-6bb9bd380a26', 'acoustic'),
-
-    -- Digital Horizon (electronic, upbeat)
     ('a6eebc99-9c0b-4ef8-bb6d-6bb9bd380a27', 'electronic'),
     ('a6eebc99-9c0b-4ef8-bb6d-6bb9bd380a27', 'upbeat'),
     ('a6eebc99-9c0b-4ef8-bb6d-6bb9bd380a27', 'energetic'),
-
-    -- Come Together (rock)
     ('b6eebc99-9c0b-4ef8-bb6d-6bb9bd380a28', 'rock'),
     ('b6eebc99-9c0b-4ef8-bb6d-6bb9bd380a28', 'classic');
 
@@ -41,30 +32,19 @@ INSERT INTO music_theme (music_uuid, theme) VALUES
 
 -- Week 1 (2026-01-20 to 2026-01-26) - Discovery phase
 INSERT INTO music_listen_events (event_time, user_uuid, music_uuid, artist_uuid, album_uuid, listen_duration_seconds, track_duration_seconds, completion_ratio) VALUES
-    -- Day 1: Discovering indie
     ('2026-01-20 08:15:30', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '76eebc99-9c0b-4ef8-bb6d-6bb9bd380a24', 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', '46eebc99-9c0b-4ef8-bb6d-6bb9bd380a21', 245, 245, 1.0),
     ('2026-01-20 08:20:15', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '86eebc99-9c0b-4ef8-bb6d-6bb9bd380a25', 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', '46eebc99-9c0b-4ef8-bb6d-6bb9bd380a21', 198, 198, 1.0),
     ('2026-01-20 14:30:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '76eebc99-9c0b-4ef8-bb6d-6bb9bd380a24', 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', '46eebc99-9c0b-4ef8-bb6d-6bb9bd380a21', 245, 245, 1.0),
-
-    -- Day 2: Exploring electronic
     ('2026-01-21 09:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a6eebc99-9c0b-4ef8-bb6d-6bb9bd380a27', '06eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', NULL, 320, 320, 1.0),
     ('2026-01-21 09:30:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a6eebc99-9c0b-4ef8-bb6d-6bb9bd380a27', '06eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', NULL, 320, 320, 1.0),
     ('2026-01-21 16:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a6eebc99-9c0b-4ef8-bb6d-6bb9bd380a27', '06eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', NULL, 280, 320, 0.875),
-
-    -- Day 3: Trying folk
     ('2026-01-22 10:15:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '96eebc99-9c0b-4ef8-bb6d-6bb9bd380a26', 'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', '56eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 180, 215, 0.837),
     ('2026-01-22 15:20:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '96eebc99-9c0b-4ef8-bb6d-6bb9bd380a26', 'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', '56eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 215, 215, 1.0),
-
-    -- Day 4: Back to favorites (indie + electronic)
     ('2026-01-23 08:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '76eebc99-9c0b-4ef8-bb6d-6bb9bd380a24', 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', '46eebc99-9c0b-4ef8-bb6d-6bb9bd380a21', 245, 245, 1.0),
     ('2026-01-23 12:30:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a6eebc99-9c0b-4ef8-bb6d-6bb9bd380a27', '06eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', NULL, 320, 320, 1.0),
     ('2026-01-23 18:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '86eebc99-9c0b-4ef8-bb6d-6bb9bd380a25', 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', '46eebc99-9c0b-4ef8-bb6d-6bb9bd380a21', 198, 198, 1.0),
-
-    -- Day 5: Rock exploration (not a favorite)
     ('2026-01-24 11:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'b6eebc99-9c0b-4ef8-bb6d-6bb9bd380a28', '16eebc99-9c0b-4ef8-bb6d-6bb9bd380a18', '66eebc99-9c0b-4ef8-bb6d-6bb9bd380a23', 120, 259, 0.463),
     ('2026-01-24 15:30:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '76eebc99-9c0b-4ef8-bb6d-6bb9bd380a24', 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', '46eebc99-9c0b-4ef8-bb6d-6bb9bd380a21', 245, 245, 1.0),
-
-    -- Day 6-7: Weekend heavy listening (favorites)
     ('2026-01-25 10:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a6eebc99-9c0b-4ef8-bb6d-6bb9bd380a27', '06eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', NULL, 320, 320, 1.0),
     ('2026-01-25 10:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a6eebc99-9c0b-4ef8-bb6d-6bb9bd380a27', '06eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', NULL, 320, 320, 1.0),
     ('2026-01-25 14:20:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '76eebc99-9c0b-4ef8-bb6d-6bb9bd380a24', 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', '46eebc99-9c0b-4ef8-bb6d-6bb9bd380a21', 245, 245, 1.0),
@@ -136,15 +116,10 @@ INSERT INTO music_listen_events (event_time, user_uuid, music_uuid, artist_uuid,
 -- ============================================================================
 -- User likes certain tracks (corresponds to strong preferences in listen data)
 INSERT INTO music_like_events (event_time, user_uuid, music_uuid, artist_uuid) VALUES
-    -- Early likes during discovery
     ('2026-01-20 08:30:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '76eebc99-9c0b-4ef8-bb6d-6bb9bd380a24', 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a15'),
     ('2026-01-21 09:35:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a6eebc99-9c0b-4ef8-bb6d-6bb9bd380a27', '06eebc99-9c0b-4ef8-bb6d-6bb9bd380a17'),
-
-    -- Mid-period likes
     ('2026-01-22 15:30:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '96eebc99-9c0b-4ef8-bb6d-6bb9bd380a26', 'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a16'),
     ('2026-01-23 12:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '86eebc99-9c0b-4ef8-bb6d-6bb9bd380a25', 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a15'),
-
-    -- Recent likes (showing continued engagement with favorites)
     ('2026-02-10 13:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '76eebc99-9c0b-4ef8-bb6d-6bb9bd380a24', 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a15'),
     ('2026-02-14 17:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a6eebc99-9c0b-4ef8-bb6d-6bb9bd380a27', '06eebc99-9c0b-4ef8-bb6d-6bb9bd380a17');
 
@@ -154,16 +129,13 @@ INSERT INTO music_like_events (event_time, user_uuid, music_uuid, artist_uuid) V
 -- Simulated bandit algorithm decisions and rewards
 -- Action IDs would map to theme indices (e.g., 0=indie, 1=electronic, 2=folk, 3=rock, etc.)
 INSERT INTO bandit_choices (event_time, user_uuid, action, reward) VALUES
-    -- Week 1
-    ('2026-01-20 08:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),  -- indie theme, full listen
-    ('2026-01-21 08:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 1, 1.0),  -- electronic, full listen
-    ('2026-01-22 10:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 2, 0.837), -- folk, partial
-    ('2026-01-23 07:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),  -- indie, full
-    ('2026-01-24 10:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 3, 0.463), -- rock, low reward
-    ('2026-01-25 09:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 1, 1.0),  -- electronic, full
-    ('2026-01-26 11:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),  -- indie, full
-
-    -- Week 2 - algorithm learning preferences
+    ('2026-01-20 08:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
+    ('2026-01-21 08:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 1, 1.0),
+    ('2026-01-22 10:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 2, 0.837),
+    ('2026-01-23 07:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
+    ('2026-01-24 10:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 3, 0.463),
+    ('2026-01-25 09:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 1, 1.0),
+    ('2026-01-26 11:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
     ('2026-01-27 09:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
     ('2026-01-28 08:30:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
     ('2026-01-29 10:15:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 1, 1.0),
@@ -171,8 +143,6 @@ INSERT INTO bandit_choices (event_time, user_uuid, action, reward) VALUES
     ('2026-01-31 09:30:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
     ('2026-02-01 11:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 1, 1.0),
     ('2026-02-02 10:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
-
-    -- Week 3 - exploitation phase
     ('2026-02-03 08:15:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 1, 1.0),
     ('2026-02-04 08:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
     ('2026-02-05 11:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
@@ -180,8 +150,6 @@ INSERT INTO bandit_choices (event_time, user_uuid, action, reward) VALUES
     ('2026-02-07 12:30:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
     ('2026-02-08 09:15:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
     ('2026-02-09 11:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
-
-    -- Week 4 - continued exploitation with occasional exploration
     ('2026-02-10 08:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 1, 1.0),
     ('2026-02-11 10:30:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
     ('2026-02-12 08:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
@@ -189,8 +157,6 @@ INSERT INTO bandit_choices (event_time, user_uuid, action, reward) VALUES
     ('2026-02-14 10:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
     ('2026-02-15 12:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
     ('2026-02-16 09:30:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
-
-    -- Recent
     ('2026-02-17 07:45:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 1, 1.0),
     ('2026-02-18 10:00:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0),
     ('2026-02-19 09:15:00', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 0, 1.0);
