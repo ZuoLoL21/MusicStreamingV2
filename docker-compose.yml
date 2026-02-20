@@ -71,7 +71,8 @@ services:
     clickhouse-database:
         image: clickhouse/clickhouse-server:latest
         ports:
-            - "${CLICKHOUSE_PORT}:9000"
+            - "${CLICKHOUSE_PORT_TCP}:9000"
+            - "${CLICKHOUSE_PORT_HTTP}:8123"
         environment:
           CLICKHOUSE_DB: ${CLICKHOUSE_DB}
           CLICKHOUSE_USER: ${CLICKHOUSE_USER}
