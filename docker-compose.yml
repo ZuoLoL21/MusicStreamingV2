@@ -9,7 +9,7 @@ services:
             - "${USER_CRUD_PORT}:5432"
         volumes:
             - user_data:/var/lib/postgresql/data
-            - ./user)database/sql/schema:/docker-entrypoint-initdb.d/schema
+            - ./user_database/sql/schema:/docker-entrypoint-initdb.d/schema
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U postgres"]
             interval: 10s
