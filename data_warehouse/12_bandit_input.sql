@@ -44,8 +44,8 @@ WITH
         FROM global_theme_positive_event_stats
     )
 SELECT
-    uts.user_uuid,
-    uts.theme,
+    uts.user_uuid AS user_uuid,
+    uts.theme AS theme,
 
     -- User x Theme features
     uts.decay_impressions AS f_user_theme_decay_impressions,
