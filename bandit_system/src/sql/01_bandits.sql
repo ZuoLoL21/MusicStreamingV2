@@ -1,15 +1,13 @@
 CREATE TABLE bandit_data
 (
     user_uuid UUID,
-    theme LowCardinality(String),
-    weights Text DEFAULT "",
-    biases Text DEFAULT "",
-    version UInt64 DEFAULT 0,
-    updated_at DateTime DEFAULT now(),
+    theme Text,
+    weights Text,
+    biases Text,
+    version int DEFAULT 0,
+    updated_at timestamptz DEFAULT now(),
     PRIMARY KEY (user_uuid, theme)
-)
-ORDER BY (user_uuid, theme);
-
+);
 
 -- Create function to update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
