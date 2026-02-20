@@ -30,7 +30,6 @@ class DBManagers:
         self.config = config
         self.storage_engine = create_engine(config.db_params_string)
         self.warehouse_engine = create_engine(config.db_warehouse_string)
-        self.themes_engine = create_engine(config.db_themes_string)
 
     def get_input_data(self, uuid: UUID4) -> Dict[str, np.ndarray]:
         cols = ", ".join(_FEATURE_COLS)
@@ -45,7 +44,7 @@ class DBManagers:
 
         return {row[0]: np.array(row[1:], dtype=np.float64) for row in rows}
 
-    def get_weight_bias(self, uuid: UUID4) -> List[ArmResultLinUCB]:
+    def get_weight_bias(self, uuid: UUID4) -> Dict[str, ArmResultLinUCB]:
         query = text(
             f"SELECT theme, weights, biases, version"
             f" FROM {self.config.bandit_params_table}"
@@ -55,9 +54,9 @@ class DBManagers:
         with self.storage_engine.connect() as conn:
             rows = conn.execute(query, {"uuid": str(uuid)}).fetchall()
 
-        arms: List[ArmResultLinUCB] = []
+        arms: Dict[str, ArmResultLinUCB] = {}
         for theme, weights_json, biases_json, version in rows:
-            arms.append(
+            arms[theme] = (
                 ArmResultLinUCB(
                     Theme=theme,
                     Version=int(version),
@@ -96,18 +95,6 @@ class DBManagers:
 
         return result.rowcount() > 0
 
-    def get_themes(self):
-        query = text(
-                f"SELECT tag_name FROM {self.config.themes_table} "
-                "ORDER BY tag_name"
-        )
-
-        with self.themes_engine.connect() as conn:
-            result = conn.execute(
-                    query,
-            )
-
-        return [row.tag_name for row in result]
 
 if __name__ == "__main__":
     _config = Config()
@@ -120,4 +107,8 @@ if __name__ == "__main__":
         print(len(_theme_dict[key]))
         print("")
 
-    print(_db.get_themes())
+    _weights_dict = _db.get_weight_bias(UUID4("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"))
+
+    for key in _weights_dict:
+        print(key)
+        print(_weights_dict[key])
