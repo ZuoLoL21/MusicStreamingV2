@@ -27,19 +27,19 @@ _FEATURE_COLS = [
 
 class DBManagers:
     def __init__(self, config: Config):
-        self.config = config
-        self.storage_engine = create_engine(config.db_params_string)
-        self.warehouse_engine = create_engine(config.db_warehouse_string)
+        self._config = config
+        self._storage_engine = create_engine(config.db_params_string)
+        self._warehouse_engine = create_engine(config.db_warehouse_string)
 
     def get_input_data(self, uuid: UUID4) -> Dict[str, np.ndarray]:
         cols = ", ".join(_FEATURE_COLS)
         query = text(
             f"SELECT theme, {cols}"
-            f" FROM {self.config.bandit_data_table}"
+            f" FROM {self._config.bandit_data_table}"
             f" WHERE user_uuid = :uuid"
             f" ORDER BY theme"
         )
-        with self.warehouse_engine.connect() as conn:
+        with self._warehouse_engine.connect() as conn:
             rows = conn.execute(query, {"uuid": str(uuid)}).fetchall()
 
         return {row[0]: np.array(row[1:], dtype=np.float64) for row in rows}
@@ -47,11 +47,11 @@ class DBManagers:
     def get_weight_bias(self, uuid: UUID4) -> Dict[str, ArmResultLinUCB]:
         query = text(
             f"SELECT theme, weights, biases, version"
-            f" FROM {self.config.bandit_params_table}"
+            f" FROM {self._config.bandit_params_table}"
             f" WHERE user_uuid = :uuid"
             f" ORDER BY theme"
         )
-        with self.storage_engine.connect() as conn:
+        with self._storage_engine.connect() as conn:
             rows = conn.execute(query, {"uuid": str(uuid)}).fetchall()
 
         arms: Dict[str, ArmResultLinUCB] = {}
@@ -75,11 +75,11 @@ class DBManagers:
         latest_version: int,
     ) -> bool:
         query = text(
-            f"UPDATE {self.config.bandit_params_table}"
+            f"UPDATE {self._config.bandit_params_table}"
             " SET weights = :weights, biases = :biases, version = :new_version"
             " WHERE user_uuid = :uuid AND theme = :theme AND version = :latest_version"
         )
-        with self.storage_engine.connect() as conn:
+        with self._storage_engine.connect() as conn:
             result = conn.execute(
                 query,
                 {
