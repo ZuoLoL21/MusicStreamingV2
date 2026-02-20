@@ -6,10 +6,10 @@ SELECT
     e.user_uuid,
     t.theme,
 
-    exponentialTimeDecayedCountState(2592000)(e.event_time) AS decay_impressions,
+    sumState(exp(-0.693147 * (toUnixTimestamp(now()) - toUnixTimestamp(e.event_time)) / 2592000)) AS decay_impressions,
     countState() AS impressions,
     sumState(e.listen_duration_seconds) AS total_listen_seconds,
-    exponentialTimeDecayedAvgState(2592000)(e.completion_ratio, e.event_time) AS decay_completion,
+    sumState(exp(-0.693147 * (toUnixTimestamp(now()) - toUnixTimestamp(e.event_time)) / 2592000) * e.completion_ratio) AS decay_completion,
     avgState(e.completion_ratio) AS avg_completion,
 
     sumIfState(1, e.completion_ratio >= 0.9) AS full_plays
@@ -28,7 +28,7 @@ AS
 SELECT
     l.user_uuid,
     t.theme,
-    exponentialTimeDecayedCountState(2592000)(l.event_time) AS decay_likes,
+    sumState(exp(-0.693147 * (toUnixTimestamp(now()) - toUnixTimestamp(l.event_time)) / 2592000)) AS decay_likes,
     countState() AS likes
 FROM music_like_events l
 JOIN music_theme t
@@ -44,10 +44,10 @@ ORDER BY user_uuid
 AS
 SELECT
     user_uuid,
-    exponentialTimeDecayedCountState(2592000)(event_time) AS decay_impressions,
+    sumState(exp(-0.693147 * (toUnixTimestamp(now()) - toUnixTimestamp(event_time)) / 2592000)) AS decay_impressions,
     countState() AS impressions,
     sumState(listen_duration_seconds) AS total_listen_seconds,
-    exponentialTimeDecayedAvgState(2592000)(completion_ratio, event_time) AS decay_completion,
+    sumState(exp(-0.693147 * (toUnixTimestamp(now()) - toUnixTimestamp(event_time)) / 2592000) * completion_ratio) AS decay_completion,
     avgState(completion_ratio) AS avg_completion
 FROM music_listen_events
 GROUP BY
@@ -60,7 +60,7 @@ ORDER BY user_uuid
 AS
 SELECT
     user_uuid,
-    exponentialTimeDecayedCountState(2592000)(event_time) AS decay_likes,
+    sumState(exp(-0.693147 * (toUnixTimestamp(now()) - toUnixTimestamp(event_time)) / 2592000)) AS decay_likes,
     countState() AS likes
 FROM music_like_events
 GROUP BY
@@ -72,10 +72,10 @@ ORDER BY theme
 AS
 SELECT
     t.theme,
-    exponentialTimeDecayedCountState(2592000)(e.event_time) AS decay_impressions,
+    sumState(exp(-0.693147 * (toUnixTimestamp(now()) - toUnixTimestamp(e.event_time)) / 2592000)) AS decay_impressions,
     countState() AS impressions,
     sumState(e.listen_duration_seconds) AS total_listen_seconds,
-    exponentialTimeDecayedAvgState(2592000)(e.completion_ratio, e.event_time) AS decay_completion,
+    sumState(exp(-0.693147 * (toUnixTimestamp(now()) - toUnixTimestamp(e.event_time)) / 2592000) * e.completion_ratio) AS decay_completion,
     avgState(e.completion_ratio) AS avg_completion
 FROM music_listen_events e
 JOIN music_theme t
@@ -90,7 +90,7 @@ ORDER BY theme
 AS
 SELECT
     t.theme,
-    exponentialTimeDecayedCountState(2592000)(l.event_time) AS decay_likes,
+    sumState(exp(-0.693147 * (toUnixTimestamp(now()) - toUnixTimestamp(l.event_time)) / 2592000)) AS decay_likes,
     countState() AS likes
 FROM music_like_events l
 JOIN music_theme t

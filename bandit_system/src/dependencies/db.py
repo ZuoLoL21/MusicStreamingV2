@@ -98,4 +98,10 @@ class DBManagers:
 if __name__ == "__main__":
     _config = Config()
     _db = DBManagers(_config)
-    print(_db.get_input_data(UUID4("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")))
+    _theme_dict = _db.get_input_data(UUID4("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"))
+
+    for key in _theme_dict:
+        print(key)
+        print(_theme_dict[key])
+        print(len(_theme_dict[key]))
+        print("")
