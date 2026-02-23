@@ -5,7 +5,7 @@ For each user, compute the weights for each Tag
 Once tag is selected by BANDIT, pass to popularity system (recommend the most popular songs with tag T)
 
 
-Two step
+Two steps
 - predict (sync -> wait for service to return prediction)
 - update (async -> task queue - Kafka?)
 

@@ -4,6 +4,8 @@ CREATE TABLE bandit_data
     theme Text,
     weights Text,
     biases Text,
+    weights_inv Text,
+    updates_since_recompute int DEFAULT 0,
     version int DEFAULT 0,
     updated_at timestamptz DEFAULT now(),
     PRIMARY KEY (user_uuid, theme)

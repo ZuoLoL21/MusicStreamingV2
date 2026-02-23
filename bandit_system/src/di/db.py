@@ -48,7 +48,7 @@ class DBManagers:
 
     def get_weight_bias(self, uuid: UUID4) -> Dict[str, ArmResultLinUCB]:
         query = text(
-            f"SELECT theme, weights, biases, version"
+            f"SELECT theme, weights, biases, weights_inv, updates_since_recompute, version"
             f" FROM {self._config.bandit_params_table}"
             f" WHERE user_uuid = :uuid"
             f" ORDER BY theme"
@@ -57,13 +57,22 @@ class DBManagers:
             rows = conn.execute(query, {"uuid": str(uuid)}).fetchall()
 
         arms: Dict[str, ArmResultLinUCB] = {}
-        for theme, weights_json, biases_json, version in rows:
+        for theme, weights_json, biases_json, weights_inv_json, updates_since_recompute, version in rows:
+            weights_inv = np.array(json.loads(weights_inv_json), dtype=np.float64) if weights_inv_json else None
+            if weights_inv is None:
+                # Fallback: compute inverse if not stored
+                weights = np.array(json.loads(weights_json), dtype=np.float64)
+                weights_inv = np.linalg.inv(weights)
+                updates_since_recompute = 0
+
             arms[theme] = (
                 ArmResultLinUCB(
                     Theme=theme,
                     Version=int(version),
                     Weights=np.array(json.loads(weights_json), dtype=np.float64),
                     Biases=np.array(json.loads(biases_json), dtype=np.float64),
+                    WeightsInv=weights_inv,
+                    UpdatesSinceRecompute=int(updates_since_recompute) if updates_since_recompute is not None else 0,
                 )
             )
         return arms
@@ -71,7 +80,7 @@ class DBManagers:
 
     def get_weight_bias_for_one(self, uuid: UUID4, theme: str) -> ArmResultLinUCB:
         query = text(
-            f"SELECT weights, biases, version"
+            f"SELECT weights, biases, weights_inv, updates_since_recompute, version"
             f" FROM {self._config.bandit_params_table}"
             f" WHERE user_uuid = :uuid"
             f" AND theme = :theme"
@@ -82,13 +91,22 @@ class DBManagers:
         if len(rows) == 0:
             return self._bandit.get_new_arm_result(theme, NUMB_FEATURES)
 
-        weights_json, biases_json, version = rows[0]
+        weights_json, biases_json, weights_inv_json, updates_since_recompute, version = rows[0]
+
+        weights = np.array(json.loads(weights_json), dtype=np.float64)
+        weights_inv = np.array(json.loads(weights_inv_json), dtype=np.float64) if weights_inv_json else None
+        if weights_inv is None:
+            weights_inv = np.linalg.inv(weights)
+            updates_since_recompute = 0
+
         return (
             ArmResultLinUCB(
                 Theme=theme,
                 Version=int(version),
-                Weights=np.array(json.loads(weights_json), dtype=np.float64),
+                Weights=weights,
                 Biases=np.array(json.loads(biases_json), dtype=np.float64),
+                WeightsInv=weights_inv,
+                UpdatesSinceRecompute=int(updates_since_recompute) if updates_since_recompute is not None else 0,
             )
         )
 
@@ -98,11 +116,14 @@ class DBManagers:
         theme: str,
         weight: np.ndarray,
         bias: np.ndarray,
+        weight_inv: np.ndarray,
+        updates_since_recompute: int,
         latest_version: int,
     ) -> bool:
         query = text(
             f"UPDATE {self._config.bandit_params_table}"
-            " SET weights = :weights, biases = :biases, version = :new_version"
+            " SET weights = :weights, biases = :biases, weights_inv = :weights_inv,"
+            " updates_since_recompute = :updates_since_recompute, version = :new_version"
             " WHERE user_uuid = :uuid AND theme = :theme AND version = :latest_version"
         )
 
@@ -113,6 +134,8 @@ class DBManagers:
                     {
                         "weights": json.dumps(weight.tolist()),
                         "biases": json.dumps(bias.tolist()),
+                        "weights_inv": json.dumps(weight_inv.tolist()),
+                        "updates_since_recompute": updates_since_recompute,
                         "new_version": latest_version + 1,
                         "uuid": str(uuid),
                         "theme": theme,

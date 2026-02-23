@@ -65,7 +65,15 @@ class BanditHandler:
         for attempt in range(self._config.max_retries):
             result = self._db.get_weight_bias_for_one(uuid, theme)
             arm = self._bandit.update(result, features, reward)
-            updated = self._db.update_weight_bias(uuid, theme, arm.Weights, arm.Biases, arm.Version)
+            updated = self._db.update_weight_bias(
+                uuid,
+                theme,
+                arm.Weights,
+                arm.Biases,
+                arm.WeightsInv,
+                arm.UpdatesSinceRecompute,
+                arm.Version
+            )
 
             if updated:
                 self.logger.info(
