@@ -1,5 +1,3 @@
-"""Application state management."""
-
 import structlog
 from dataclasses import dataclass
 

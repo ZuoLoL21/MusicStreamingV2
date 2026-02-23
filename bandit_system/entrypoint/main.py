@@ -61,3 +61,6 @@ _app.add_middleware(RequestIDMiddleware)
 
 # Include routers
 _app.include_router(router)
+
+# Export for compatibility (tests, uvicorn, etc.)
+app = _app

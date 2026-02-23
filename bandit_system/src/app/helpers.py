@@ -1,5 +1,3 @@
-"""FastAPI dependency injection providers."""
-
 from fastapi import Request
 from src.services.bandit import BanditHandler
 from src.app.state import AppState
