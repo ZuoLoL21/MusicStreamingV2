@@ -1,9 +1,9 @@
 import random
 import time
+from uuid import UUID
 
 import numpy as np
 import structlog
-from pydantic.v1 import UUID4
 from typing import Dict, List, Tuple
 
 from src.di.config import Config
@@ -24,7 +24,7 @@ class BanditHandler:
         self.logger = logger
         self._bandit = bandit
 
-    def predict(self, uuid: UUID4) -> Tuple[str, np.ndarray]:
+    def predict(self, uuid: UUID) -> Tuple[str, np.ndarray]:
         input_data: Dict[str, np.ndarray] = self._db.get_input_data(uuid)
         weight_bias: Dict[str, ArmResultLinUCB] = self._db.get_weight_bias(uuid)
 
@@ -65,7 +65,7 @@ class BanditHandler:
             raise RuntimeError("unknown error")
         return to_use_arm_result[chosen_index].Theme, to_user_features[chosen_index]
 
-    def update(self, uuid: UUID4, reward: float, theme: str, features: np.ndarray):
+    def update(self, uuid: UUID, reward: float, theme: str, features: np.ndarray):
         for attempt in range(self._config.max_retries):
             result = self._db.get_weight_bias_for_one(uuid, theme)
             arm = self._bandit.update(result, features, reward)

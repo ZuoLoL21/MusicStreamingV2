@@ -3,7 +3,7 @@ from typing import Dict, List
 
 import numpy as np
 import structlog
-from pydantic import UUID4
+from uuid import UUID
 from sqlalchemy import create_engine, text
 
 from src.di.config import Config
@@ -33,7 +33,7 @@ class DBManagers:
         self._storage_engine = create_engine(config.db_params_string)
         self._warehouse_engine = create_engine(config.db_warehouse_string)
 
-    def get_input_data(self, uuid: UUID4) -> Dict[str, np.ndarray]:
+    def get_input_data(self, uuid: UUID) -> Dict[str, np.ndarray]:
         cols = ", ".join(_FEATURE_COLS)
         query = text(
             f"SELECT theme, {cols}"
@@ -46,7 +46,7 @@ class DBManagers:
 
         return {row[0]: np.array(row[1:], dtype=np.float64) for row in rows}
 
-    def get_weight_bias(self, uuid: UUID4) -> Dict[str, ArmResultLinUCB]:
+    def get_weight_bias(self, uuid: UUID) -> Dict[str, ArmResultLinUCB]:
         query = text(
             f"SELECT theme, weights, biases, weights_inv, updates_since_recompute, version"
             f" FROM {self._config.bandit_params_table}"
@@ -88,7 +88,7 @@ class DBManagers:
             )
         return arms
 
-    def get_weight_bias_for_one(self, uuid: UUID4, theme: str) -> ArmResultLinUCB:
+    def get_weight_bias_for_one(self, uuid: UUID, theme: str) -> ArmResultLinUCB:
         query = text(
             f"SELECT weights, biases, weights_inv, updates_since_recompute, version"
             f" FROM {self._config.bandit_params_table}"
@@ -132,7 +132,7 @@ class DBManagers:
 
     def update_weight_bias(
         self,
-        uuid: UUID4,
+        uuid: UUID,
         theme: str,
         weight: np.ndarray,
         bias: np.ndarray,
@@ -163,7 +163,7 @@ class DBManagers:
                     },
                 )
 
-        return result.rowcount() > 0
+        return result.rowcount > 0
 
 
 if __name__ == "__main__":
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     _bandit = LinUCB(_config, _logger)
     _db = DBManagers(_config, _bandit)
 
-    _theme_dict = _db.get_input_data(UUID4("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"))
+    _theme_dict = _db.get_input_data(UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"))
 
     for key in _theme_dict:
         print(key)
@@ -180,7 +180,7 @@ if __name__ == "__main__":
         print(len(_theme_dict[key]))
         print("")
 
-    _weights_dict = _db.get_weight_bias(UUID4("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"))
+    _weights_dict = _db.get_weight_bias(UUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"))
 
     for key in _weights_dict:
         print(key)
