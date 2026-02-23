@@ -1,3 +1,6 @@
+import random
+import time
+
 import numpy as np
 import structlog
 from pydantic.v1 import UUID4
@@ -55,9 +58,41 @@ class BanditHandler:
 
 
     def update(self, uuid: UUID4, reward: float, theme: str, features: np.ndarray):
-        updated = False
-
-        while not updated:
+        for attempt in range(self._config.max_retries):
             result = self._db.get_weight_bias_for_one(uuid, theme)
             arm = LinUCB.update(result, features, reward)
             updated = self._db.update_weight_bias(uuid, theme, arm.Weights, arm.Biases, arm.Version)
+
+            if updated:
+                self.logger.info(
+                    "bandit updated successfully",
+                    user_uuid=str(uuid),
+                    theme=theme,
+                    attempt=attempt + 1,
+                )
+                return
+
+            if attempt < self._config.max_retries - 1:
+                backoff_ms = self._config.initial_backoff_ms * (2 ** attempt)
+                jitter_ms = random.uniform(0, backoff_ms * 0.1)
+                sleep_time = (backoff_ms + jitter_ms) / 1000.0
+
+                self.logger.warning(
+                    "version conflict, retrying",
+                    user_uuid=str(uuid),
+                    theme=theme,
+                    attempt=attempt + 1,
+                    retry_in_ms=int(sleep_time * 1000),
+                )
+                time.sleep(sleep_time)
+
+        # All retries exhausted
+        self.logger.error(
+            "bandit update failed after max retries",
+            user_uuid=str(uuid),
+            theme=theme,
+            max_retries=self._config.max_retries,
+        )
+        raise RuntimeError(
+            f"Failed to update bandit for user {uuid}, theme {theme} after {self._config.max_retries} retries"
+        )

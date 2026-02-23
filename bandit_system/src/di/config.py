@@ -15,3 +15,6 @@ class Config:
 
         self.alpha = float(os.getenv("BANDIT_ALPHA", "0.5"))
         self.ridge_lambda = float(os.getenv("BANDIT_RIDGE_LAMBDA", "1.0"))
+
+        self.max_retries = 3
+        self.initial_backoff_ms = 100
