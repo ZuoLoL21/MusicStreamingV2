@@ -20,7 +20,7 @@ services:
 
     file-storage:
         build:
-            context: ./file_storage
+            context: services/file_storage
             dockerfile: Dockerfile
         ports:
             - "8000:8000"
@@ -44,7 +44,7 @@ services:
 
     user-database-crud:
         build:
-            context: ./user_database
+            context: services/user_database
             dockerfile: Dockerfile
         ports:
             - "8080:8080"
@@ -105,7 +105,7 @@ services:
 
     bandit-system:
         build:
-            context: ./bandit_system
+            context: services/bandit_system
             dockerfile: Dockerfile
         ports:
             - "8001:8001"
