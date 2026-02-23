@@ -103,19 +103,20 @@ class DBManagers:
             " SET weights = :weights, biases = :biases, version = :new_version"
             " WHERE user_uuid = :uuid AND theme = :theme AND version = :latest_version"
         )
+
         with self._storage_engine.connect() as conn:
-            result = conn.execute(
-                query,
-                {
-                    "weights": json.dumps(weight.tolist()),
-                    "biases": json.dumps(bias.tolist()),
-                    "new_version": latest_version + 1,
-                    "uuid": str(uuid),
-                    "theme": theme,
-                    "latest_version": latest_version,
-                },
-            )
-            conn.commit()
+            with conn.begin():
+                result = conn.execute(
+                    query,
+                    {
+                        "weights": json.dumps(weight.tolist()),
+                        "biases": json.dumps(bias.tolist()),
+                        "new_version": latest_version + 1,
+                        "uuid": str(uuid),
+                        "theme": theme,
+                        "latest_version": latest_version,
+                    },
+                )
 
         return result.rowcount() > 0
 
