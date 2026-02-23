@@ -34,7 +34,7 @@ async def predict(
     This endpoint synchronously returns the predicted theme and features.
     """
     try:
-        theme, features = handler.predct(request.user_uuid)
+        theme, features = handler.predict(request.user_uuid)
         return PredictResponse(
             theme=theme,
             features=features.tolist(),

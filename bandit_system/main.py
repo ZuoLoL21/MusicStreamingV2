@@ -62,5 +62,15 @@ _app.add_middleware(RequestIDMiddleware)
 # Include routers
 _app.include_router(router)
 
+
+@_app.get("/")
+async def root():
+    return {
+        "message": "Bandit System API",
+        "version": "0.1.0",
+        "docs": "/docs",
+    }
+
+
 # Export for compatibility (tests, uvicorn, etc.)
 app = _app
