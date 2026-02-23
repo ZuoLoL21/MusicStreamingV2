@@ -1,15 +1,15 @@
 package di
 
 import (
+	libsdi "libs/di"
+
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
-type ContextKey string
-
 type Config struct {
-	UserUUIDKey  ContextKey
-	RequestIDKey ContextKey
+	UserUUIDKey  libsdi.ContextKey
+	RequestIDKey libsdi.ContextKey
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -23,7 +23,15 @@ func LoadConfig(logger *zap.Logger) *Config {
 	}
 
 	return &Config{
-		UserUUIDKey:  ContextKey("userUuid"),
-		RequestIDKey: ContextKey("requestId"),
+		UserUUIDKey:  libsdi.UserUUIDKey,
+		RequestIDKey: libsdi.RequestIDKey,
 	}
+}
+
+func (c *Config) GetRequestIDKey() any {
+	return c.RequestIDKey
+}
+
+func (c *Config) GetUserUUIDKey() (any, bool) {
+	return c.UserUUIDKey, true
 }

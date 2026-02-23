@@ -14,21 +14,23 @@ import (
 
 	"file-storage/internal/di"
 
+	libsdi "libs/di"
+
 	"go.uber.org/zap"
 )
 
 const testUUID = "550e8400-e29b-41d4-a716-446655440000"
 
-func newTestDeps(t *testing.T) (*zap.Logger, *di.Config, *di.LocalStorageManager, *di.ReturnManager) {
+func newTestDeps(t *testing.T) (*zap.Logger, *di.Config, *di.LocalStorageManager, *libsdi.ReturnManager) {
 	t.Helper()
 	logger := zap.NewNop()
 	cfg := &di.Config{
 		StorageLocation: t.TempDir(),
-		RequestIDKey:    "request_id",
+		RequestIDKey:    libsdi.RequestIDKey,
 	}
 	storage := di.GetLocalStorageManager(logger, cfg)
 	storage.InitStorage()
-	returns := di.GetReturnManager(logger, cfg)
+	returns := libsdi.NewReturnManager(logger)
 	return logger, cfg, storage, returns
 }
 

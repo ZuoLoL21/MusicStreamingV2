@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 
+	libsdi "libs/di"
+
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -23,10 +25,10 @@ type ImageHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	storage *di.LocalStorageManager
-	returns *di.ReturnManager
+	returns *libsdi.ReturnManager
 }
 
-func NewImageHandler(logger *zap.Logger, config *di.Config, storage *di.LocalStorageManager, returns *di.ReturnManager) *ImageHandler {
+func NewImageHandler(logger *zap.Logger, config *di.Config, storage *di.LocalStorageManager, returns *libsdi.ReturnManager) *ImageHandler {
 	return &ImageHandler{logger: logger, config: config, storage: storage, returns: returns}
 }
 

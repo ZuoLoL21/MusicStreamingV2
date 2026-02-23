@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	libsdi "libs/di"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
@@ -28,7 +30,7 @@ func main() {
 	// Init components
 	config := di.LoadConfig(logger)
 	secrets := di.GetSecretsManager(logger, config)
-	returns := di.GetReturnManager(logger, config)
+	returns := libsdi.NewReturnManager(logger)
 
 	// Database
 	pool, err := pgxpool.New(context.Background(), config.DatabaseURL)

@@ -12,6 +12,8 @@ import (
 
 	"backend/internal/di"
 
+	libsdi "libs/di"
+
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
@@ -45,8 +47,8 @@ func testConfig() *di.Config {
 }
 
 // testReturns creates a ReturnManager backed by a nop logger.
-func testReturns(cfg *di.Config) *di.ReturnManager {
-	return di.GetReturnManager(zap.NewNop(), cfg)
+func testReturns(cfg *di.Config) *libsdi.ReturnManager {
+	return libsdi.NewReturnManager(zap.NewNop())
 }
 
 // ── request helpers ───────────────────────────────────────────────────────────

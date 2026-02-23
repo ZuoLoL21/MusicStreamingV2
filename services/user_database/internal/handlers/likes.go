@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	"backend/internal/di"
+
 	sqlhandler "backend/sql/sqlc"
+	libsdi "libs/di"
 
 	"go.uber.org/zap"
 )
@@ -12,11 +14,11 @@ import (
 type LikesHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
-	returns *di.ReturnManager
+	returns *libsdi.ReturnManager
 	db      DB
 }
 
-func NewLikesHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db DB) *LikesHandler {
+func NewLikesHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB) *LikesHandler {
 	return &LikesHandler{
 		logger:  logger,
 		config:  config,

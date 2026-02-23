@@ -5,7 +5,9 @@ import (
 	"strconv"
 
 	"backend/internal/di"
+
 	sqlhandler "backend/sql/sqlc"
+	libsdi "libs/di"
 
 	"go.uber.org/zap"
 )
@@ -13,11 +15,11 @@ import (
 type HistoryHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
-	returns *di.ReturnManager
+	returns *libsdi.ReturnManager
 	db      DB
 }
 
-func NewHistoryHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db DB) *HistoryHandler {
+func NewHistoryHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB) *HistoryHandler {
 	return &HistoryHandler{
 		logger:  logger,
 		config:  config,

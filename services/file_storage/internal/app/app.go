@@ -3,9 +3,11 @@ package app
 import (
 	"file-storage/internal/di"
 	"file-storage/internal/handlers"
-	"file-storage/internal/middleware"
 	"fmt"
 	"net/http"
+
+	libsdi "libs/di"
+	libsmiddleware "libs/middleware"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -23,7 +25,7 @@ type App struct {
 	Logger  *zap.Logger
 	Config  *di.Config
 	Storage *di.LocalStorageManager
-	Returns *di.ReturnManager
+	Returns *libsdi.ReturnManager
 }
 
 func (a *App) Router() *mux.Router {
@@ -47,13 +49,13 @@ func (a *App) Router() *mux.Router {
 	r.HandleFunc("/", defaultEndpoint)
 
 	r.Use(
-		middleware.RequestIDMiddleware(a.Config),
-		middleware.LoggingMiddleware(a.Logger, a.Config),
+		libsmiddleware.RequestIDMiddleware(a.Config),
+		libsmiddleware.LoggingMiddleware(a.Logger, a.Config),
 	)
 
 	return r
 }
 
-func New(logger *zap.Logger, config *di.Config, storage *di.LocalStorageManager, returns *di.ReturnManager) *App {
+func New(logger *zap.Logger, config *di.Config, storage *di.LocalStorageManager, returns *libsdi.ReturnManager) *App {
 	return &App{Logger: logger, Config: config, Storage: storage, Returns: returns}
 }

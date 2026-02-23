@@ -6,6 +6,9 @@ import (
 	"backend/internal/middleware"
 	sqlhandler "backend/sql/sqlc"
 
+	libsdi "libs/di"
+	libsmiddleware "libs/middleware"
+
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -14,11 +17,11 @@ type App struct {
 	logger  *zap.Logger
 	config  *di.Config
 	secrets *di.SecretsManager
-	returns *di.ReturnManager
+	returns *libsdi.ReturnManager
 	db      *sqlhandler.Queries
 }
 
-func New(logger *zap.Logger, config *di.Config, secrets *di.SecretsManager, returns *di.ReturnManager, db *sqlhandler.Queries) *App {
+func New(logger *zap.Logger, config *di.Config, secrets *di.SecretsManager, returns *libsdi.ReturnManager, db *sqlhandler.Queries) *App {
 	return &App{
 		logger:  logger,
 		config:  config,
@@ -34,9 +37,9 @@ func (a *App) Router() *mux.Router {
 	auth := middleware.NewAuthHandler(a.logger, a.config, a.secrets)
 
 	r.Use(
-		middleware.RequestIDMiddleware(a.config),
+		libsmiddleware.RequestIDMiddleware(a.config),
 		auth.GetAuthMiddleware(),
-		middleware.LoggingMiddleware(a.logger, a.config),
+		libsmiddleware.LoggingMiddleware(a.logger, a.config),
 	)
 
 	userH := handlers.NewUserHandler(a.logger, a.config, a.secrets, a.returns, a.db)

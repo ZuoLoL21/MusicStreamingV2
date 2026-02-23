@@ -6,6 +6,8 @@ import (
 	"backend/internal/di"
 	sqlhandler "backend/sql/sqlc"
 
+	libsdi "libs/di"
+
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
@@ -13,11 +15,11 @@ import (
 type AlbumHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
-	returns *di.ReturnManager
+	returns *libsdi.ReturnManager
 	db      DB
 }
 
-func NewAlbumHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db DB) *AlbumHandler {
+func NewAlbumHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB) *AlbumHandler {
 	return &AlbumHandler{
 		logger:  logger,
 		config:  config,

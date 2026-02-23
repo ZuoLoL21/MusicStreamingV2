@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
+	libsdi "libs/di"
+
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -19,10 +21,10 @@ type MusicHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	storage *di.LocalStorageManager
-	returns *di.ReturnManager
+	returns *libsdi.ReturnManager
 }
 
-func NewMusicHandler(logger *zap.Logger, config *di.Config, storage *di.LocalStorageManager, returns *di.ReturnManager) *MusicHandler {
+func NewMusicHandler(logger *zap.Logger, config *di.Config, storage *di.LocalStorageManager, returns *libsdi.ReturnManager) *MusicHandler {
 	return &MusicHandler{logger: logger, config: config, storage: storage, returns: returns}
 }
 

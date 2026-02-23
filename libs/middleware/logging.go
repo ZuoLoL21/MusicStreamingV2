@@ -3,13 +3,18 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"popularity/internal/di"
 	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
+
+// LoggingConfig is the interface that services must implement to use LoggingMiddleware (e.g. Config must have these methods)
+type LoggingConfig interface {
+	GetRequestIDKey() any
+	GetUserUUIDKey() (any, bool) // Returns (key, hasUserUUID)
+}
 
 type responseWriter struct {
 	http.ResponseWriter
@@ -34,17 +39,21 @@ func getIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-func requestID(ctx context.Context, config *di.Config) string {
-	id, _ := ctx.Value(config.RequestIDKey).(string)
+func requestID(ctx context.Context, config LoggingConfig) string {
+	id, _ := ctx.Value(config.GetRequestIDKey()).(string)
 	return id
 }
 
-func userUUID(ctx context.Context, config *di.Config) string {
-	id, _ := ctx.Value(config.UserUUIDKey).(string)
-	return id
+func userUUID(ctx context.Context, config LoggingConfig) (string, bool) {
+	key, hasUserUUID := config.GetUserUUIDKey()
+	if !hasUserUUID {
+		return "", false
+	}
+	id, _ := ctx.Value(key).(string)
+	return id, true
 }
 
-func LoggingMiddleware(logger *zap.Logger, config *di.Config) mux.MiddlewareFunc {
+func LoggingMiddleware(logger *zap.Logger, config LoggingConfig) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -59,7 +68,8 @@ func LoggingMiddleware(logger *zap.Logger, config *di.Config) mux.MiddlewareFunc
 					duration := time.Since(start)
 					template, _ := mux.CurrentRoute(r).GetPathTemplate()
 					ctx := r.Context()
-					logger.Error("panic recovered",
+
+					fields := []zap.Field{
 						zap.Any("panic", rec),
 						zap.String("method", r.Method),
 						zap.String("path", r.URL.Path),
@@ -67,8 +77,14 @@ func LoggingMiddleware(logger *zap.Logger, config *di.Config) mux.MiddlewareFunc
 						zap.String("remote_addr", r.RemoteAddr),
 						zap.Duration("duration", duration),
 						zap.String("request_id", requestID(ctx, config)),
-						zap.String("user_uuid", userUUID(ctx, config)),
-					)
+					}
+
+					// Conditionally add user_uuid if the service tracks it
+					if uuid, hasUUID := userUUID(ctx, config); hasUUID {
+						fields = append(fields, zap.String("user_uuid", uuid))
+					}
+
+					logger.Error("panic recovered", fields...)
 					http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}
 			}()
@@ -88,7 +104,11 @@ func LoggingMiddleware(logger *zap.Logger, config *di.Config) mux.MiddlewareFunc
 				zap.Duration("duration", duration),
 				zap.String("remote_addr", getIP(r)),
 				zap.String("request_id", requestID(ctx, config)),
-				zap.String("user_uuid", userUUID(ctx, config)),
+			}
+
+			// Conditionally add user_uuid if the service tracks it
+			if uuid, hasUUID := userUUID(ctx, config); hasUUID {
+				fields = append(fields, zap.String("user_uuid", uuid))
 			}
 
 			switch {

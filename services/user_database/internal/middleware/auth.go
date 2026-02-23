@@ -2,11 +2,12 @@ package middleware
 
 import (
 	"backend/internal/di"
-	"backend/internal/helpers"
 	"context"
 	"fmt"
 	"net/http"
 	"strings"
+
+	libshelpers "libs/helpers"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -94,7 +95,7 @@ func (h *AuthHandler) authenticate(r *http.Request, subject string) (string, err
 		return "", fmt.Errorf("invalid jwt: missing \"Bearer \"")
 	}
 
-	uuid, err := helpers.ValidateJwt(subject, token, h.secrets.GetPublicKeyFunc())
+	uuid, err := libshelpers.ValidateJwt(subject, token, h.secrets.GetPublicKeyFunc())
 	if err != nil {
 		h.logger.Info("auth failed completely", zap.Error(err))
 		return "", fmt.Errorf("invalid jwt: %v", err.Error())

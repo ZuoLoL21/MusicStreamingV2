@@ -4,18 +4,16 @@ import (
 	"os"
 	"path/filepath"
 
+	libsdi "libs/di"
+
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
-// ContextKey is an unexported named type used as context keys to avoid
-// collisions with plain string keys from other packages.
-type ContextKey string
-
 type Config struct {
 	StorageLocation string
 	ListenAddr      string
-	RequestIDKey    ContextKey
+	RequestIDKey    libsdi.ContextKey
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -36,6 +34,14 @@ func LoadConfig(logger *zap.Logger) *Config {
 	return &Config{
 		StorageLocation: filepath.Clean(os.Getenv("DATA_LOCATION")),
 		ListenAddr:      listenAddr,
-		RequestIDKey:    "request_id",
+		RequestIDKey:    libsdi.RequestIDKey,
 	}
+}
+
+func (c *Config) GetRequestIDKey() any {
+	return c.RequestIDKey
+}
+
+func (c *Config) GetUserUUIDKey() (any, bool) {
+	return nil, false
 }

@@ -20,8 +20,8 @@ services:
 
     file-storage:
         build:
-            context: services/file_storage
-            dockerfile: Dockerfile
+            context: .
+            dockerfile: services/file_storage/Dockerfile
         ports:
             - "8000:8000"
         environment:
@@ -44,8 +44,8 @@ services:
 
     user-database-crud:
         build:
-            context: services/user_database
-            dockerfile: Dockerfile
+            context: .
+            dockerfile: services/user_database/Dockerfile
         ports:
             - "8080:8080"
         environment:

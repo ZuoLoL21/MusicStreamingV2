@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	"backend/internal/di"
+
 	sqlhandler "backend/sql/sqlc"
+	libsdi "libs/di"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
@@ -13,11 +15,11 @@ import (
 type MusicHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
-	returns *di.ReturnManager
+	returns *libsdi.ReturnManager
 	db      DB
 }
 
-func NewMusicHandler(logger *zap.Logger, config *di.Config, returns *di.ReturnManager, db DB) *MusicHandler {
+func NewMusicHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB) *MusicHandler {
 	return &MusicHandler{
 		logger:  logger,
 		config:  config,

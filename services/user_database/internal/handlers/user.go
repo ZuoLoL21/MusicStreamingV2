@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"backend/internal/di"
-	"backend/internal/helpers"
 	sqlhandler "backend/sql/sqlc"
+
+	libsdi "libs/di"
+	libshelpers "libs/helpers"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -17,11 +19,11 @@ type UserHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	secrets *di.SecretsManager
-	returns *di.ReturnManager
+	returns *libsdi.ReturnManager
 	db      DB
 }
 
-func NewUserHandler(logger *zap.Logger, config *di.Config, secrets *di.SecretsManager, returns *di.ReturnManager, db DB) *UserHandler {
+func NewUserHandler(logger *zap.Logger, config *di.Config, secrets *di.SecretsManager, returns *libsdi.ReturnManager, db DB) *UserHandler {
 	return &UserHandler{
 		logger:  logger,
 		config:  config,
@@ -38,8 +40,8 @@ type tokenPair struct {
 
 func (h *UserHandler) issueTokenPair(uuidStr string) tokenPair {
 	_, priKey, kid := h.secrets.GetKeyInfo(h.config.JWTStorePath)
-	access := helpers.GenerateJwt(h.config.SubjectNormal, uuidStr, priKey, kid, h.config.JWTExpirationNormal)
-	refresh := helpers.GenerateJwt(h.config.SubjectRefresh, uuidStr, priKey, kid, h.config.JWTExpirationRefresh)
+	access := libshelpers.GenerateJwt(h.config.SubjectNormal, uuidStr, priKey, kid, h.config.JWTExpirationNormal)
+	refresh := libshelpers.GenerateJwt(h.config.SubjectRefresh, uuidStr, priKey, kid, h.config.JWTExpirationRefresh)
 	return tokenPair{AccessToken: access, RefreshToken: refresh}
 }
 
@@ -57,7 +59,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hashedPassword := helpers.Encode(body.Password)
+	hashedPassword := libshelpers.Encode(body.Password)
 
 	var bio pgtype.Text
 	if body.Bio != nil {
@@ -107,7 +109,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !helpers.Verify(body.Password, user.HashedPassword) {
+	if !libshelpers.Verify(body.Password, user.HashedPassword) {
 		h.returns.ReturnError(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
@@ -119,7 +121,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) Renew(w http.ResponseWriter, r *http.Request) {
 	uuidStr := r.Context().Value(h.config.UserUUIDKey).(string)
 	_, priKey, kid := h.secrets.GetKeyInfo(h.config.JWTStorePath)
-	access := helpers.GenerateJwt(h.config.SubjectNormal, uuidStr, priKey, kid, h.config.JWTExpirationNormal)
+	access := libshelpers.GenerateJwt(h.config.SubjectNormal, uuidStr, priKey, kid, h.config.JWTExpirationNormal)
 	h.returns.ReturnJSON(w, map[string]string{"access_token": access}, http.StatusOK)
 }
 
@@ -210,7 +212,7 @@ func (h *UserHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !helpers.Verify(body.OldPassword, hashedPassword) {
+	if !libshelpers.Verify(body.OldPassword, hashedPassword) {
 		h.returns.ReturnError(w, "invalid password", http.StatusUnauthorized)
 		return
 	}
@@ -249,12 +251,12 @@ func (h *UserHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !helpers.Verify(body.OldPassword, hashedPassword) {
+	if !libshelpers.Verify(body.OldPassword, hashedPassword) {
 		h.returns.ReturnError(w, "invalid password", http.StatusUnauthorized)
 		return
 	}
 
-	newHashed := helpers.Encode(body.NewPassword)
+	newHashed := libshelpers.Encode(body.NewPassword)
 	if err := h.db.UpdatePassword(r.Context(), sqlhandler.UpdatePasswordParams{
 		Uuid:           userUUID,
 		HashedPassword: newHashed,

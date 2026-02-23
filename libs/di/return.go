@@ -11,11 +11,10 @@ import (
 
 type ReturnManager struct {
 	logger *zap.Logger
-	config *Config
 }
 
-func GetReturnManager(logger *zap.Logger, config *Config) *ReturnManager {
-	return &ReturnManager{logger: logger, config: config}
+func NewReturnManager(logger *zap.Logger) *ReturnManager {
+	return &ReturnManager{logger: logger}
 }
 
 func (h *ReturnManager) ReturnError(w http.ResponseWriter, msg string, code int) {

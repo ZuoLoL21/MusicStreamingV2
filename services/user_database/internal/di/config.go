@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"time"
 
+	libsdi "libs/di"
+
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
-
-type ContextKey string
 
 type Config struct {
 	Provider             string
@@ -19,8 +19,8 @@ type Config struct {
 	JWTExpirationNormal  time.Duration
 	SubjectRefresh       string
 	JWTExpirationRefresh time.Duration
-	UserUUIDKey          ContextKey
-	RequestIDKey         ContextKey
+	UserUUIDKey          libsdi.ContextKey
+	RequestIDKey         libsdi.ContextKey
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -51,7 +51,18 @@ func LoadConfig(logger *zap.Logger) *Config {
 		JWTExpirationNormal:  time.Minute * time.Duration(normalTime),
 		SubjectRefresh:       os.Getenv("JWT_SUBJECT_REFRESH"),
 		JWTExpirationRefresh: time.Hour * 24 * time.Duration(refreshTime),
-		UserUUIDKey:          ContextKey("userUuid"),
-		RequestIDKey:         ContextKey("requestId"),
+		UserUUIDKey:          libsdi.UserUUIDKey,
+		RequestIDKey:         libsdi.RequestIDKey,
 	}
+}
+
+// GetRequestIDKey implements middleware.RequestIDConfig
+func (c *Config) GetRequestIDKey() any {
+	return c.RequestIDKey
+}
+
+// GetUserUUIDKey implements middleware.LoggingConfig
+// user_database tracks user UUIDs, so return (key, true)
+func (c *Config) GetUserUUIDKey() (any, bool) {
+	return c.UserUUIDKey, true
 }

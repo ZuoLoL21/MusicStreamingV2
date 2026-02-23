@@ -12,6 +12,8 @@ import (
 	"syscall"
 	"time"
 
+	libsdi "libs/di"
+
 	"go.uber.org/zap"
 )
 
@@ -27,7 +29,7 @@ func main() {
 	config := di.LoadConfig(logger)
 	storage := di.GetLocalStorageManager(logger, config)
 	storage.InitStorage()
-	returns := di.GetReturnManager(logger, config)
+	returns := libsdi.NewReturnManager(logger)
 
 	// Router
 	application := app.New(logger, config, storage, returns)

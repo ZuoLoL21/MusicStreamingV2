@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"backend/internal/di"
+
 	sqlhandler "backend/sql/sqlc"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	libsdi "libs/di"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -31,7 +33,7 @@ func init() {
 	})
 }
 
-func decodeBody[T any](w http.ResponseWriter, r *http.Request, returns *di.ReturnManager) (T, bool) {
+func decodeBody[T any](w http.ResponseWriter, r *http.Request, returns *libsdi.ReturnManager) (T, bool) {
 	var body T
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		returns.ReturnError(w, "invalid request body", http.StatusBadRequest)
@@ -76,7 +78,7 @@ func uuidToPgtype(uuidStr string) (pgtype.UUID, error) {
 	return id, nil
 }
 
-func userUUIDFromCtx(w http.ResponseWriter, r *http.Request, config *di.Config, returns *di.ReturnManager) (pgtype.UUID, bool) {
+func userUUIDFromCtx(w http.ResponseWriter, r *http.Request, config *di.Config, returns *libsdi.ReturnManager) (pgtype.UUID, bool) {
 	uuidStr, _ := r.Context().Value(config.UserUUIDKey).(string)
 	userUUID, err := uuidToPgtype(uuidStr)
 	if err != nil {

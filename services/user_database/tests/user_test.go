@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"backend/internal/helpers"
 	"context"
 	"errors"
 	"net/http"
@@ -10,6 +9,8 @@ import (
 
 	"backend/internal/handlers"
 	sqlhandler "backend/sql/sqlc"
+
+	libshelpers "libs/helpers"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
@@ -182,7 +183,7 @@ func TestUpdateEmail_InvalidEmail(t *testing.T) {
 
 func TestUpdateEmail_Success(t *testing.T) {
 	password := "old_password"
-	hashed := helpers.Encode(password)
+	hashed := libshelpers.Encode(password)
 	cfg := testConfig()
 	df := &mockDB{
 		getHashPasswordFn: func(_ context.Context, _ pgtype.UUID) (string, error) {
@@ -204,7 +205,7 @@ func TestUpdateEmail_IncorrectPassword(t *testing.T) {
 	cfg := testConfig()
 	df := &mockDB{
 		getHashPasswordFn: func(_ context.Context, _ pgtype.UUID) (string, error) {
-			return helpers.Encode("random_password"), nil
+			return libshelpers.Encode("random_password"), nil
 		},
 	}
 	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), df)
@@ -222,7 +223,7 @@ func TestUpdateEmail_MissingPassword(t *testing.T) {
 	cfg := testConfig()
 	df := &mockDB{
 		getHashPasswordFn: func(_ context.Context, _ pgtype.UUID) (string, error) {
-			return helpers.Encode("random_password"), nil
+			return libshelpers.Encode("random_password"), nil
 		},
 	}
 	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), df)
@@ -259,7 +260,7 @@ func TestUpdatePassword_Success(t *testing.T) {
 	cfg := testConfig()
 	df := &mockDB{
 		getHashPasswordFn: func(_ context.Context, _ pgtype.UUID) (string, error) {
-			return helpers.Encode("old12345678"), nil
+			return libshelpers.Encode("old12345678"), nil
 		},
 	}
 	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), df)
