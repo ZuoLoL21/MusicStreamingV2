@@ -12,10 +12,11 @@ from src.models.linucb import ArmResultLinUCB, LinUCB
 
 
 class BanditHandler:
-    def __init__(self, config:Config, db:DBManagers, logger: structlog.BoundLogger):
+    def __init__(self, config:Config, db:DBManagers, logger: structlog.BoundLogger, bandit: LinUCB):
         self._config = config
         self._db = db
         self.logger = logger
+        self._bandit = bandit
 
     def predict(self, uuid: UUID4) -> Tuple[str, np.ndarray]:
         input_data : Dict[str, np.ndarray] = self._db.get_input_data(uuid)
@@ -33,7 +34,7 @@ class BanditHandler:
             found_result = weight_bias.pop(key, None)
 
             if found_result is None:
-                found_result = LinUCB.get_new_arm_result(key, NUMB_FEATURES)
+                found_result = self._bandit.get_new_arm_result(key, NUMB_FEATURES)
             elif found_result.Weights.shape != (NUMB_FEATURES,NUMB_FEATURES) or found_result.Biases.shape != (NUMB_FEATURES,):
                 self.logger.error(
                         "deleted/added features WITHOUT modifying weight bias",
@@ -48,7 +49,10 @@ class BanditHandler:
                     "useless data is still in db",
             )
 
-        chosen_index = LinUCB.predict(to_use_arm_result, to_user_features)
+        chosen_index = self._bandit.predict(
+            to_use_arm_result,
+            to_user_features
+        )
         if chosen_index is None:
             self.logger.error(
                     "unknown error"
@@ -60,7 +64,7 @@ class BanditHandler:
     def update(self, uuid: UUID4, reward: float, theme: str, features: np.ndarray):
         for attempt in range(self._config.max_retries):
             result = self._db.get_weight_bias_for_one(uuid, theme)
-            arm = LinUCB.update(result, features, reward)
+            arm = self._bandit.update(result, features, reward)
             updated = self._db.update_weight_bias(uuid, theme, arm.Weights, arm.Biases, arm.Version)
 
             if updated:
@@ -86,7 +90,6 @@ class BanditHandler:
                 )
                 time.sleep(sleep_time)
 
-        # All retries exhausted
         self.logger.error(
             "bandit update failed after max retries",
             user_uuid=str(uuid),

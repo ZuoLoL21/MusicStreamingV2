@@ -1,4 +1,5 @@
 import numpy as np
+import structlog
 from pydantic import BaseModel, ConfigDict
 from typing import Tuple, List, Optional
 
@@ -14,42 +15,42 @@ class ArmResultLinUCB(BaseModel):
     Weights: np.ndarray
     Biases: np.ndarray
 
-config = Config()
-
 
 class LinUCB:
-    @staticmethod
-    def get_basic(dim: int) -> Tuple[np.ndarray, np.ndarray]:
-        return np.identity(dim), np.zeros(dim)
+    def __init__(self, config:Config, logger: structlog.BoundLogger):
+        self._config = config
+        self._logger = logger
 
-    @staticmethod
-    def get_new_arm_result(theme: str, dim: int) -> ArmResultLinUCB:
-        weight, bias = LinUCB.get_basic(dim)
+    def get_basic(self, dim: int) -> Tuple[np.ndarray, np.ndarray]:
+        return self._config.ridge_lambda * np.identity(dim), np.zeros(dim)
+
+    def get_new_arm_result(self, theme: str, dim: int) -> ArmResultLinUCB:
+        weight, bias = self.get_basic(dim)
         return ArmResultLinUCB(Theme=theme, Version=0, Weights=weight, Biases=bias)
 
-    @staticmethod
-    def _compute_weight(arm: ArmResultLinUCB, features: np.ndarray) -> float:
+    def _compute_weight(self, arm: ArmResultLinUCB, features: np.ndarray) -> float:
         A = arm.Weights
         B = arm.Biases
         A_1 = np.linalg.inv(A)
 
         theta = A_1 @ B
-        ls = theta @ features
-        weight = config.alpha * np.sqrt(features @ A_1 @ features)
+        mean = theta @ features
+        std = self._config.alpha * np.sqrt(features.T @ A_1 @ features)
 
-        return ls + weight.item()
+        return mean + std.item()
 
-    @staticmethod
-    def predict(arms: List[ArmResultLinUCB], features: List[np.ndarray]) -> Optional[int]:
+    def predict(self, arms: List[ArmResultLinUCB], features: List[np.ndarray]) -> Optional[int]:
         if len(arms) != len(features):
             return None
 
-        weights = [LinUCB._compute_weight(arm, feature) for arm, feature in zip(arms, features)]
+        weights = [
+            self._compute_weight(arm, feature)
+            for arm, feature in zip(arms, features)
+        ]
         return int(np.argmax(weights))
 
-    @staticmethod
     def update(
-        arm: ArmResultLinUCB, features: np.ndarray, reward: float
+        self, arm: ArmResultLinUCB, features: np.ndarray, reward: float
     ) -> ArmResultLinUCB:
         reward = max(0.0, min(reward, 1.0))
 

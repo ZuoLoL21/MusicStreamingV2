@@ -2,6 +2,7 @@ import json
 from typing import Dict, List
 
 import numpy as np
+import structlog
 from pydantic import UUID4
 from sqlalchemy import create_engine, text
 
@@ -26,8 +27,9 @@ NUMB_FEATURES = len(_FEATURE_COLS)
 
 
 class DBManagers:
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, bandit: LinUCB):
         self._config = config
+        self._bandit = bandit
         self._storage_engine = create_engine(config.db_params_string)
         self._warehouse_engine = create_engine(config.db_warehouse_string)
 
@@ -78,7 +80,7 @@ class DBManagers:
             rows = conn.execute(query, {"uuid": str(uuid), "theme": theme}).fetchall()
 
         if len(rows) == 0:
-            return LinUCB.get_new_arm_result(theme, NUMB_FEATURES)
+            return self._bandit.get_new_arm_result(theme, NUMB_FEATURES)
 
         weights_json, biases_json, version = rows[0]
         return (
@@ -123,7 +125,10 @@ class DBManagers:
 
 if __name__ == "__main__":
     _config = Config()
-    _db = DBManagers(_config)
+    _logger = structlog.get_logger("db_test")
+    _bandit = LinUCB(_config, _logger)
+    _db = DBManagers(_config, _bandit)
+
     _theme_dict = _db.get_input_data(UUID4("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"))
 
     for key in _theme_dict:
