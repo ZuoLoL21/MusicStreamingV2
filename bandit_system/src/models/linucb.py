@@ -54,7 +54,7 @@ class LinUCB:
     ) -> ArmResultLinUCB:
         reward = max(0.0, min(reward, 1.0))
 
-        weightAdjustment = features @ features.T
+        weightAdjustment = np.outer(features, features)
         biasAdjustment = reward * features
 
         arm.Weights += weightAdjustment
