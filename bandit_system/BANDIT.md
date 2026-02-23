@@ -8,3 +8,6 @@ Once tag is selected by BANDIT, pass to popularity system (recommend the most po
 Two step
 - predict (sync -> wait for service to return prediction)
 - update (async -> task queue - Kafka?)
+
+Currently using LinUCB with L2 regularization
+- Sherman–Morrison inverse tracking with divergence checker
