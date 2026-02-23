@@ -14,8 +14,9 @@ class ArmResultLinUCB(BaseModel):
 
     Weights: np.ndarray
     Biases: np.ndarray
-    WeightsInv: np.ndarray  # Cached inverse of Weights, updated via Sherman-Morrison
-    UpdatesSinceRecompute: int = 0  # Track updates since last full inverse recompute
+    WeightsInv: np.ndarray
+
+    UpdatesSinceRecompute: int = 0
 
 
 class LinUCB:
@@ -80,7 +81,7 @@ class LinUCB:
 
         # Divergence check
         if arm.UpdatesSinceRecompute >= self._config.sherman_morrison_recompute_interval:
-            divergence = self._check_divergence(arm.Weights, arm.WeightsInv)
+            divergence = _check_divergence(arm.Weights, arm.WeightsInv)
 
             if divergence > self._config.sherman_morrison_divergence_threshold:
                 self._logger.warning(
@@ -102,9 +103,10 @@ class LinUCB:
                 arm.UpdatesSinceRecompute = 0
         return arm
 
-    def _check_divergence(self, A: np.ndarray, A_inv: np.ndarray) -> float:
-        identity = np.eye(A.shape[0])
-        product = A @ A_inv
-        divergence = np.linalg.norm(identity - product, ord='fro')
-        return divergence
+
+def _check_divergence(A: np.ndarray, A_inv: np.ndarray) -> float:
+    identity = np.eye(A.shape[0])
+    product = A @ A_inv
+    divergence = np.linalg.norm(identity - product, ord='fro')
+    return float(divergence)
 
