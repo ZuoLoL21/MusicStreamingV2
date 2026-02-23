@@ -15,7 +15,7 @@ import (
 
 func newPlaylistHandler(db *mockDB) *handlers.PlaylistHandler {
 	cfg := testConfig()
-	return handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	return handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), db)
 }
 
 // ── GetPlaylist ───────────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ func TestGetPlaylistTracks_Success(t *testing.T) {
 
 func TestCreatePlaylist_Success(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPut, "/playlists", map[string]string{"original_name": "Chill Vibes"})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -93,7 +93,7 @@ func TestCreatePlaylist_Success(t *testing.T) {
 
 func TestCreatePlaylist_ValidationFail(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	// original_name is required but missing
 	r := newRequest(http.MethodPut, "/playlists", map[string]string{})
@@ -112,7 +112,7 @@ func TestUpdatePlaylist_Forbidden(t *testing.T) {
 			return sqlhandler.Playlist{FromUser: mustUUID(testUser2UUID)}, nil
 		},
 	}
-	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/playlists/"+testPlaylistUUID, map[string]string{"original_name": "Updated"}),
@@ -130,7 +130,7 @@ func TestUpdatePlaylist_Success(t *testing.T) {
 			return sqlhandler.Playlist{FromUser: mustUUID(testUserUUID)}, nil
 		},
 	}
-	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/playlists/"+testPlaylistUUID, map[string]string{"original_name": "Updated"}),
@@ -150,7 +150,7 @@ func TestDeletePlaylist_Success(t *testing.T) {
 			return sqlhandler.Playlist{FromUser: mustUUID(testUserUUID)}, nil
 		},
 	}
-	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodDelete, "/playlists/"+testPlaylistUUID, nil), map[string]string{"uuid": testPlaylistUUID})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -167,7 +167,7 @@ func TestAddTrackToPlaylist_Success(t *testing.T) {
 			return sqlhandler.Playlist{FromUser: mustUUID(testUserUUID)}, nil
 		},
 	}
-	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPut, "/playlists/"+testPlaylistUUID+"/tracks/"+testMusicUUID, map[string]interface{}{"position": 0}),
@@ -185,7 +185,7 @@ func TestAddTrackToPlaylist_InvalidMusicUUID(t *testing.T) {
 			return sqlhandler.Playlist{FromUser: mustUUID(testUserUUID)}, nil
 		},
 	}
-	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPut, "/playlists/"+testPlaylistUUID+"/tracks/bad", map[string]interface{}{"position": 0}),
@@ -205,7 +205,7 @@ func TestRemoveTrackFromPlaylist_Success(t *testing.T) {
 			return sqlhandler.Playlist{FromUser: mustUUID(testUserUUID)}, nil
 		},
 	}
-	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodDelete, "/playlists/"+testPlaylistUUID+"/tracks/"+testMusicUUID, nil),
@@ -225,7 +225,7 @@ func TestUpdatePlaylistImage_Success(t *testing.T) {
 			return sqlhandler.Playlist{FromUser: mustUUID(testUserUUID)}, nil
 		},
 	}
-	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/playlists/"+testPlaylistUUID+"/image", map[string]string{"image_path": "/img/cover.png"}),
@@ -243,7 +243,7 @@ func TestUpdatePlaylistImage_Forbidden(t *testing.T) {
 			return sqlhandler.Playlist{FromUser: mustUUID(testUser2UUID)}, nil
 		},
 	}
-	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/playlists/"+testPlaylistUUID+"/image", map[string]string{"image_path": "/img/cover.png"}),
@@ -261,7 +261,7 @@ func TestUpdatePlaylistImage_ValidationFail(t *testing.T) {
 			return sqlhandler.Playlist{FromUser: mustUUID(testUserUUID)}, nil
 		},
 	}
-	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/playlists/"+testPlaylistUUID+"/image", map[string]string{}),
@@ -281,7 +281,7 @@ func TestUpdateTrackPosition_Success(t *testing.T) {
 			return sqlhandler.Playlist{FromUser: mustUUID(testUserUUID)}, nil
 		},
 	}
-	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewPlaylistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/playlists/"+testPlaylistUUID+"/tracks/"+testTrackUUID+"/position", map[string]interface{}{"position": 2}),

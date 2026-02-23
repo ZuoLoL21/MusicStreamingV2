@@ -14,7 +14,7 @@ import (
 
 func newLikesHandler(db *mockDB) *handlers.LikesHandler {
 	cfg := testConfig()
-	return handlers.NewLikesHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	return handlers.NewLikesHandler(zap.NewNop(), cfg, testReturns(), db)
 }
 
 // ── GetLikesForUser ───────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ func TestIsLiked_True(t *testing.T) {
 			return true, nil
 		},
 	}
-	h := handlers.NewLikesHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewLikesHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodGet, "/music/"+testMusicUUID+"/liked", nil), map[string]string{"uuid": testMusicUUID})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -56,7 +56,7 @@ func TestIsLiked_False(t *testing.T) {
 			return false, nil
 		},
 	}
-	h := handlers.NewLikesHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewLikesHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodGet, "/music/"+testMusicUUID+"/liked", nil), map[string]string{"uuid": testMusicUUID})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -69,7 +69,7 @@ func TestIsLiked_False(t *testing.T) {
 
 func TestLikeMusic_Success(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewLikesHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewLikesHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodPost, "/music/"+testMusicUUID+"/like", nil), map[string]string{"uuid": testMusicUUID})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -82,7 +82,7 @@ func TestLikeMusic_DBError(t *testing.T) {
 	db := &mockDB{
 		likeMusicFn: func(_ context.Context, _ sqlhandler.LikeMusicParams) error { return errDB },
 	}
-	h := handlers.NewLikesHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewLikesHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodPost, "/music/"+testMusicUUID+"/like", nil), map[string]string{"uuid": testMusicUUID})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -94,7 +94,7 @@ func TestLikeMusic_DBError(t *testing.T) {
 
 func TestUnlikeMusic_Success(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewLikesHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewLikesHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodDelete, "/music/"+testMusicUUID+"/like", nil), map[string]string{"uuid": testMusicUUID})
 	r = withUserUUID(r, cfg, testUserUUID)

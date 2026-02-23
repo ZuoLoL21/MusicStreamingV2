@@ -14,7 +14,7 @@ import (
 
 func newFollowsHandler(db *mockDB) *handlers.FollowsHandler {
 	cfg := testConfig()
-	return handlers.NewFollowsHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	return handlers.NewFollowsHandler(zap.NewNop(), cfg, testReturns(), db)
 }
 
 // ── GetFollowersForUser ───────────────────────────────────────────────────────
@@ -98,7 +98,7 @@ func TestGetFollowersForArtist_Success(t *testing.T) {
 
 func TestFollowUser_Success(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewFollowsHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewFollowsHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodPost, "/users/"+testUser2UUID+"/follow", nil), map[string]string{"uuid": testUser2UUID})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -108,7 +108,7 @@ func TestFollowUser_Success(t *testing.T) {
 
 func TestFollowUser_InvalidUUID(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewFollowsHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewFollowsHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodPost, "/users/bad/follow", nil), map[string]string{"uuid": "bad"})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -120,7 +120,7 @@ func TestFollowUser_InvalidUUID(t *testing.T) {
 
 func TestUnfollowUser_Success(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewFollowsHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewFollowsHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodDelete, "/users/"+testUser2UUID+"/follow", nil), map[string]string{"uuid": testUser2UUID})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -132,7 +132,7 @@ func TestUnfollowUser_Success(t *testing.T) {
 
 func TestFollowArtist_Success(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewFollowsHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewFollowsHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodPost, "/artists/"+testArtistUUID+"/follow", nil), map[string]string{"uuid": testArtistUUID})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -144,7 +144,7 @@ func TestFollowArtist_Success(t *testing.T) {
 
 func TestUnfollowArtist_Success(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewFollowsHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewFollowsHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodDelete, "/artists/"+testArtistUUID+"/follow", nil), map[string]string{"uuid": testArtistUUID})
 	r = withUserUUID(r, cfg, testUserUUID)

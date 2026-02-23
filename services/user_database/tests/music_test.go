@@ -16,7 +16,7 @@ import (
 
 func newMusicHandler(db *mockDB) *handlers.MusicHandler {
 	cfg := testConfig()
-	return handlers.NewMusicHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	return handlers.NewMusicHandler(zap.NewNop(), cfg, testReturns(), db)
 }
 
 // ── GetMusic ──────────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ func TestCreateMusic_Forbidden(t *testing.T) {
 			return []sqlhandler.GetUsersRepresentingArtistRow{}, nil
 		},
 	}
-	h := handlers.NewMusicHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewMusicHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPut, "/music", map[string]interface{}{
 		"artist_uuid":          testArtistUUID,
@@ -123,7 +123,7 @@ func TestCreateMusic_Success(t *testing.T) {
 			return ownerMembers(testUserUUID), nil
 		},
 	}
-	h := handlers.NewMusicHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewMusicHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPut, "/music", map[string]interface{}{
 		"artist_uuid":          testArtistUUID,
@@ -148,7 +148,7 @@ func TestUpdateMusicDetails_Success(t *testing.T) {
 			return ownerMembers(testUserUUID), nil
 		},
 	}
-	h := handlers.NewMusicHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewMusicHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/music/"+testMusicUUID, map[string]string{"song_name": "Updated Song"}),
@@ -171,7 +171,7 @@ func TestDeleteMusic_Success(t *testing.T) {
 			return ownerMembers(testUserUUID), nil
 		},
 	}
-	h := handlers.NewMusicHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewMusicHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodDelete, "/music/"+testMusicUUID, nil), map[string]string{"uuid": testMusicUUID})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -202,7 +202,7 @@ func TestIncrementPlayCount_DBError(t *testing.T) {
 
 func TestAddListeningHistoryEntry_Success(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewMusicHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewMusicHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/music/"+testMusicUUID+"/listen", map[string]interface{}{

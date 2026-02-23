@@ -15,7 +15,7 @@ import (
 
 func newTagsHandler(db *mockDB) *handlers.TagsHandler {
 	cfg := testConfig()
-	return handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	return handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(), db)
 }
 
 // ── GetAllTags ────────────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ func TestAssignTagToMusic_Success(t *testing.T) {
 			return []sqlhandler.GetUsersRepresentingArtistRow{{Uuid: mustUUID(testUserUUID), Role: sqlhandler.ArtistMemberRoleMember}}, nil
 		},
 	}
-	h := handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodPost, "/music/"+testMusicUUID+"/tags/jazz", nil), map[string]string{"uuid": testMusicUUID, "name": "jazz"})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -150,7 +150,7 @@ func TestAssignTagToMusic_Forbidden(t *testing.T) {
 			return []sqlhandler.GetUsersRepresentingArtistRow{}, nil
 		},
 	}
-	h := handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodPost, "/music/"+testMusicUUID+"/tags/jazz", nil), map[string]string{"uuid": testMusicUUID, "name": "jazz"})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -177,7 +177,7 @@ func TestRemoveTagFromMusic_Success(t *testing.T) {
 			return []sqlhandler.GetUsersRepresentingArtistRow{{Uuid: mustUUID(testUserUUID), Role: sqlhandler.ArtistMemberRoleMember}}, nil
 		},
 	}
-	h := handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodDelete, "/music/"+testMusicUUID+"/tags/jazz", nil), map[string]string{"uuid": testMusicUUID, "name": "jazz"})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -198,7 +198,7 @@ func TestRemoveTagFromMusic_DBError(t *testing.T) {
 			return errDB
 		},
 	}
-	h := handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewTagsHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodDelete, "/music/"+testMusicUUID+"/tags/jazz", nil), map[string]string{"uuid": testMusicUUID, "name": "jazz"})
 	r = withUserUUID(r, cfg, testUserUUID)

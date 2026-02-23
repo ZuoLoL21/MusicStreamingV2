@@ -18,7 +18,7 @@ import (
 
 func newUserHandler(db *mockDB) *handlers.UserHandler {
 	cfg := testConfig()
-	return handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), db)
+	return handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), db)
 }
 
 // ── Register ──────────────────────────────────────────────────────────────────
@@ -91,7 +91,7 @@ func TestGetMe_Success(t *testing.T) {
 			return sqlhandler.PublicUser{Username: "alice", Email: "alice@example.com"}, nil
 		},
 	}
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), db)
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodGet, "/users/me", nil)
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -106,7 +106,7 @@ func TestGetMe_DBError(t *testing.T) {
 			return sqlhandler.PublicUser{}, errDB
 		},
 	}
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), db)
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodGet, "/users/me", nil)
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -151,7 +151,7 @@ func TestGetPublicUser_Success(t *testing.T) {
 
 func TestUpdateProfile_ValidationFail(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), &mockDB{})
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPost, "/users/me", map[string]string{"username": "ab"})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -161,7 +161,7 @@ func TestUpdateProfile_ValidationFail(t *testing.T) {
 
 func TestUpdateProfile_Success(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), &mockDB{})
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPost, "/users/me", map[string]string{"username": "alice_updated"})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -173,7 +173,7 @@ func TestUpdateProfile_Success(t *testing.T) {
 
 func TestUpdateEmail_InvalidEmail(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), &mockDB{})
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPost, "/users/me/email", map[string]string{"email": "not-an-email"})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -190,7 +190,7 @@ func TestUpdateEmail_Success(t *testing.T) {
 			return hashed, nil
 		},
 	}
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), df)
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), df)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPost, "/users/me/email", map[string]string{
 		"email":        "new@example.com",
@@ -208,7 +208,7 @@ func TestUpdateEmail_IncorrectPassword(t *testing.T) {
 			return libshelpers.Encode("random_password"), nil
 		},
 	}
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), df)
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), df)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPost, "/users/me/email", map[string]string{
 		"email":        "new@example.com",
@@ -226,7 +226,7 @@ func TestUpdateEmail_MissingPassword(t *testing.T) {
 			return libshelpers.Encode("random_password"), nil
 		},
 	}
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), df)
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), df)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPost, "/users/me/email", map[string]string{
 		"email": "new@example.com",
@@ -245,7 +245,7 @@ func TestUpdatePassword_UserNotFound(t *testing.T) {
 			return "", errors.New("not found")
 		},
 	}
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), db)
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPost, "/users/me/password", map[string]string{
 		"old_password": "old12345678",
@@ -263,7 +263,7 @@ func TestUpdatePassword_Success(t *testing.T) {
 			return libshelpers.Encode("old12345678"), nil
 		},
 	}
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), df)
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), df)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPost, "/users/me/password", map[string]string{
 		"old_password": "old12345678",
@@ -278,7 +278,7 @@ func TestUpdatePassword_Success(t *testing.T) {
 
 func TestUpdateImage_Success(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), &mockDB{})
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPost, "/users/me/image", map[string]string{"profile_image_path": "/img/avatar.png"})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -290,7 +290,7 @@ func TestUpdateImage_Success(t *testing.T) {
 
 func TestGetArtistForUser_InvalidUUID(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), &mockDB{})
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodGet, "/users/bad/artists", nil), map[string]string{"uuid": "bad"})
 	h.GetArtistForUser(w, r)
@@ -304,7 +304,7 @@ func TestGetArtistForUser_Success(t *testing.T) {
 			return []sqlhandler.GetArtistForUserRow{}, nil
 		},
 	}
-	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(cfg), db)
+	h := handlers.NewUserHandler(zap.NewNop(), cfg, nil, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodGet, "/users/"+testUserUUID+"/artists", nil), map[string]string{"uuid": testUserUUID})
 	h.GetArtistForUser(w, r)

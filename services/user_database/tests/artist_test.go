@@ -16,7 +16,7 @@ import (
 
 func newArtistHandler(db *mockDB) *handlers.ArtistHandler {
 	cfg := testConfig()
-	return handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	return handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(), db)
 }
 
 // ownerMembers returns a GetUsersRepresentingArtistRow slice where userUUIDStr
@@ -91,7 +91,7 @@ func TestGetArtist_Success(t *testing.T) {
 
 func TestCreateArtist_Success(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPut, "/artists", map[string]string{"artist_name": "The Band"})
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -101,7 +101,7 @@ func TestCreateArtist_Success(t *testing.T) {
 
 func TestCreateArtist_ValidationFail(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	// artist_name missing (required)
 	r := newRequest(http.MethodPut, "/artists", map[string]string{})
@@ -120,7 +120,7 @@ func TestUpdateArtistProfile_Forbidden(t *testing.T) {
 			return []sqlhandler.GetUsersRepresentingArtistRow{}, nil
 		},
 	}
-	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/artists/"+testArtistUUID, map[string]string{"artist_name": "New Name"}),
@@ -138,7 +138,7 @@ func TestUpdateArtistProfile_Success(t *testing.T) {
 			return ownerMembers(testUserUUID), nil
 		},
 	}
-	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/artists/"+testArtistUUID, map[string]string{"artist_name": "New Name"}),
@@ -172,7 +172,7 @@ func TestAddUserToArtist_Success(t *testing.T) {
 			return ownerMembers(testUserUUID), nil
 		},
 	}
-	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPut, "/artists/"+testArtistUUID+"/members/"+testUser2UUID, map[string]string{"role": "member"}),
@@ -192,7 +192,7 @@ func TestRemoveUserFromArtist_Success(t *testing.T) {
 			return ownerMembers(testUserUUID), nil
 		},
 	}
-	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodDelete, "/artists/"+testArtistUUID+"/members/"+testUser2UUID, nil),
@@ -212,7 +212,7 @@ func TestChangeUserRole_Success(t *testing.T) {
 			return ownerMembers(testUserUUID), nil
 		},
 	}
-	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewArtistHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/artists/"+testArtistUUID+"/members/"+testUser2UUID+"/role", map[string]string{"role": "manager"}),

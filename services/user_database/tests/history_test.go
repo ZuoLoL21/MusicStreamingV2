@@ -21,7 +21,7 @@ func TestGetListeningHistoryForUser_Success(t *testing.T) {
 			return []sqlhandler.ListeningHistory{}, nil
 		},
 	}
-	h := handlers.NewHistoryHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewHistoryHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodGet, "/me/history", nil)
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -36,7 +36,7 @@ func TestGetListeningHistoryForUser_DBError(t *testing.T) {
 			return nil, errDB
 		},
 	}
-	h := handlers.NewHistoryHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewHistoryHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodGet, "/me/history", nil)
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -53,7 +53,7 @@ func TestGetTopMusicForUser_Success(t *testing.T) {
 			return []sqlhandler.GetTopMusicForUserRow{}, nil
 		},
 	}
-	h := handlers.NewHistoryHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewHistoryHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodGet, "/me/history/top", nil)
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -63,7 +63,7 @@ func TestGetTopMusicForUser_Success(t *testing.T) {
 
 func TestGetTopMusicForUser_WithLimit(t *testing.T) {
 	cfg := testConfig()
-	h := handlers.NewHistoryHandler(zap.NewNop(), cfg, testReturns(cfg), &mockDB{})
+	h := handlers.NewHistoryHandler(zap.NewNop(), cfg, testReturns(), &mockDB{})
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodGet, "/me/history/top?limit=20", nil)
 	r = withUserUUID(r, cfg, testUserUUID)
@@ -78,7 +78,7 @@ func TestGetTopMusicForUser_DBError(t *testing.T) {
 			return nil, errDB
 		},
 	}
-	h := handlers.NewHistoryHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewHistoryHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodGet, "/me/history/top", nil)
 	r = withUserUUID(r, cfg, testUserUUID)

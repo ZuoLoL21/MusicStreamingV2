@@ -47,7 +47,7 @@ func testConfig() *di.Config {
 }
 
 // testReturns creates a ReturnManager backed by a nop logger.
-func testReturns(cfg *di.Config) *libsdi.ReturnManager {
+func testReturns() *libsdi.ReturnManager {
 	return libsdi.NewReturnManager(zap.NewNop())
 }
 

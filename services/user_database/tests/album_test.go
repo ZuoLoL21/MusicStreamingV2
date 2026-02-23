@@ -16,7 +16,7 @@ import (
 
 func newAlbumHandler(db *mockDB) *handlers.AlbumHandler {
 	cfg := testConfig()
-	return handlers.NewAlbumHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	return handlers.NewAlbumHandler(zap.NewNop(), cfg, testReturns(), db)
 }
 
 // ── GetAlbum ──────────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ func TestCreateAlbum_Forbidden(t *testing.T) {
 			return []sqlhandler.GetUsersRepresentingArtistRow{}, nil
 		},
 	}
-	h := handlers.NewAlbumHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewAlbumHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPut, "/albums", map[string]string{
 		"artist_uuid":   testArtistUUID,
@@ -94,7 +94,7 @@ func TestCreateAlbum_Success(t *testing.T) {
 			return ownerMembers(testUserUUID), nil
 		},
 	}
-	h := handlers.NewAlbumHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewAlbumHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := newRequest(http.MethodPut, "/albums", map[string]string{
 		"artist_uuid":   testArtistUUID,
@@ -117,7 +117,7 @@ func TestUpdateAlbum_Forbidden(t *testing.T) {
 			return []sqlhandler.GetUsersRepresentingArtistRow{}, nil
 		},
 	}
-	h := handlers.NewAlbumHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewAlbumHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/albums/"+testAlbumUUID, map[string]string{"original_name": "Updated"}),
@@ -138,7 +138,7 @@ func TestUpdateAlbum_Success(t *testing.T) {
 			return ownerMembers(testUserUUID), nil
 		},
 	}
-	h := handlers.NewAlbumHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewAlbumHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(
 		newRequest(http.MethodPost, "/albums/"+testAlbumUUID, map[string]string{"original_name": "Updated"}),
@@ -161,7 +161,7 @@ func TestDeleteAlbum_Success(t *testing.T) {
 			return ownerMembers(testUserUUID), nil
 		},
 	}
-	h := handlers.NewAlbumHandler(zap.NewNop(), cfg, testReturns(cfg), db)
+	h := handlers.NewAlbumHandler(zap.NewNop(), cfg, testReturns(), db)
 	w := httptest.NewRecorder()
 	r := withVars(newRequest(http.MethodDelete, "/albums/"+testAlbumUUID, nil), map[string]string{"uuid": testAlbumUUID})
 	r = withUserUUID(r, cfg, testUserUUID)
