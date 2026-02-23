@@ -9,7 +9,7 @@ services:
             - "${USER_CRUD_PORT}:5432"
         volumes:
             - user_data:/var/lib/postgresql/data
-            - ./user_database/sql/schema:/docker-entrypoint-initdb.d
+            - ./services/user_database/sql/schema:/docker-entrypoint-initdb.d
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U postgres"]
             interval: 10s
@@ -80,7 +80,7 @@ services:
         volumes:
             - clickhouse_data:/var/lib/clickhouse/
             - clickhouse_logs:/var/log/clickhouse-server/
-            - ./data_warehouse:/docker-entrypoint-initdb.d
+            - ./services/data_warehouse:/docker-entrypoint-initdb.d
         networks:
             - clickhouse-net
 
@@ -94,7 +94,7 @@ services:
             - "${BANDIT_PORT}:5432"
         volumes:
             - bandit_data:/var/lib/postgresql/data
-            - ./bandit_system/src/sql:/docker-entrypoint-initdb.d
+            - ./services/bandit_system/src/sql:/docker-entrypoint-initdb.d
         healthcheck:
             test: [ "CMD-SHELL", "pg_isready -U postgres" ]
             interval: 10s
