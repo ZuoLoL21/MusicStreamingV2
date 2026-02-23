@@ -29,7 +29,7 @@ func main() {
 
 	// Init components
 	config := di.LoadConfig(logger)
-	secrets := di.GetSecretsManager(logger, config)
+	secrets := libsdi.GetSecretsManager(logger)
 	returns := libsdi.NewReturnManager(logger)
 
 	// Database

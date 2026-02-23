@@ -16,12 +16,12 @@ import (
 type App struct {
 	logger  *zap.Logger
 	config  *di.Config
-	secrets *di.SecretsManager
+	secrets *libsdi.SecretsManager
 	returns *libsdi.ReturnManager
 	db      *sqlhandler.Queries
 }
 
-func New(logger *zap.Logger, config *di.Config, secrets *di.SecretsManager, returns *libsdi.ReturnManager, db *sqlhandler.Queries) *App {
+func New(logger *zap.Logger, config *di.Config, secrets *libsdi.SecretsManager, returns *libsdi.ReturnManager, db *sqlhandler.Queries) *App {
 	return &App{
 		logger:  logger,
 		config:  config,

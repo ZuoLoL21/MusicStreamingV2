@@ -18,12 +18,12 @@ import (
 type UserHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
-	secrets *di.SecretsManager
+	secrets *libsdi.SecretsManager
 	returns *libsdi.ReturnManager
 	db      DB
 }
 
-func NewUserHandler(logger *zap.Logger, config *di.Config, secrets *di.SecretsManager, returns *libsdi.ReturnManager, db DB) *UserHandler {
+func NewUserHandler(logger *zap.Logger, config *di.Config, secrets *libsdi.SecretsManager, returns *libsdi.ReturnManager, db DB) *UserHandler {
 	return &UserHandler{
 		logger:  logger,
 		config:  config,

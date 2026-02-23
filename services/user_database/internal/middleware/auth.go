@@ -4,6 +4,7 @@ import (
 	"backend/internal/di"
 	"context"
 	"fmt"
+	di2 "libs/di"
 	"net/http"
 	"strings"
 
@@ -30,10 +31,10 @@ var refreshRoutes = []Route{
 type AuthHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
-	secrets *di.SecretsManager
+	secrets *di2.SecretsManager
 }
 
-func NewAuthHandler(logger *zap.Logger, config *di.Config, secrets *di.SecretsManager) *AuthHandler {
+func NewAuthHandler(logger *zap.Logger, config *di.Config, secrets *di2.SecretsManager) *AuthHandler {
 	return &AuthHandler{logger: logger, config: config, secrets: secrets}
 }
 

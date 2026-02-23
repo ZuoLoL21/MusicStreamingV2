@@ -1,10 +1,10 @@
 package di
 
 import (
-	"backend/internal/vault"
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"libs/vault"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -15,7 +15,6 @@ import (
 // SecretsManager TODO: add the ability to rotate keys
 type SecretsManager struct {
 	logger *zap.Logger
-	config *Config
 	client *api.Client
 
 	// TODO: change this to use REDIS
@@ -23,11 +22,10 @@ type SecretsManager struct {
 	publicKeySearch  map[string]*ecdsa.PublicKey
 }
 
-func GetSecretsManager(logger *zap.Logger, config *Config) *SecretsManager {
+func GetSecretsManager(logger *zap.Logger) *SecretsManager {
 	client := getClient(logger, api.DefaultConfig())
 	return &SecretsManager{
 		logger:           logger,
-		config:           config,
 		client:           client,
 		privateKeySearch: make(map[string]*ecdsa.PrivateKey),
 		publicKeySearch:  make(map[string]*ecdsa.PublicKey),
