@@ -13,4 +13,5 @@ class Config:
         self.db_params_string = os.getenv("DB_CONNECTION_STRING_PARAMS")
         self.bandit_params_table = os.getenv("BANDIT_DATA_TABLE")
 
-        self.alpha = 0.5
+        self.alpha = float(os.getenv("BANDIT_ALPHA", "0.5"))
+        self.ridge_lambda = float(os.getenv("BANDIT_RIDGE_LAMBDA", "1.0"))
