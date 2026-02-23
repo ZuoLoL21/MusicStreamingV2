@@ -16,8 +16,12 @@ class Config:
         self.alpha = float(os.getenv("BANDIT_ALPHA", "0.5"))
         self.ridge_lambda = float(os.getenv("BANDIT_RIDGE_LAMBDA", "1.0"))
 
-        self.sherman_morrison_recompute_interval = int(os.getenv("SHERMAN_MORRISON_RECOMPUTE_INTERVAL", "100"))
-        self.sherman_morrison_divergence_threshold = float(os.getenv("SHERMAN_MORRISON_DIVERGENCE_THRESHOLD", "1e-6"))
+        self.sherman_morrison_recompute_interval = int(
+            os.getenv("SHERMAN_MORRISON_RECOMPUTE_INTERVAL", "100")
+        )
+        self.sherman_morrison_divergence_threshold = float(
+            os.getenv("SHERMAN_MORRISON_DIVERGENCE_THRESHOLD", "1e-6")
+        )
 
         self.max_retries = 3
         self.initial_backoff_ms = 100

@@ -20,7 +20,7 @@ class ArmResultLinUCB(BaseModel):
 
 
 class LinUCB:
-    def __init__(self, config:Config, logger: structlog.BoundLogger):
+    def __init__(self, config: Config, logger: structlog.BoundLogger):
         self._config = config
         self._logger = logger
 
@@ -28,7 +28,7 @@ class LinUCB:
         return (
             self._config.ridge_lambda * np.identity(dim),
             np.zeros(dim),
-            (1.0 / self._config.ridge_lambda) * np.identity(dim)
+            (1.0 / self._config.ridge_lambda) * np.identity(dim),
         )
 
     def get_new_arm_result(self, theme: str, dim: int) -> ArmResultLinUCB:
@@ -39,7 +39,7 @@ class LinUCB:
             Weights=weight,
             Biases=bias,
             WeightsInv=inverse_weight,
-            UpdatesSinceRecompute=0
+            UpdatesSinceRecompute=0,
         )
 
     def _compute_weight(self, arm: ArmResultLinUCB, features: np.ndarray) -> float:
@@ -52,13 +52,14 @@ class LinUCB:
 
         return mean + std.item()
 
-    def predict(self, arms: List[ArmResultLinUCB], features: List[np.ndarray]) -> Optional[int]:
+    def predict(
+        self, arms: List[ArmResultLinUCB], features: List[np.ndarray]
+    ) -> Optional[int]:
         if len(arms) != len(features):
             return None
 
         weights = [
-            self._compute_weight(arm, feature)
-            for arm, feature in zip(arms, features)
+            self._compute_weight(arm, feature) for arm, feature in zip(arms, features)
         ]
         return int(np.argmax(weights))
 
@@ -80,7 +81,10 @@ class LinUCB:
         arm.UpdatesSinceRecompute += 1
 
         # Divergence check
-        if arm.UpdatesSinceRecompute >= self._config.sherman_morrison_recompute_interval:
+        if (
+            arm.UpdatesSinceRecompute
+            >= self._config.sherman_morrison_recompute_interval
+        ):
             divergence = _check_divergence(arm.Weights, arm.WeightsInv)
 
             if divergence > self._config.sherman_morrison_divergence_threshold:
@@ -89,7 +93,7 @@ class LinUCB:
                     theme=arm.Theme,
                     divergence=divergence,
                     threshold=self._config.sherman_morrison_divergence_threshold,
-                    updates_since_recompute=arm.UpdatesSinceRecompute
+                    updates_since_recompute=arm.UpdatesSinceRecompute,
                 )
                 arm.WeightsInv = np.linalg.inv(arm.Weights)
                 arm.UpdatesSinceRecompute = 0
@@ -98,7 +102,7 @@ class LinUCB:
                     "Sherman-Morrison divergence check passed",
                     theme=arm.Theme,
                     divergence=divergence,
-                    updates_since_recompute=arm.UpdatesSinceRecompute
+                    updates_since_recompute=arm.UpdatesSinceRecompute,
                 )
                 arm.UpdatesSinceRecompute = 0
         return arm
@@ -107,6 +111,5 @@ class LinUCB:
 def _check_divergence(A: np.ndarray, A_inv: np.ndarray) -> float:
     identity = np.eye(A.shape[0])
     product = A @ A_inv
-    divergence = np.linalg.norm(identity - product, ord='fro')
+    divergence = np.linalg.norm(identity - product, ord="fro")
     return float(divergence)
-

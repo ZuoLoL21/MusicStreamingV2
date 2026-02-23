@@ -57,26 +57,36 @@ class DBManagers:
             rows = conn.execute(query, {"uuid": str(uuid)}).fetchall()
 
         arms: Dict[str, ArmResultLinUCB] = {}
-        for theme, weights_json, biases_json, weights_inv_json, updates_since_recompute, version in rows:
-            weights_inv = np.array(json.loads(weights_inv_json), dtype=np.float64) if weights_inv_json else None
+        for (
+            theme,
+            weights_json,
+            biases_json,
+            weights_inv_json,
+            updates_since_recompute,
+            version,
+        ) in rows:
+            weights_inv = (
+                np.array(json.loads(weights_inv_json), dtype=np.float64)
+                if weights_inv_json
+                else None
+            )
             if weights_inv is None:
                 # Fallback: compute inverse if not stored
                 weights = np.array(json.loads(weights_json), dtype=np.float64)
                 weights_inv = np.linalg.inv(weights)
                 updates_since_recompute = 0
 
-            arms[theme] = (
-                ArmResultLinUCB(
-                    Theme=theme,
-                    Version=int(version),
-                    Weights=np.array(json.loads(weights_json), dtype=np.float64),
-                    Biases=np.array(json.loads(biases_json), dtype=np.float64),
-                    WeightsInv=weights_inv,
-                    UpdatesSinceRecompute=int(updates_since_recompute) if updates_since_recompute is not None else 0,
-                )
+            arms[theme] = ArmResultLinUCB(
+                Theme=theme,
+                Version=int(version),
+                Weights=np.array(json.loads(weights_json), dtype=np.float64),
+                Biases=np.array(json.loads(biases_json), dtype=np.float64),
+                WeightsInv=weights_inv,
+                UpdatesSinceRecompute=int(updates_since_recompute)
+                if updates_since_recompute is not None
+                else 0,
             )
         return arms
-
 
     def get_weight_bias_for_one(self, uuid: UUID4, theme: str) -> ArmResultLinUCB:
         query = text(
@@ -91,23 +101,33 @@ class DBManagers:
         if len(rows) == 0:
             return self._bandit.get_new_arm_result(theme, NUMB_FEATURES)
 
-        weights_json, biases_json, weights_inv_json, updates_since_recompute, version = rows[0]
+        (
+            weights_json,
+            biases_json,
+            weights_inv_json,
+            updates_since_recompute,
+            version,
+        ) = rows[0]
 
         weights = np.array(json.loads(weights_json), dtype=np.float64)
-        weights_inv = np.array(json.loads(weights_inv_json), dtype=np.float64) if weights_inv_json else None
+        weights_inv = (
+            np.array(json.loads(weights_inv_json), dtype=np.float64)
+            if weights_inv_json
+            else None
+        )
         if weights_inv is None:
             weights_inv = np.linalg.inv(weights)
             updates_since_recompute = 0
 
-        return (
-            ArmResultLinUCB(
-                Theme=theme,
-                Version=int(version),
-                Weights=weights,
-                Biases=np.array(json.loads(biases_json), dtype=np.float64),
-                WeightsInv=weights_inv,
-                UpdatesSinceRecompute=int(updates_since_recompute) if updates_since_recompute is not None else 0,
-            )
+        return ArmResultLinUCB(
+            Theme=theme,
+            Version=int(version),
+            Weights=weights,
+            Biases=np.array(json.loads(biases_json), dtype=np.float64),
+            WeightsInv=weights_inv,
+            UpdatesSinceRecompute=int(updates_since_recompute)
+            if updates_since_recompute is not None
+            else 0,
         )
 
     def update_weight_bias(

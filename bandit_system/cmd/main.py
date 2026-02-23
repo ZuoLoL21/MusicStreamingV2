@@ -30,6 +30,7 @@ app = FastAPI()
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(LoggingMiddleware, logger=logger)
 
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
