@@ -62,7 +62,6 @@ func (c *Config) GetRequestIDKey() any {
 }
 
 // GetUserUUIDKey implements middleware.LoggingConfig
-// user_database tracks user UUIDs, so return (key, true)
 func (c *Config) GetUserUUIDKey() (any, bool) {
 	return c.UserUUIDKey, true
 }
