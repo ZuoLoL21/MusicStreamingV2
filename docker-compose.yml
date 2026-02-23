@@ -103,6 +103,31 @@ services:
         networks:
             - bandit-db-net
 
+    bandit-system:
+        build:
+            context: ./bandit_system
+            dockerfile: Dockerfile
+        ports:
+            - "8001:8001"
+        environment:
+            DB_CONNECTION_STRING_WAREHOUSE: ${CLICKHOUSE_CONNECTION_STRING}
+            WAREHOUSE_BANDIT_DATA_TABLE: ${WAREHOUSE_BANDIT_DATA_TABLE}
+            DB_CONNECTION_STRING_PARAMS: ${BANDIT_CONNECTION_STRING}
+            BANDIT_DATA_TABLE: ${BANDIT_DATA_TABLE}
+            BANDIT_ALPHA: ${BANDIT_ALPHA}
+            BANDIT_RIDGE_LAMBDA: ${BANDIT_RIDGE_LAMBDA}
+            SHERMAN_MORRISON_RECOMPUTE_INTERVAL: ${SHERMAN_MORRISON_RECOMPUTE_INTERVAL}
+            SHERMAN_MORRISON_DIVERGENCE_THRESHOLD: ${SHERMAN_MORRISON_DIVERGENCE_THRESHOLD}
+        depends_on:
+            bandit-database:
+                condition: service_healthy
+            clickhouse-database:
+                condition: service_started
+        networks:
+            - bandit-db-net
+            - clickhouse-net
+            - general
+
 
 volumes:
     user_data:
