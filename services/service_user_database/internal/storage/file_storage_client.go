@@ -19,5 +19,12 @@ type FileStorageClient interface {
 	// SaveImage uploads image to specified folder (music_pictures, profile_pictures) and returns the public URL
 	SaveImage(ctx context.Context, folder, imageID string, imageData io.Reader) (url string, err error)
 
+	// DeleteImage removes image from storage
 	DeleteImage(ctx context.Context, folder, imageID string) error
+
+	// GetDefaultProfileImageURL returns the full URL for default profile images
+	GetDefaultProfileImageURL() string
+
+	// GetDefaultMusicImageURL returns the full URL for default music/album/playlist images
+	GetDefaultMusicImageURL() string
 }

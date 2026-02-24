@@ -53,3 +53,21 @@ func ExtractMusicID(url string) (musicID string, err error) {
 
 	return musicID, nil
 }
+
+// GetDefaultProfileImageURL returns the full MinIO URL for default profile image
+func GetDefaultProfileImageURL(endpoint, bucketName string, useSSL bool) string {
+	protocol := "http"
+	if useSSL {
+		protocol = "https"
+	}
+	return fmt.Sprintf("%s://%s/%s/profile_pictures/default.jpg", protocol, endpoint, bucketName)
+}
+
+// GetDefaultMusicImageURL returns the full MinIO URL for default music/album/playlist image
+func GetDefaultMusicImageURL(endpoint, bucketName string, useSSL bool) string {
+	protocol := "http"
+	if useSSL {
+		protocol = "https"
+	}
+	return fmt.Sprintf("%s://%s/%s/music_pictures/default.jpg", protocol, endpoint, bucketName)
+}
