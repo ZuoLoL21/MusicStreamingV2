@@ -11,7 +11,7 @@ import (
 	"time"
 
 	_ "github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
@@ -36,7 +36,6 @@ func NewPopularityHandler(logger *zap.Logger, config *di.Config, returns *libsdi
 	}
 }
 
-// Response types
 type SongPopularity struct {
 	MusicUUID          string  `json:"music_uuid"`
 	DecayPlays         float64 `json:"decay_plays"`
@@ -354,7 +353,8 @@ func (h *PopularityHandler) PopularThemeTimeframe(w http.ResponseWriter, r *http
 
 func (h *PopularityHandler) PopularSongsAllTimeByTheme(w http.ResponseWriter, r *http.Request) {
 	limit, cursorDecay, cursorID := parsePaginationDecay(r)
-	theme := chi.URLParam(r, "theme")
+	vars := mux.Vars(r)
+	theme := vars["theme"]
 	if theme == "" {
 		h.returns.ReturnError(w, "theme parameter is required", http.StatusBadRequest)
 		return
@@ -388,7 +388,8 @@ func (h *PopularityHandler) PopularSongsAllTimeByTheme(w http.ResponseWriter, r 
 
 func (h *PopularityHandler) PopularSongsTimeframeByTheme(w http.ResponseWriter, r *http.Request) {
 	limit, cursorPlays, cursorID := parsePaginationPlays(r)
-	theme := chi.URLParam(r, "theme")
+	vars := mux.Vars(r)
+	theme := vars["theme"]
 	if theme == "" {
 		h.returns.ReturnError(w, "theme parameter is required", http.StatusBadRequest)
 		return
