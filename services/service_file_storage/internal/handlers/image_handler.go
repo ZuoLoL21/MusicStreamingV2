@@ -48,22 +48,22 @@ func (h *ImageHandler) GetImage(w http.ResponseWriter, r *http.Request) {
 	bucketName := vars["folder"]
 	id := vars["id"]
 
-	baseDir, errS := h.storage.GetDataFolder(bucketName)
-	if errS != nil {
-		logger.Info("Invalid bucket name", zap.Error(errS), zap.String("bucket", bucketName))
-		h.returns.ReturnError(w, "invalid bucket name", http.StatusBadRequest)
+	if !general.ValidateUUID(id) {
+		logger.Info("invalid uuid received", zap.String("bucket", bucketName), zap.String("uuid", id))
+		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
 		return
 	}
 
-	if !general.ValidateUUID(id) {
-		logger.Info("Invalid uuid received", zap.String("bucket", bucketName), zap.String("uuid", id))
-		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
+	baseDir, storageErr := h.storage.GetDataFolder(bucketName)
+	if storageErr != nil {
+		logger.Info("invalid bucket name", zap.Error(storageErr), zap.String("bucket", bucketName))
+		h.returns.ReturnError(w, "invalid bucket name", http.StatusBadRequest)
 		return
 	}
 
 	file, err := os.Open(filepath.Join(baseDir, id+".jpeg"))
 	if err != nil {
-		logger.Info("Didn't find file", zap.Error(err), zap.String("bucket", bucketName), zap.String("id", id))
+		logger.Info("didn't find file", zap.Error(err), zap.String("bucket", bucketName), zap.String("id", id))
 		h.returns.ReturnError(w, "didn't find file", http.StatusNotFound)
 		return
 	}
@@ -91,7 +91,7 @@ func (h *ImageHandler) GetDefaultImage(w http.ResponseWriter, r *http.Request) {
 	baseDir, _ := h.storage.GetDataFolder("default")
 	imageName := defaultMap[bucketName]
 	if imageName == "" {
-		logger.Warn("invalid bucket name", zap.String("bucket", bucketName))
+		logger.Info("invalid bucket name", zap.String("bucket", bucketName))
 		h.returns.ReturnError(w, "invalid bucket name", http.StatusBadRequest)
 		return
 	}
@@ -131,9 +131,9 @@ func (h *ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseDir, errS := h.storage.GetDataFolder(bucketName)
-	if errS != nil {
-		logger.Info("invalid bucket name", zap.Error(errS), zap.String("bucket", bucketName))
+	baseDir, storageErr := h.storage.GetDataFolder(bucketName)
+	if storageErr != nil {
+		logger.Info("invalid bucket name", zap.Error(storageErr), zap.String("bucket", bucketName))
 		h.returns.ReturnError(w, "invalid bucket name", http.StatusBadRequest)
 		return
 	}
@@ -155,7 +155,7 @@ func (h *ImageHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logger.Info("image file saved", zap.String("id", id), zap.String("bucket", bucketName), zap.Int64("bytes", writtenBytes))
-	h.returns.ReturnText(w, fmt.Sprintf("music image %s saved successfully with (%d bytes)", id, writtenBytes), http.StatusOK)
+	h.returns.ReturnText(w, fmt.Sprintf("image %s saved successfully with (%d bytes)", id, writtenBytes), http.StatusOK)
 }
 
 func (h *ImageHandler) DeleteImage(w http.ResponseWriter, r *http.Request) {
@@ -165,22 +165,22 @@ func (h *ImageHandler) DeleteImage(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"]
 	bucketName := vars["folder"]
 	if !general.ValidateUUID(id) {
-		logger.Warn("invalid UUID provided", zap.String("id", id))
+		logger.Info("invalid UUID provided", zap.String("id", id))
 		h.returns.ReturnError(w, "invalid id provided", http.StatusBadRequest)
 		return
 	}
 
-	baseDir, errS := h.storage.GetDataFolder(bucketName)
-	if errS != nil {
-		logger.Info("invalid bucket name", zap.Error(errS), zap.String("bucket", bucketName))
+	baseDir, storageErr := h.storage.GetDataFolder(bucketName)
+	if storageErr != nil {
+		logger.Info("invalid bucket name", zap.Error(storageErr), zap.String("bucket", bucketName))
 		h.returns.ReturnError(w, "invalid bucket name", http.StatusBadRequest)
 		return
 	}
 
 	destPath := filepath.Join(baseDir, id+".jpeg")
 
-	if _, err := os.Stat(destPath); os.IsNotExist(err) {
-		logger.Warn("image not found for deletion", zap.String("id", id))
+	if _, statErr := os.Stat(destPath); os.IsNotExist(statErr) {
+		logger.Info("image not found for deletion", zap.String("id", id))
 		h.returns.ReturnError(w, "image not found", http.StatusNotFound)
 		return
 	}
