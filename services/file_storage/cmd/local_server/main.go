@@ -35,7 +35,7 @@ func main() {
 	application := app.New(logger, config, storage, returns)
 	srv := &http.Server{
 		Handler:      application.Router(),
-		Addr:         config.ListenAddr,
+		Addr:         ":8080",
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 		IdleTimeout:  120 * time.Second,
@@ -43,7 +43,7 @@ func main() {
 
 	// Start server in background
 	go func() {
-		logger.Info("server starting", zap.String("addr", config.ListenAddr))
+		logger.Info("server starting", zap.String("addr", ":8080"))
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal(err)
 		}

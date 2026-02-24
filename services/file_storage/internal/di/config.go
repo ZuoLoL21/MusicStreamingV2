@@ -12,7 +12,6 @@ import (
 
 type Config struct {
 	StorageLocation string
-	ListenAddr      string
 	RequestIDKey    libsdi.ContextKey
 }
 
@@ -26,14 +25,8 @@ func LoadConfig(logger *zap.Logger) *Config {
 		slogger.Errorf("Error loading .env file: %v", err)
 	}
 
-	listenAddr := os.Getenv("LISTEN_ADDR")
-	if listenAddr == "" {
-		listenAddr = "127.0.0.1:8000"
-	}
-
 	return &Config{
 		StorageLocation: filepath.Clean(os.Getenv("DATA_LOCATION")),
-		ListenAddr:      listenAddr,
 		RequestIDKey:    libsdi.RequestIDKey,
 	}
 }
