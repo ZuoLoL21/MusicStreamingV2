@@ -9,7 +9,7 @@ services:
             - "${USER_CRUD_PORT}:5432"
         volumes:
             - user_data:/var/lib/postgresql/data
-            - ./services/user_database/sql/schema:/docker-entrypoint-initdb.d
+            - ./services/service_user_database/sql/schema:/docker-entrypoint-initdb.d
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U postgres"]
             interval: 10s
@@ -21,7 +21,7 @@ services:
     file-storage:
         build:
             context: .
-            dockerfile: services/file_storage/Dockerfile
+            dockerfile: services/service_file_storage/Dockerfile
         ports:
             - "8000:8000"
         environment:
@@ -45,7 +45,7 @@ services:
     user-database-crud:
         build:
             context: .
-            dockerfile: services/user_database/Dockerfile
+            dockerfile: services/service_user_database/Dockerfile
         ports:
             - "8080:8080"
         environment:
@@ -80,7 +80,7 @@ services:
         volumes:
             - clickhouse_data:/var/lib/clickhouse/
             - clickhouse_logs:/var/log/clickhouse-server/
-            - ./services/data_warehouse:/docker-entrypoint-initdb.d
+            - ./services/database_data_warehouse:/docker-entrypoint-initdb.d
         networks:
             - clickhouse-net
 
@@ -94,7 +94,7 @@ services:
             - "${BANDIT_PORT}:5432"
         volumes:
             - bandit_data:/var/lib/postgresql/data
-            - ./services/bandit_system/src/sql:/docker-entrypoint-initdb.d
+            - ./services/service_bandit_system/src/sql:/docker-entrypoint-initdb.d
         healthcheck:
             test: [ "CMD-SHELL", "pg_isready -U postgres" ]
             interval: 10s
@@ -105,7 +105,7 @@ services:
 
     bandit-system:
         build:
-            context: services/bandit_system
+            context: services/service_bandit_system
             dockerfile: Dockerfile
         ports:
             - "8001:8001"
