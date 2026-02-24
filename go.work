@@ -2,7 +2,6 @@ go 1.24.3
 
 use (
 	./libs
-	./services/service_file_storage
 	./services/service_popularity_system
 	./services/service_user_database
 )

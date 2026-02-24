@@ -3,6 +3,7 @@ package main
 import (
 	"backend/internal/app"
 	"backend/internal/di"
+	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
 	"context"
 	"errors"
@@ -40,8 +41,21 @@ func main() {
 	defer pool.Close()
 	db := sqlhandler.New(pool)
 
+	// File Storage Client
+	fileStorage, err := storage.NewMinIOFileStorageClient(
+		config.MinIOEndpoint,
+		config.MinIOAccessKey,
+		config.MinIOSecretKey,
+		config.MinIOBucketName,
+		config.MinIOUseSSL,
+		logger,
+	)
+	if err != nil {
+		logger.Fatal("failed to create MinIO client", zap.Error(err))
+	}
+
 	// Router
-	application := app.New(logger, config, secrets, returns, db)
+	application := app.New(logger, config, secrets, returns, db, fileStorage)
 	srv := &http.Server{
 		Handler:      application.Router(),
 		Addr:         ":8080",

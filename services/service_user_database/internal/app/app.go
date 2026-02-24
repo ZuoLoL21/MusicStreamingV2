@@ -4,6 +4,7 @@ import (
 	"backend/internal/di"
 	"backend/internal/handlers"
 	"backend/internal/middleware"
+	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
 
 	libsdi "libs/di"
@@ -14,20 +15,22 @@ import (
 )
 
 type App struct {
-	logger  *zap.Logger
-	config  *di.Config
-	secrets *libsdi.SecretsManager
-	returns *libsdi.ReturnManager
-	db      *sqlhandler.Queries
+	logger      *zap.Logger
+	config      *di.Config
+	secrets     *libsdi.SecretsManager
+	returns     *libsdi.ReturnManager
+	db          *sqlhandler.Queries
+	fileStorage storage.FileStorageClient
 }
 
-func New(logger *zap.Logger, config *di.Config, secrets *libsdi.SecretsManager, returns *libsdi.ReturnManager, db *sqlhandler.Queries) *App {
+func New(logger *zap.Logger, config *di.Config, secrets *libsdi.SecretsManager, returns *libsdi.ReturnManager, db *sqlhandler.Queries, fileStorage storage.FileStorageClient) *App {
 	return &App{
-		logger:  logger,
-		config:  config,
-		secrets: secrets,
-		returns: returns,
-		db:      db,
+		logger:      logger,
+		config:      config,
+		secrets:     secrets,
+		returns:     returns,
+		db:          db,
+		fileStorage: fileStorage,
 	}
 }
 
@@ -42,14 +45,14 @@ func (a *App) Router() *mux.Router {
 		libsmiddleware.LoggingMiddleware(a.logger, a.config),
 	)
 
-	userH := handlers.NewUserHandler(a.logger, a.config, a.secrets, a.returns, a.db)
-	artistH := handlers.NewArtistHandler(a.logger, a.config, a.returns, a.db)
-	albumH := handlers.NewAlbumHandler(a.logger, a.config, a.returns, a.db)
-	musicH := handlers.NewMusicHandler(a.logger, a.config, a.returns, a.db)
+	userH := handlers.NewUserHandler(a.logger, a.config, a.secrets, a.returns, a.db, a.fileStorage)
+	artistH := handlers.NewArtistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage)
+	albumH := handlers.NewAlbumHandler(a.logger, a.config, a.returns, a.db, a.fileStorage)
+	musicH := handlers.NewMusicHandler(a.logger, a.config, a.returns, a.db, a.fileStorage)
 	likesH := handlers.NewLikesHandler(a.logger, a.config, a.returns, a.db)
 	followsH := handlers.NewFollowsHandler(a.logger, a.config, a.returns, a.db)
 	tagsH := handlers.NewTagsHandler(a.logger, a.config, a.returns, a.db)
-	playlistH := handlers.NewPlaylistHandler(a.logger, a.config, a.returns, a.db)
+	playlistH := handlers.NewPlaylistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage)
 	historyH := handlers.NewHistoryHandler(a.logger, a.config, a.returns, a.db)
 
 	// Auth
