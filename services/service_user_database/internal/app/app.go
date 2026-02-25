@@ -3,7 +3,6 @@ package app
 import (
 	"backend/internal/di"
 	"backend/internal/handlers"
-	"backend/internal/middleware"
 	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
 
@@ -37,11 +36,8 @@ func New(logger *zap.Logger, config *di.Config, secrets *libsdi.SecretsManager, 
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
 
-	auth := middleware.NewAuthHandler(a.logger, a.config, a.secrets)
-
 	r.Use(
 		libsmiddleware.RequestIDMiddleware(a.config),
-		auth.GetAuthMiddleware(),
 		libsmiddleware.LoggingMiddleware(a.logger, a.config),
 	)
 
