@@ -2,29 +2,34 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"backend/internal/di"
+	"backend/internal/storage"
 
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
 type MusicHandler struct {
-	logger  *zap.Logger
-	config  *di.Config
-	returns *libsdi.ReturnManager
-	db      DB
+	logger      *zap.Logger
+	config      *di.Config
+	returns     *libsdi.ReturnManager
+	db          DB
+	fileStorage storage.FileStorageClient
 }
 
-func NewMusicHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB) *MusicHandler {
+func NewMusicHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *MusicHandler {
 	return &MusicHandler{
-		logger:  logger,
-		config:  config,
-		returns: returns,
-		db:      db,
+		logger:      logger,
+		config:      config,
+		returns:     returns,
+		db:          db,
+		fileStorage: fileStorage,
 	}
 }
 
@@ -142,26 +147,42 @@ func (h *MusicHandler) GetMusicForUser(w http.ResponseWriter, r *http.Request) {
 	h.returns.ReturnJSON(w, music, http.StatusOK)
 }
 
-type createMusicRequest struct {
-	ArtistUUID        string  `json:"artist_uuid" validate:"required"`
-	InAlbum           *string `json:"in_album"`
-	SongName          string  `json:"song_name" validate:"required,max=255"`
-	PathInFileStorage string  `json:"path_in_file_storage" validate:"required"`
-	DurationSeconds   int32   `json:"duration_seconds" validate:"gt=0"`
-}
-
 func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
 	}
 
-	body, ok := decodeBody[createMusicRequest](w, r, h.returns)
-	if !ok {
+	// Ensure is multipart form
+	if !parseMultipartForm(w, r, 100, h.returns) {
 		return
 	}
 
-	artistUUID, err := uuidToPgtype(body.ArtistUUID)
+	artistUUIDStr := r.FormValue("artist_uuid")
+	if artistUUIDStr == "" {
+		h.returns.ReturnError(w, "artist_uuid required", http.StatusBadRequest)
+		return
+	}
+
+	songName := r.FormValue("song_name")
+	if songName == "" {
+		h.returns.ReturnError(w, "song_name required", http.StatusBadRequest)
+		return
+	}
+
+	durationStr := r.FormValue("duration_seconds")
+	if durationStr == "" {
+		h.returns.ReturnError(w, "duration_seconds required", http.StatusBadRequest)
+		return
+	}
+
+	durationSeconds, err := strconv.Atoi(durationStr)
+	if err != nil || durationSeconds <= 0 {
+		h.returns.ReturnError(w, "invalid duration_seconds", http.StatusBadRequest)
+		return
+	}
+
+	artistUUID, err := uuidToPgtype(artistUUIDStr)
 	if err != nil {
 		h.returns.ReturnError(w, "invalid artist_uuid", http.StatusBadRequest)
 		return
@@ -173,22 +194,35 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var inAlbum pgtype.UUID
-	if body.InAlbum != nil {
-		if err := inAlbum.Scan(*body.InAlbum); err != nil {
+	inAlbumStr := r.FormValue("in_album")
+	if inAlbumStr != "" {
+		if err := inAlbum.Scan(inAlbumStr); err != nil {
 			h.returns.ReturnError(w, "invalid in_album uuid", http.StatusBadRequest)
 			return
 		}
+	}
+
+	// Generate music ID
+	musicID := uuid.New().String()
+
+	// Update
+	audioURL, ok := uploadAudioFromForm(r.Context(), w, r, h.fileStorage, musicID, "audio", h.logger, h.returns)
+	if !ok {
+		return
 	}
 
 	if err := h.db.CreateMusic(r.Context(), sqlhandler.CreateMusicParams{
 		FromArtist:        artistUUID,
 		UploadedBy:        userUUID,
 		InAlbum:           inAlbum,
-		SongName:          body.SongName,
-		PathInFileStorage: body.PathInFileStorage,
-		DurationSeconds:   body.DurationSeconds,
+		SongName:          songName,
+		PathInFileStorage: audioURL,
+		DurationSeconds:   int32(durationSeconds),
 	}); err != nil {
 		h.logger.Error("failed to create music", zap.Error(err))
+
+		cleanupAudio(r.Context(), h.fileStorage, musicID, h.logger)
+
 		h.returns.ReturnError(w, "failed to create music", http.StatusInternalServerError)
 		return
 	}
@@ -233,26 +267,42 @@ func (h *MusicHandler) UpdateMusicDetails(w http.ResponseWriter, r *http.Request
 	h.returns.ReturnText(w, "music details updated", http.StatusOK)
 }
 
-type updateMusicStorageRequest struct {
-	PathInFileStorage string `json:"path_in_file_storage" validate:"required"`
-	DurationSeconds   int32  `json:"duration_seconds" validate:"gt=0"`
-}
-
 func (h *MusicHandler) UpdateMusicStorage(w http.ResponseWriter, r *http.Request) {
 	musicUUID, ok := h.checkMusicAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
 		return
 	}
 
-	body, ok := decodeBody[updateMusicStorageRequest](w, r, h.returns)
+	// Ensure is multipart form
+	if !parseMultipartForm(w, r, 100, h.returns) {
+		return
+	}
+
+	durationStr := r.FormValue("duration_seconds")
+	if durationStr == "" {
+		h.returns.ReturnError(w, "duration_seconds required", http.StatusBadRequest)
+		return
+	}
+
+	durationSeconds, err := strconv.Atoi(durationStr)
+	if err != nil || durationSeconds <= 0 {
+		h.returns.ReturnError(w, "invalid duration_seconds", http.StatusBadRequest)
+		return
+	}
+
+	// Use music UUID as deterministic audio ID (same filename on every update)
+	musicID := uuid.UUID(musicUUID.Bytes).String()
+
+	// Update
+	audioURL, ok := uploadAudioFromForm(r.Context(), w, r, h.fileStorage, musicID, "audio", h.logger, h.returns)
 	if !ok {
 		return
 	}
 
 	if err := h.db.UpdateMusicStorage(r.Context(), sqlhandler.UpdateMusicStorageParams{
 		Uuid:              musicUUID,
-		PathInFileStorage: body.PathInFileStorage,
-		DurationSeconds:   body.DurationSeconds,
+		PathInFileStorage: audioURL,
+		DurationSeconds:   int32(durationSeconds),
 	}); err != nil {
 		h.logger.Error("failed to update music storage", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update music storage", http.StatusInternalServerError)
