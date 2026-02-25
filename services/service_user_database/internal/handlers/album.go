@@ -4,27 +4,31 @@ import (
 	"net/http"
 
 	"backend/internal/di"
+	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
 
 	libsdi "libs/di"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
 type AlbumHandler struct {
-	logger  *zap.Logger
-	config  *di.Config
-	returns *libsdi.ReturnManager
-	db      DB
+	logger      *zap.Logger
+	config      *di.Config
+	returns     *libsdi.ReturnManager
+	db          DB
+	fileStorage storage.FileStorageClient
 }
 
-func NewAlbumHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB) *AlbumHandler {
+func NewAlbumHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *AlbumHandler {
 	return &AlbumHandler{
-		logger:  logger,
-		config:  config,
-		returns: returns,
-		db:      db,
+		logger:      logger,
+		config:      config,
+		returns:     returns,
+		db:          db,
+		fileStorage: fileStorage,
 	}
 }
 
@@ -70,6 +74,7 @@ func (h *AlbumHandler) GetAlbum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	applyDefaultImageIfEmpty(&album.ImagePath, h.fileStorage, false)
 	h.returns.ReturnJSON(w, album, http.StatusOK)
 }
 
@@ -96,25 +101,48 @@ func (h *AlbumHandler) GetAlbumsForArtist(w http.ResponseWriter, r *http.Request
 	h.returns.ReturnJSON(w, albums, http.StatusOK)
 }
 
-type createAlbumRequest struct {
-	ArtistUUID   string  `json:"artist_uuid" validate:"required"`
-	OriginalName string  `json:"original_name" validate:"required,max=255"`
-	Description  *string `json:"description"`
-	ImagePath    *string `json:"image_path"`
-}
-
 func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
 	}
 
-	body, ok := decodeBody[createAlbumRequest](w, r, h.returns)
+	// Ensure is multipart form
+	if !parseMultipartForm(w, r, 10, h.returns) {
+		return
+	}
+
+	artistUUIDStr := r.FormValue("artist_uuid")
+	if artistUUIDStr == "" {
+		h.returns.ReturnError(w, "artist_uuid required", http.StatusBadRequest)
+		return
+	}
+	originalName := r.FormValue("original_name")
+	if originalName == "" {
+		h.returns.ReturnError(w, "original_name required", http.StatusBadRequest)
+		return
+	}
+	var description *string
+	if descVal := r.FormValue("description"); descVal != "" {
+		description = &descVal
+	}
+
+	// Generate album ID
+	albumID := uuid.New().String()
+
+	// Optional image upload
+	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
+		"music_pictures", albumID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
 
-	artistUUID, err := uuidToPgtype(body.ArtistUUID)
+	if !imagePath.Valid {
+		imagePath.String = h.fileStorage.GetDefaultMusicImageURL()
+		imagePath.Valid = true
+	}
+
+	artistUUID, err := uuidToPgtype(artistUUIDStr)
 	if err != nil {
 		h.returns.ReturnError(w, "invalid artist_uuid", http.StatusBadRequest)
 		return
@@ -125,23 +153,19 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var description pgtype.Text
-	if body.Description != nil {
-		description = pgtype.Text{String: *body.Description, Valid: true}
-	}
-
-	var imagePath pgtype.Text
-	if body.ImagePath != nil {
-		imagePath = pgtype.Text{String: *body.ImagePath, Valid: true}
-	}
+	descText := optionalStringToPgtype(description)
 
 	if err := h.db.CreateAlbum(r.Context(), sqlhandler.CreateAlbumParams{
 		FromArtist:   artistUUID,
-		OriginalName: body.OriginalName,
-		Description:  description,
+		OriginalName: originalName,
+		Description:  descText,
 		ImagePath:    imagePath,
 	}); err != nil {
 		h.logger.Error("failed to create album", zap.Error(err))
+
+		if imagePath.Valid {
+			cleanupImage(r.Context(), h.fileStorage, "music_pictures", albumID, h.logger)
+		}
 		h.returns.ReturnError(w, "failed to create album", http.StatusInternalServerError)
 		return
 	}
@@ -183,24 +207,35 @@ func (h *AlbumHandler) UpdateAlbum(w http.ResponseWriter, r *http.Request) {
 	h.returns.ReturnText(w, "album updated", http.StatusOK)
 }
 
-type updateAlbumImageRequest struct {
-	ImagePath string `json:"image_path" validate:"required"`
-}
-
 func (h *AlbumHandler) UpdateAlbumImage(w http.ResponseWriter, r *http.Request) {
 	albumUUID, ok := h.checkAlbumAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
 		return
 	}
 
-	body, ok := decodeBody[updateAlbumImageRequest](w, r, h.returns)
+	// Ensure is multipart form
+	if !parseMultipartForm(w, r, 10, h.returns) {
+		return
+	}
+
+	// Album ID
+	imageID := uuid.UUID(albumUUID.Bytes).String()
+
+	// Update
+	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
+		"music_pictures", imageID, "image", h.logger, h.returns)
 	if !ok {
+		return
+	}
+
+	if !imagePath.Valid {
+		h.returns.ReturnError(w, "image file required", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.db.UpdateAlbumImage(r.Context(), sqlhandler.UpdateAlbumImageParams{
 		Uuid:      albumUUID,
-		ImagePath: pgtype.Text{String: body.ImagePath, Valid: true},
+		ImagePath: imagePath,
 	}); err != nil {
 		h.logger.Error("failed to update album image", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update album image", http.StatusInternalServerError)
