@@ -1,6 +1,4 @@
-## Todos
-
-### Errors/Warnings
+Todo:
 - Not having a .env file on startup (eg from dockerfile) will result in an error in logs: change it to warn
 
 ### Features Small
