@@ -1,8 +1,9 @@
 package di
 
 import (
-	libsdi "libs/di"
 	"os"
+
+	libsdi "libs/di"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -22,12 +23,24 @@ func LoadConfig(logger *zap.Logger) *Config {
 
 	err := godotenv.Load()
 	if err != nil {
-		slogger.Errorf("Error loading .env file: %v", err)
+		slogger.Warnf("Error loading .env file: %v", err)
+	}
+
+	// Load environment variables
+	warehouseURL := os.Getenv("WAREHOUSE_URL")
+	tableName := os.Getenv("TABLE_NAME")
+
+	// Validate required environment variables
+	if warehouseURL == "" {
+		slogger.Warn("WAREHOUSE_URL environment variable is not set")
+	}
+	if tableName == "" {
+		slogger.Warn("TABLE_NAME environment variable is not set")
 	}
 
 	return &Config{
-		WarehouseURL: os.Getenv("WAREHOUSE_URL"),
-		TableName:    os.Getenv("TABLE_NAME"),
+		WarehouseURL: warehouseURL,
+		TableName:    tableName,
 		UserUUIDKey:  libsdi.UserUUIDKey,
 		RequestIDKey: libsdi.RequestIDKey,
 	}
