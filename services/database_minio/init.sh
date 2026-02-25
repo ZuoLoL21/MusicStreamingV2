@@ -7,8 +7,11 @@ mc mb myminio/music-streaming --ignore-existing;
 
 mc anonymous set download myminio/music-streaming;
 
-mc cp /defaults/default_profile.jpg myminio/music-streaming/pictures/profile/default.jpg --quiet || true;
-mc cp /defaults/default_music.jpg myminio/music-streaming/pictures/music/default.jpg --quiet || true;
+mc cp /defaults/default_profile.jpg myminio/music-streaming/pictures-profile/default.jpg --quiet || true;
+mc cp /defaults/default_profile.jpg myminio/music-streaming/pictures-artist/default.jpg --quiet || true;
+mc cp /defaults/default_music.jpg myminio/music-streaming/pictures-music/default.jpg --quiet || true;
+mc cp /defaults/default_music.jpg myminio/music-streaming/pictures-album/default.jpg --quiet || true;
+mc cp /defaults/default_music.jpg myminio/music-streaming/pictures-playlist/default.jpg --quiet || true;
 
 echo 'MinIO initialized with default images';
 exit 0;
