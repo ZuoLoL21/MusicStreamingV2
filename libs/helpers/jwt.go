@@ -8,6 +8,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// JWT Subjects - Single source of truth for all JWT subject types
+const (
+	JWTSubjectNormal  = "normal"
+	JWTSubjectRefresh = "refresh"
+	JWTSubjectService = "service"
+)
+
 type MyCustomClaims struct {
 	Uuid string `json:"uuid"`
 	Kid  string `json:"kid"`
