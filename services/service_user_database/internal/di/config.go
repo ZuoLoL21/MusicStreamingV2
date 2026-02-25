@@ -14,6 +14,11 @@ import (
 type Config struct {
 	Provider             string
 	DatabaseURL          string
+	MinIOEndpoint        string
+	MinIOAccessKey       string
+	MinIOSecretKey       string
+	MinIOBucketName      string
+	MinIOUseSSL          bool
 	JWTStorePath         string
 	SubjectNormal        string
 	JWTExpirationNormal  time.Duration
@@ -43,9 +48,19 @@ func LoadConfig(logger *zap.Logger) *Config {
 		slogger.Errorf("Error parsing TIME_IN_D_REFRESH: %v", err)
 	}
 
+	useSSL := false
+	if sslStr := os.Getenv("MINIO_USE_SSL"); sslStr == "true" {
+		useSSL = true
+	}
+
 	return &Config{
 		Provider:             os.Getenv("USER_CRUD_JWT_PROVIDER_NAME"),
 		DatabaseURL:          os.Getenv("USER_CRUD_CONNECTION_STRING"),
+		MinIOEndpoint:        os.Getenv("MINIO_ENDPOINT"),
+		MinIOAccessKey:       os.Getenv("MINIO_ACCESS_KEY"),
+		MinIOSecretKey:       os.Getenv("MINIO_SECRET_KEY"),
+		MinIOBucketName:      os.Getenv("MINIO_BUCKET_NAME"),
+		MinIOUseSSL:          useSSL,
 		JWTStorePath:         os.Getenv("JWT_STORE_PATH"),
 		SubjectNormal:        os.Getenv("JWT_SUBJECT_NORMAL"),
 		JWTExpirationNormal:  time.Minute * time.Duration(normalTime),
