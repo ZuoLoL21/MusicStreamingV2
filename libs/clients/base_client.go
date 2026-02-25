@@ -11,14 +11,14 @@ import (
 	"go.uber.org/zap"
 )
 
-// baseClient provides common HTTP functionality for service clients
-type baseClient struct {
-	httpClient *http.Client
-	logger     *zap.Logger
+// BaseClient provides common HTTP functionality for service clients
+type BaseClient struct {
+	HttpClient *http.Client
+	Logger     *zap.Logger
 }
 
-// doJSON performs an HTTP request with JSON marshaling/unmarshaling
-func (b *baseClient) doJSON(ctx context.Context, method, url string, reqBody, respBody interface{}, requestID string) error {
+// DoJSON performs an HTTP request with JSON marshaling/unmarshaling
+func (b *BaseClient) DoJSON(ctx context.Context, method, url string, reqBody, respBody interface{}, requestID string) error {
 	var bodyReader io.Reader
 	if reqBody != nil {
 		jsonBody, err := json.Marshal(reqBody)
@@ -38,7 +38,7 @@ func (b *baseClient) doJSON(ctx context.Context, method, url string, reqBody, re
 	}
 	req.Header.Set("X-Request-ID", requestID)
 
-	resp, err := b.httpClient.Do(req)
+	resp, err := b.HttpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
@@ -64,8 +64,8 @@ func (b *baseClient) doJSON(ctx context.Context, method, url string, reqBody, re
 	return nil
 }
 
-// doRaw performs an HTTP request and returns raw response
-func (b *baseClient) doRaw(ctx context.Context, method, url string, requestID string) ([]byte, int, error) {
+// DoRaw performs an HTTP request and returns raw response
+func (b *BaseClient) DoRaw(ctx context.Context, method, url string, requestID string) ([]byte, int, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return nil, http.StatusInternalServerError, fmt.Errorf("create request: %w", err)
@@ -73,7 +73,7 @@ func (b *baseClient) doRaw(ctx context.Context, method, url string, requestID st
 
 	req.Header.Set("X-Request-ID", requestID)
 
-	resp, err := b.httpClient.Do(req)
+	resp, err := b.HttpClient.Do(req)
 	if err != nil {
 		return nil, http.StatusBadGateway, fmt.Errorf("request failed: %w", err)
 	}
@@ -87,4 +87,37 @@ func (b *baseClient) doRaw(ctx context.Context, method, url string, requestID st
 	}
 
 	return body, resp.StatusCode, nil
+}
+
+// DoProxy forwards a raw HTTP request with body and headers, returning raw response
+func (b *BaseClient) DoProxy(ctx context.Context, method, url string, body io.Reader, headers http.Header, requestID string) ([]byte, int, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	if err != nil {
+		return nil, http.StatusInternalServerError, fmt.Errorf("create request: %w", err)
+	}
+
+	// Copy headers from original request
+	for key, values := range headers {
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
+	}
+
+	// Ensure request ID is set
+	req.Header.Set("X-Request-ID", requestID)
+
+	resp, err := b.HttpClient.Do(req)
+	if err != nil {
+		return nil, http.StatusBadGateway, fmt.Errorf("request failed: %w", err)
+	}
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, http.StatusInternalServerError, fmt.Errorf("read response: %w", err)
+	}
+
+	return respBody, resp.StatusCode, nil
 }
