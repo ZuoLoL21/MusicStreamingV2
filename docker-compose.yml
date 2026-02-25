@@ -156,6 +156,40 @@ services:
             - clickhouse-net
             - general
 
+    popularity-system:
+        build:
+            context: .
+            dockerfile: services/service_popularity_system/Dockerfile
+        ports:
+            - "8082:8080"
+        environment:
+            WAREHOUSE_URL: ${CLICKHOUSE_CONNECTION_STRING}
+            TABLE_NAME: "popularity_data"
+        depends_on:
+            clickhouse-database:
+                condition: service_started
+        networks:
+            - clickhouse-net
+            - general
+
+    gateway-recommendation:
+        build:
+            context: .
+            dockerfile: services/gateway_recommendation/Dockerfile
+        ports:
+            - "${GATEWAY_RECOMMENDATION_PORT}:8090"
+        environment:
+            GATEWAY_PORT: "8090"
+            POPULARITY_SERVICE_URL: "http://popularity-system:8080"
+            BANDIT_SERVICE_URL: "http://bandit-system:8001"
+        depends_on:
+            popularity-system:
+                condition: service_started
+            bandit-system:
+                condition: service_started
+        networks:
+            - general
+
 
 volumes:
     user_data:
