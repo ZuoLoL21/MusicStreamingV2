@@ -1,9 +1,16 @@
-Todo:
+## Todos
+
+### Errors/Warnings
 - Not having a .env file on startup (eg from dockerfile) will result in an error in logs: change it to warn
+ 
+### Features Small
 - Remove ports to do internal networking
 - Heath checks 
   - Add routes
   - Add calling before starting
 
+### Features Medium
+- Add auth to everyone
 
-- Add auth to everyone lol
+### Features Big
+- Add https
