@@ -1,30 +1,33 @@
 package handlers
 
 import (
-	"net/http"
-
 	"backend/internal/di"
+	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
+	"net/http"
 
 	libsdi "libs/di"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
 type ArtistHandler struct {
-	logger  *zap.Logger
-	config  *di.Config
-	returns *libsdi.ReturnManager
-	db      DB
+	logger      *zap.Logger
+	config      *di.Config
+	returns     *libsdi.ReturnManager
+	db          DB
+	fileStorage storage.FileStorageClient
 }
 
-func NewArtistHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB) *ArtistHandler {
+func NewArtistHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *ArtistHandler {
 	return &ArtistHandler{
-		logger:  logger,
-		config:  config,
-		returns: returns,
-		db:      db,
+		logger:      logger,
+		config:      config,
+		returns:     returns,
+		db:          db,
+		fileStorage: fileStorage,
 	}
 }
 
@@ -108,13 +111,8 @@ func (h *ArtistHandler) GetArtist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	applyDefaultImageIfEmpty(&artist.ProfileImagePath, h.fileStorage, true)
 	h.returns.ReturnJSON(w, artist, http.StatusOK)
-}
-
-type createArtistRequest struct {
-	ArtistName       string  `json:"artist_name" validate:"required,max=255"`
-	Bio              *string `json:"bio"`
-	ProfileImagePath *string `json:"profile_image_path"`
 }
 
 func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
@@ -123,28 +121,48 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, ok := decodeBody[createArtistRequest](w, r, h.returns)
+	// Ensure is multipart form
+	if !parseMultipartForm(w, r, 10, h.returns) {
+		return
+	}
+
+	artistName := r.FormValue("artist_name")
+	if artistName == "" {
+		h.returns.ReturnError(w, "artist_name required", http.StatusBadRequest)
+		return
+	}
+	var bio *string
+	if bioVal := r.FormValue("bio"); bioVal != "" {
+		bio = &bioVal
+	}
+
+	// Generate artist ID
+	artistID := uuid.New().String()
+
+	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
+		"profile_pictures", artistID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
 
-	var bio pgtype.Text
-	if body.Bio != nil {
-		bio = pgtype.Text{String: *body.Bio, Valid: true}
+	if !profileImagePath.Valid {
+		profileImagePath.String = h.fileStorage.GetDefaultProfileImageURL()
+		profileImagePath.Valid = true
 	}
 
-	var profileImagePath pgtype.Text
-	if body.ProfileImagePath != nil {
-		profileImagePath = pgtype.Text{String: *body.ProfileImagePath, Valid: true}
-	}
+	bioText := optionalStringToPgtype(bio)
 
 	if err := h.db.CreateArtist(r.Context(), sqlhandler.CreateArtistParams{
 		UserUuid:         userUUID,
-		ArtistName:       body.ArtistName,
-		Bio:              bio,
+		ArtistName:       artistName,
+		Bio:              bioText,
 		ProfileImagePath: profileImagePath,
 	}); err != nil {
 		h.logger.Error("failed to create artist", zap.Error(err))
+
+		if profileImagePath.Valid {
+			cleanupImage(r.Context(), h.fileStorage, "profile_pictures", artistID, h.logger)
+		}
 		h.returns.ReturnError(w, "failed to create artist", http.StatusInternalServerError)
 		return
 	}
@@ -168,10 +186,7 @@ func (h *ArtistHandler) UpdateArtistProfile(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var bio pgtype.Text
-	if body.Bio != nil {
-		bio = pgtype.Text{String: *body.Bio, Valid: true}
-	}
+	bio := optionalStringToPgtype(body.Bio)
 
 	if err := h.db.UpdateArtistProfile(r.Context(), sqlhandler.UpdateArtistProfileParams{
 		Uuid:       artistUUID,
@@ -186,24 +201,35 @@ func (h *ArtistHandler) UpdateArtistProfile(w http.ResponseWriter, r *http.Reque
 	h.returns.ReturnText(w, "artist profile updated", http.StatusOK)
 }
 
-type updateArtistPictureRequest struct {
-	ProfileImagePath string `json:"profile_image_path" validate:"required"`
-}
-
 func (h *ArtistHandler) UpdateArtistPicture(w http.ResponseWriter, r *http.Request) {
 	artistUUID, ok := h.checkArtistAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
 		return
 	}
 
-	body, ok := decodeBody[updateArtistPictureRequest](w, r, h.returns)
+	// Ensure is multipart form
+	if !parseMultipartForm(w, r, 10, h.returns) {
+		return
+	}
+
+	// Artist UUID
+	imageID := uuid.UUID(artistUUID.Bytes).String()
+
+	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
+		"profile_pictures", imageID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
 
+	if !profileImagePath.Valid {
+		h.returns.ReturnError(w, "image file required", http.StatusBadRequest)
+		return
+	}
+
+	// Update
 	if err := h.db.UpdateArtistPicture(r.Context(), sqlhandler.UpdateArtistPictureParams{
 		Uuid:             artistUUID,
-		ProfileImagePath: pgtype.Text{String: body.ProfileImagePath, Valid: true},
+		ProfileImagePath: profileImagePath,
 	}); err != nil {
 		h.logger.Error("failed to update artist picture", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update artist picture", http.StatusInternalServerError)
