@@ -2,29 +2,34 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"backend/internal/di"
+	"backend/internal/storage"
 
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
 type PlaylistHandler struct {
-	logger  *zap.Logger
-	config  *di.Config
-	returns *libsdi.ReturnManager
-	db      DB
+	logger      *zap.Logger
+	config      *di.Config
+	returns     *libsdi.ReturnManager
+	db          DB
+	fileStorage storage.FileStorageClient
 }
 
-func NewPlaylistHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB) *PlaylistHandler {
+func NewPlaylistHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *PlaylistHandler {
 	return &PlaylistHandler{
-		logger:  logger,
-		config:  config,
-		returns: returns,
-		db:      db,
+		logger:      logger,
+		config:      config,
+		returns:     returns,
+		db:          db,
+		fileStorage: fileStorage,
 	}
 }
 
@@ -70,6 +75,7 @@ func (h *PlaylistHandler) GetPlaylist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	applyDefaultImageIfEmpty(&playlist.ImagePath, h.fileStorage, false)
 	h.returns.ReturnJSON(w, playlist, http.StatusOK)
 }
 
@@ -118,47 +124,73 @@ func (h *PlaylistHandler) GetPlaylistTracks(w http.ResponseWriter, r *http.Reque
 	h.returns.ReturnJSON(w, tracks, http.StatusOK)
 }
 
-type createPlaylistRequest struct {
-	OriginalName string  `json:"original_name" validate:"required,max=255"`
-	Description  *string `json:"description"`
-	IsPublic     *bool   `json:"is_public"`
-	ImagePath    *string `json:"image_path"`
-}
-
 func (h *PlaylistHandler) CreatePlaylist(w http.ResponseWriter, r *http.Request) {
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
 	}
 
-	body, ok := decodeBody[createPlaylistRequest](w, r, h.returns)
+	// Ensure is multipart form
+	if !parseMultipartForm(w, r, 10, h.returns) {
+		return
+	}
+
+	// Get required fields
+	originalName := r.FormValue("original_name")
+	if originalName == "" {
+		h.returns.ReturnError(w, "original_name required", http.StatusBadRequest)
+		return
+	}
+
+	// Optional description
+	var description *string
+	if descVal := r.FormValue("description"); descVal != "" {
+		description = &descVal
+	}
+
+	// Optional is_public
+	var isPublic *bool
+	if publicVal := r.FormValue("is_public"); publicVal != "" {
+		if publicBool, err := strconv.ParseBool(publicVal); err == nil {
+			isPublic = &publicBool
+		}
+	}
+
+	// Generate playlist ID for image upload
+	playlistID := uuid.New().String()
+
+	// Optional image upload
+	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
+		"music_pictures", playlistID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
 
-	var description pgtype.Text
-	if body.Description != nil {
-		description = pgtype.Text{String: *body.Description, Valid: true}
+	// If no image provided, use default
+	if !imagePath.Valid {
+		imagePath.String = h.fileStorage.GetDefaultMusicImageURL()
+		imagePath.Valid = true
 	}
 
-	var isPublic pgtype.Bool
-	if body.IsPublic != nil {
-		isPublic = pgtype.Bool{Bool: *body.IsPublic, Valid: true}
-	}
+	descText := optionalStringToPgtype(description)
 
-	var imagePath pgtype.Text
-	if body.ImagePath != nil {
-		imagePath = pgtype.Text{String: *body.ImagePath, Valid: true}
+	var publicBool pgtype.Bool
+	if isPublic != nil {
+		publicBool = pgtype.Bool{Bool: *isPublic, Valid: true}
 	}
 
 	if err := h.db.CreatePlaylist(r.Context(), sqlhandler.CreatePlaylistParams{
 		FromUser:     userUUID,
-		OriginalName: body.OriginalName,
-		Description:  description,
-		IsPublic:     isPublic,
+		OriginalName: originalName,
+		Description:  descText,
+		IsPublic:     publicBool,
 		ImagePath:    imagePath,
 	}); err != nil {
 		h.logger.Error("failed to create playlist", zap.Error(err))
+		// If playlist creation fails and image was uploaded, try to clean up
+		if imagePath.Valid {
+			cleanupImage(r.Context(), h.fileStorage, "music_pictures", playlistID, h.logger)
+		}
 		h.returns.ReturnError(w, "failed to create playlist", http.StatusInternalServerError)
 		return
 	}
@@ -283,25 +315,35 @@ func (h *PlaylistHandler) RemoveTrackFromPlaylist(w http.ResponseWriter, r *http
 	h.returns.ReturnText(w, "track removed from playlist", http.StatusOK)
 }
 
-type updatePlaylistImageRequest struct {
-	ImagePath string `json:"image_path" validate:"required"`
-}
-
 func (h *PlaylistHandler) UpdatePlaylistImage(w http.ResponseWriter, r *http.Request) {
 	userUUID, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
 	}
 
-	body, ok := decodeBody[updatePlaylistImageRequest](w, r, h.returns)
+	// Ensure is multipart form
+	if !parseMultipartForm(w, r, 10, h.returns) {
+		return
+	}
+
+	imageID := uuid.UUID(playlistUUID.Bytes).String()
+
+	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
+		"music_pictures", imageID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
 
+	if !imagePath.Valid {
+		h.returns.ReturnError(w, "image file required", http.StatusBadRequest)
+		return
+	}
+
+	// Update
 	if err := h.db.UpdatePlaylistImage(r.Context(), sqlhandler.UpdatePlaylistImageParams{
 		UserUuid:  userUUID,
 		Uuid:      playlistUUID,
-		ImagePath: pgtype.Text{String: body.ImagePath, Valid: true},
+		ImagePath: imagePath,
 	}); err != nil {
 		h.logger.Error("failed to update playlist image", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update playlist image", http.StatusInternalServerError)

@@ -1,35 +1,36 @@
 package handlers
 
 import (
+	"backend/internal/di"
+	"backend/internal/storage"
+	sqlhandler "backend/sql/sqlc"
 	"fmt"
 	"net/http"
-
-	"backend/internal/di"
-	sqlhandler "backend/sql/sqlc"
 
 	libsdi "libs/di"
 	libshelpers "libs/helpers"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
 type UserHandler struct {
-	logger  *zap.Logger
-	config  *di.Config
-	secrets *libsdi.SecretsManager
-	returns *libsdi.ReturnManager
-	db      DB
+	logger      *zap.Logger
+	config      *di.Config
+	secrets     *libsdi.SecretsManager
+	returns     *libsdi.ReturnManager
+	db          DB
+	fileStorage storage.FileStorageClient
 }
 
-func NewUserHandler(logger *zap.Logger, config *di.Config, secrets *libsdi.SecretsManager, returns *libsdi.ReturnManager, db DB) *UserHandler {
+func NewUserHandler(logger *zap.Logger, config *di.Config, secrets *libsdi.SecretsManager, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *UserHandler {
 	return &UserHandler{
-		logger:  logger,
-		config:  config,
-		secrets: secrets,
-		returns: returns,
-		db:      db,
+		logger:      logger,
+		config:      config,
+		secrets:     secrets,
+		returns:     returns,
+		db:          db,
+		fileStorage: fileStorage,
 	}
 }
 
@@ -45,38 +46,43 @@ func (h *UserHandler) issueTokenPair(uuidStr string) tokenPair {
 	return tokenPair{AccessToken: access, RefreshToken: refresh}
 }
 
-type registerRequest struct {
-	Username         string  `json:"username" validate:"required,min=5"`
-	Email            string  `json:"email" validate:"required,email"`
-	Password         string  `json:"password" validate:"required,min=8"`
-	Bio              *string `json:"bio"`
-	ProfileImagePath *string `json:"profile_image_path"`
-}
-
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-	body, ok := decodeBody[registerRequest](w, r, h.returns)
-	if !ok {
+	// Ensure is multipart form
+	if !parseMultipartForm(w, r, 10, h.returns) {
 		return
 	}
 
-	hashedPassword := libshelpers.Encode(body.Password)
-
-	var bio pgtype.Text
-	if body.Bio != nil {
-		bio = pgtype.Text{String: *body.Bio, Valid: true}
+	username := r.FormValue("username")
+	if username == "" || len(username) < 5 {
+		h.returns.ReturnError(w, "username required (min 5 chars)", http.StatusBadRequest)
+		return
+	}
+	email := r.FormValue("email")
+	if email == "" {
+		h.returns.ReturnError(w, "email required", http.StatusBadRequest)
+		return
 	}
 
-	var profileImagePath pgtype.Text
-	if body.ProfileImagePath != nil {
-		profileImagePath = pgtype.Text{String: *body.ProfileImagePath, Valid: true}
+	password := r.FormValue("password")
+	if password == "" || len(password) < 8 {
+		h.returns.ReturnError(w, "password required (min 8 chars)", http.StatusBadRequest)
+		return
 	}
 
-	userUUID, err := h.db.CreateUser(r.Context(), sqlhandler.CreateUserParams{
-		Username:         body.Username,
-		Email:            body.Email,
-		HashedPassword:   hashedPassword,
-		Bio:              bio,
-		ProfileImagePath: profileImagePath,
+	var bio *string
+	if bioVal := r.FormValue("bio"); bioVal != "" {
+		bio = &bioVal
+	}
+
+	hashedPassword := libshelpers.Encode(password)
+	bioText := optionalStringToPgtype(bio)
+
+	// Create user first without image to get the UUID
+	createdUUID, err := h.db.CreateUser(r.Context(), sqlhandler.CreateUserParams{
+		Username:       username,
+		Email:          email,
+		HashedPassword: hashedPassword,
+		Bio:            bioText,
 	})
 	if err != nil {
 		h.logger.Warn("failed to create user", zap.Error(err))
@@ -88,7 +94,32 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uuidStr := uuid.UUID(userUUID.Bytes).String()
+	userID := uuid.UUID(createdUUID.Bytes).String()
+
+	// Upload
+	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
+		"profile_pictures", userID, "image", h.logger, h.returns)
+	if !ok {
+		return
+	}
+
+	if !profileImagePath.Valid {
+		profileImagePath.String = h.fileStorage.GetDefaultProfileImageURL()
+		profileImagePath.Valid = true
+	}
+
+	// Update
+	if err := h.db.UpdateImage(r.Context(), sqlhandler.UpdateImageParams{
+		Uuid:             createdUUID,
+		ProfileImagePath: profileImagePath,
+	}); err != nil {
+		h.logger.Error("failed to update user image after creation", zap.Error(err))
+		h.logger.Warn("user created but image update failed",
+			zap.String("userID", userID),
+			zap.Error(err))
+	}
+
+	uuidStr := uuid.UUID(createdUUID.Bytes).String()
 	h.returns.ReturnJSON(w, h.issueTokenPair(uuidStr), http.StatusCreated)
 }
 
@@ -137,6 +168,7 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	applyDefaultImageIfEmpty(&user.ProfileImagePath, h.fileStorage, true)
 	h.returns.ReturnJSON(w, user, http.StatusOK)
 }
 
@@ -153,6 +185,7 @@ func (h *UserHandler) GetPublicUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	applyDefaultImageIfEmpty(&user.ProfileImagePath, h.fileStorage, true)
 	h.returns.ReturnJSON(w, user, http.StatusOK)
 }
 
@@ -172,10 +205,7 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var bio pgtype.Text
-	if body.Bio != nil {
-		bio = pgtype.Text{String: *body.Bio, Valid: true}
-	}
+	bio := optionalStringToPgtype(body.Bio)
 
 	if err := h.db.UpdateProfile(r.Context(), sqlhandler.UpdateProfileParams{
 		Uuid:     userUUID,
@@ -269,24 +299,34 @@ func (h *UserHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	h.returns.ReturnText(w, "password updated", http.StatusOK)
 }
 
-type updateImageRequest struct {
-	ProfileImagePath string `json:"profile_image_path" validate:"required"`
-}
-
 func (h *UserHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
 	}
 
-	body, ok := decodeBody[updateImageRequest](w, r, h.returns)
+	// Ensure is multipart form
+	if !parseMultipartForm(w, r, 10, h.returns) {
+		return
+	}
+
+	imageID := uuid.UUID(userUUID.Bytes).String()
+
+	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
+		"profile_pictures", imageID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
 
+	if !profileImagePath.Valid {
+		h.returns.ReturnError(w, "image file required", http.StatusBadRequest)
+		return
+	}
+
+	// Update
 	if err := h.db.UpdateImage(r.Context(), sqlhandler.UpdateImageParams{
 		Uuid:             userUUID,
-		ProfileImagePath: pgtype.Text{String: body.ProfileImagePath, Valid: true},
+		ProfileImagePath: profileImagePath,
 	}); err != nil {
 		h.logger.Error("failed to update image", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update image", http.StatusInternalServerError)
