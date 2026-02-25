@@ -1,6 +1,7 @@
-package storage
+package client
 
 import (
+	"backend/internal/storage"
 	"context"
 	"fmt"
 	"io"
@@ -158,25 +159,25 @@ func (m *MinIOFileStorageClient) buildPublicURL(objectName string) string {
 
 // GetDefaultProfileImageURL returns the full URL for the default user profile image
 func (m *MinIOFileStorageClient) GetDefaultProfileImageURL() string {
-	return GetDefaultProfileImageURL(m.endpoint, m.bucketName, m.useSSL)
+	return storage.GetDefaultProfileImageURL(m.endpoint, m.bucketName, m.useSSL)
 }
 
 // GetDefaultArtistImageURL returns the full URL for the default artist profile image
 func (m *MinIOFileStorageClient) GetDefaultArtistImageURL() string {
-	return GetDefaultArtistImageURL(m.endpoint, m.bucketName, m.useSSL)
+	return storage.GetDefaultArtistImageURL(m.endpoint, m.bucketName, m.useSSL)
 }
 
 // GetDefaultAlbumImageURL returns the full URL for the default album image
 func (m *MinIOFileStorageClient) GetDefaultAlbumImageURL() string {
-	return GetDefaultAlbumImageURL(m.endpoint, m.bucketName, m.useSSL)
+	return storage.GetDefaultAlbumImageURL(m.endpoint, m.bucketName, m.useSSL)
 }
 
 // GetDefaultPlaylistImageURL returns the full URL for the default playlist image
 func (m *MinIOFileStorageClient) GetDefaultPlaylistImageURL() string {
-	return GetDefaultPlaylistImageURL(m.endpoint, m.bucketName, m.useSSL)
+	return storage.GetDefaultPlaylistImageURL(m.endpoint, m.bucketName, m.useSSL)
 }
 
 // GetDefaultMusicImageURL returns the full URL for the default music track image
 func (m *MinIOFileStorageClient) GetDefaultMusicImageURL() string {
-	return GetDefaultMusicImageURL(m.endpoint, m.bucketName, m.useSSL)
+	return storage.GetDefaultMusicImageURL(m.endpoint, m.bucketName, m.useSSL)
 }

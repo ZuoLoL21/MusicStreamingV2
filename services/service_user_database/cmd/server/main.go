@@ -2,8 +2,8 @@ package main
 
 import (
 	"backend/internal/app"
+	"backend/internal/client"
 	"backend/internal/di"
-	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
 	"context"
 	"errors"
@@ -42,7 +42,7 @@ func main() {
 	db := sqlhandler.New(pool)
 
 	// File Storage Client
-	fileStorage, err := storage.NewMinIOFileStorageClient(
+	fileStorage, err := client.NewMinIOFileStorageClient(
 		config.MinIOEndpoint,
 		config.MinIOAccessKey,
 		config.MinIOSecretKey,
