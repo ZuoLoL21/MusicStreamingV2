@@ -18,20 +18,6 @@ services:
         networks:
             - user-db-net
 
-    file-storage:
-        build:
-            context: .
-            dockerfile: services/service_file_storage/Dockerfile
-        ports:
-            - "8000:8000"
-        environment:
-            LISTEN_ADDR: ${FILE_STORAGE_LISTEN_ADDR}
-            DATA_LOCATION: ${FILE_STORAGE_DATA_LOCATION}
-        volumes:
-            - file_storage_data:/data
-        networks:
-            - file-storage-net
-
     hashicorp-vault-dev:
         image: hashicorp/vault
         environment:
@@ -58,15 +44,57 @@ services:
             JWT_TIME_IN_D_REFRESH: ${JWT_TIME_IN_D_REFRESH}
             VAULT_ADDR: http://hashicorp-vault-dev:8200
             VAULT_TOKEN: root
+            MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+            MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+            MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+            MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+            MINIO_USE_SSL: ${MINIO_USE_SSL}
         depends_on:
             user-database:
                 condition: service_healthy
             hashicorp-vault-dev:
                 condition: service_started
+            minio-file-storage:
+                condition: service_healthy
         networks:
             - user-db-net
             - general
             - vault-net
+            - file-storage-net
+
+    minio-file-storage:
+        image: minio/minio:latest
+        command: server /data --console-address ":9001"
+        environment:
+            MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+            MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+        ports:
+            - "${MINIO_API_PORT}:9000"
+            - "${MINIO_CONSOLE_PORT}:9001"
+        volumes:
+            - file_storage_data:/data
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+            - file-storage-net
+
+    minio-init:
+        image: minio/mc:latest
+        depends_on:
+            minio-file-storage:
+                condition: service_healthy
+        environment:
+            MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+            MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+        volumes:
+            - ./services/database_minio/defaults:/defaults:ro
+            - ./services/database_minio/init.sh:/scripts/init.sh:ro
+        entrypoint: ["/bin/sh", "/scripts/init.sh"]
+        networks:
+            - file-storage-net
 
     clickhouse-database:
         image: clickhouse/clickhouse-server:latest

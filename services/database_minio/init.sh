@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+mc alias set myminio http://minio-file-storage:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+
+mc mb myminio/music-streaming --ignore-existing;
+
+mc anonymous set download myminio/music-streaming;
+
+mc cp /defaults/default_profile.jpg myminio/music-streaming/pictures/profile/default.jpg --quiet || true;
+mc cp /defaults/default_music.jpg myminio/music-streaming/pictures/music/default.jpg --quiet || true;
+
+echo 'MinIO initialized with default images';
+exit 0;
