@@ -74,7 +74,7 @@ func (h *AlbumHandler) GetAlbum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applyDefaultImageIfEmpty(&album.ImagePath, h.fileStorage, false)
+	applyDefaultImageIfEmpty(&album.ImagePath, h.fileStorage, "album")
 	h.returns.ReturnJSON(w, album, http.StatusOK)
 }
 
@@ -132,13 +132,13 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 
 	// Optional image upload
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"music_pictures", albumID, "image", h.logger, h.returns)
+		"pictures-album", albumID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
 
 	if !imagePath.Valid {
-		imagePath.String = h.fileStorage.GetDefaultMusicImageURL()
+		imagePath.String = h.fileStorage.GetDefaultAlbumImageURL()
 		imagePath.Valid = true
 	}
 
@@ -164,7 +164,7 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("failed to create album", zap.Error(err))
 
 		if imagePath.Valid {
-			cleanupImage(r.Context(), h.fileStorage, "music_pictures", albumID, h.logger)
+			cleanupImage(r.Context(), h.fileStorage, "pictures-album", albumID, h.logger)
 		}
 		h.returns.ReturnError(w, "failed to create album", http.StatusInternalServerError)
 		return
@@ -223,7 +223,7 @@ func (h *AlbumHandler) UpdateAlbumImage(w http.ResponseWriter, r *http.Request) 
 
 	// Update
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"music_pictures", imageID, "image", h.logger, h.returns)
+		"pictures-album", imageID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}

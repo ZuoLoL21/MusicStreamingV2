@@ -111,7 +111,7 @@ func (h *ArtistHandler) GetArtist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applyDefaultImageIfEmpty(&artist.ProfileImagePath, h.fileStorage, true)
+	applyDefaultImageIfEmpty(&artist.ProfileImagePath, h.fileStorage, "artist")
 	h.returns.ReturnJSON(w, artist, http.StatusOK)
 }
 
@@ -140,13 +140,13 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 	artistID := uuid.New().String()
 
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"profile_pictures", artistID, "image", h.logger, h.returns)
+		"pictures-artist", artistID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
 
 	if !profileImagePath.Valid {
-		profileImagePath.String = h.fileStorage.GetDefaultProfileImageURL()
+		profileImagePath.String = h.fileStorage.GetDefaultArtistImageURL()
 		profileImagePath.Valid = true
 	}
 
@@ -161,7 +161,7 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("failed to create artist", zap.Error(err))
 
 		if profileImagePath.Valid {
-			cleanupImage(r.Context(), h.fileStorage, "profile_pictures", artistID, h.logger)
+			cleanupImage(r.Context(), h.fileStorage, "pictures-artist", artistID, h.logger)
 		}
 		h.returns.ReturnError(w, "failed to create artist", http.StatusInternalServerError)
 		return
@@ -216,7 +216,7 @@ func (h *ArtistHandler) UpdateArtistPicture(w http.ResponseWriter, r *http.Reque
 	imageID := uuid.UUID(artistUUID.Bytes).String()
 
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"profile_pictures", imageID, "image", h.logger, h.returns)
+		"pictures-artist", imageID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}

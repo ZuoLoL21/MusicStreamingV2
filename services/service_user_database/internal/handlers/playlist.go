@@ -75,7 +75,7 @@ func (h *PlaylistHandler) GetPlaylist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applyDefaultImageIfEmpty(&playlist.ImagePath, h.fileStorage, false)
+	applyDefaultImageIfEmpty(&playlist.ImagePath, h.fileStorage, "playlist")
 	h.returns.ReturnJSON(w, playlist, http.StatusOK)
 }
 
@@ -161,14 +161,14 @@ func (h *PlaylistHandler) CreatePlaylist(w http.ResponseWriter, r *http.Request)
 
 	// Optional image upload
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"music_pictures", playlistID, "image", h.logger, h.returns)
+		"pictures-playlist", playlistID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
 
 	// If no image provided, use default
 	if !imagePath.Valid {
-		imagePath.String = h.fileStorage.GetDefaultMusicImageURL()
+		imagePath.String = h.fileStorage.GetDefaultPlaylistImageURL()
 		imagePath.Valid = true
 	}
 
@@ -189,7 +189,7 @@ func (h *PlaylistHandler) CreatePlaylist(w http.ResponseWriter, r *http.Request)
 		h.logger.Error("failed to create playlist", zap.Error(err))
 		// If playlist creation fails and image was uploaded, try to clean up
 		if imagePath.Valid {
-			cleanupImage(r.Context(), h.fileStorage, "music_pictures", playlistID, h.logger)
+			cleanupImage(r.Context(), h.fileStorage, "pictures-playlist", playlistID, h.logger)
 		}
 		h.returns.ReturnError(w, "failed to create playlist", http.StatusInternalServerError)
 		return
@@ -329,7 +329,7 @@ func (h *PlaylistHandler) UpdatePlaylistImage(w http.ResponseWriter, r *http.Req
 	imageID := uuid.UUID(playlistUUID.Bytes).String()
 
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"music_pictures", imageID, "image", h.logger, h.returns)
+		"pictures-playlist", imageID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}

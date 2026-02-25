@@ -16,15 +16,24 @@ type FileStorageClient interface {
 	// DeleteAudio removes audio file from storage
 	DeleteAudio(ctx context.Context, musicID string) error
 
-	// SaveImage uploads image to specified folder (music_pictures, profile_pictures) and returns the public URL
+	// SaveImage uploads image to specified folder (pictures-profile, pictures-artist, pictures-album, pictures-playlist, pictures-music) and returns the public URL
 	SaveImage(ctx context.Context, folder, imageID string, imageData io.Reader) (url string, err error)
 
 	// DeleteImage removes image from storage
 	DeleteImage(ctx context.Context, folder, imageID string) error
 
-	// GetDefaultProfileImageURL returns the full URL for default profile images
+	// GetDefaultProfileImageURL returns the full URL for default user profile images
 	GetDefaultProfileImageURL() string
 
-	// GetDefaultMusicImageURL returns the full URL for default music/album/playlist images
+	// GetDefaultArtistImageURL returns the full URL for default artist profile images
+	GetDefaultArtistImageURL() string
+
+	// GetDefaultAlbumImageURL returns the full URL for default album images
+	GetDefaultAlbumImageURL() string
+
+	// GetDefaultPlaylistImageURL returns the full URL for default playlist images
+	GetDefaultPlaylistImageURL() string
+
+	// GetDefaultMusicImageURL returns the full URL for default music track images
 	GetDefaultMusicImageURL() string
 }

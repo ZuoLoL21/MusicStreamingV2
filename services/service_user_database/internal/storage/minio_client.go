@@ -156,12 +156,27 @@ func (m *MinIOFileStorageClient) buildPublicURL(objectName string) string {
 	return fmt.Sprintf("%s://%s/%s/%s", protocol, m.endpoint, m.bucketName, objectName)
 }
 
-// GetDefaultProfileImageURL returns the full URL for the default profile image
+// GetDefaultProfileImageURL returns the full URL for the default user profile image
 func (m *MinIOFileStorageClient) GetDefaultProfileImageURL() string {
 	return GetDefaultProfileImageURL(m.endpoint, m.bucketName, m.useSSL)
 }
 
-// GetDefaultMusicImageURL returns the full URL for the default music/album/playlist image
+// GetDefaultArtistImageURL returns the full URL for the default artist profile image
+func (m *MinIOFileStorageClient) GetDefaultArtistImageURL() string {
+	return GetDefaultArtistImageURL(m.endpoint, m.bucketName, m.useSSL)
+}
+
+// GetDefaultAlbumImageURL returns the full URL for the default album image
+func (m *MinIOFileStorageClient) GetDefaultAlbumImageURL() string {
+	return GetDefaultAlbumImageURL(m.endpoint, m.bucketName, m.useSSL)
+}
+
+// GetDefaultPlaylistImageURL returns the full URL for the default playlist image
+func (m *MinIOFileStorageClient) GetDefaultPlaylistImageURL() string {
+	return GetDefaultPlaylistImageURL(m.endpoint, m.bucketName, m.useSSL)
+}
+
+// GetDefaultMusicImageURL returns the full URL for the default music track image
 func (m *MinIOFileStorageClient) GetDefaultMusicImageURL() string {
 	return GetDefaultMusicImageURL(m.endpoint, m.bucketName, m.useSSL)
 }

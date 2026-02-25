@@ -98,7 +98,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Upload
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"profile_pictures", userID, "image", h.logger, h.returns)
+		"pictures-profile", userID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
@@ -168,7 +168,7 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applyDefaultImageIfEmpty(&user.ProfileImagePath, h.fileStorage, true)
+	applyDefaultImageIfEmpty(&user.ProfileImagePath, h.fileStorage, "user")
 	h.returns.ReturnJSON(w, user, http.StatusOK)
 }
 
@@ -185,7 +185,7 @@ func (h *UserHandler) GetPublicUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applyDefaultImageIfEmpty(&user.ProfileImagePath, h.fileStorage, true)
+	applyDefaultImageIfEmpty(&user.ProfileImagePath, h.fileStorage, "user")
 	h.returns.ReturnJSON(w, user, http.StatusOK)
 }
 
@@ -313,7 +313,7 @@ func (h *UserHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 	imageID := uuid.UUID(userUUID.Bytes).String()
 
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"profile_pictures", imageID, "image", h.logger, h.returns)
+		"pictures-profile", imageID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}

@@ -61,7 +61,7 @@ func uploadImageFromForm(
 
 	// Validate and process image
 	var config storage.ImageValidationConfig
-	if folder == "profile_pictures" {
+	if folder == "pictures-profile" || folder == "pictures-artist" {
 		config = storage.DefaultProfileImageConfig()
 	} else {
 		config = storage.DefaultMusicImageConfig()
@@ -146,14 +146,30 @@ func cleanupAudio(ctx context.Context, fileStorage storage.FileStorageClient, mu
 	}
 }
 
-// applyDefaultImageIfEmpty sets default image URL if field is empty
-func applyDefaultImageIfEmpty(imagePath *pgtype.Text, fileStorage storage.FileStorageClient, isProfileImage bool) {
-	if imagePath == nil || !imagePath.Valid || imagePath.String == "" {
-		if isProfileImage {
-			*imagePath = pgtype.Text{String: fileStorage.GetDefaultProfileImageURL(), Valid: true}
-		} else {
-			*imagePath = pgtype.Text{String: fileStorage.GetDefaultMusicImageURL(), Valid: true}
+// applyDefaultImageIfEmpty sets default image URL if field is empty based on entity type
+// entityType should be one of: "user", "artist", "album", "playlist", "music"
+func applyDefaultImageIfEmpty(imagePath *pgtype.Text, fileStorage storage.FileStorageClient, entityType string) {
+	if imagePath == nil {
+		return
+	}
+
+	if !imagePath.Valid || imagePath.String == "" {
+		var defaultURL string
+		switch entityType {
+		case "user":
+			defaultURL = fileStorage.GetDefaultProfileImageURL()
+		case "artist":
+			defaultURL = fileStorage.GetDefaultArtistImageURL()
+		case "album":
+			defaultURL = fileStorage.GetDefaultAlbumImageURL()
+		case "playlist":
+			defaultURL = fileStorage.GetDefaultPlaylistImageURL()
+		case "music":
+			defaultURL = fileStorage.GetDefaultMusicImageURL()
+		default:
+			panic("invalid entity type")
 		}
+		*imagePath = pgtype.Text{String: defaultURL, Valid: true}
 	}
 }
 
