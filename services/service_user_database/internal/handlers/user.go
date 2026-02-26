@@ -41,8 +41,8 @@ type tokenPair struct {
 
 func (h *UserHandler) issueTokenPair(uuidStr string) tokenPair {
 	_, priKey, kid := h.secrets.GetKeyInfo(h.config.JWTStorePath)
-	access := libshelpers.GenerateJwt(h.config.SubjectNormal, uuidStr, priKey, kid, h.config.JWTExpirationNormal)
-	refresh := libshelpers.GenerateJwt(h.config.SubjectRefresh, uuidStr, priKey, kid, h.config.JWTExpirationRefresh)
+	access := libshelpers.GenerateJwt(libshelpers.JWTSubjectNormal, uuidStr, priKey, kid, h.config.JWTExpirationNormal)
+	refresh := libshelpers.GenerateJwt(libshelpers.JWTSubjectRefresh, uuidStr, priKey, kid, h.config.JWTExpirationRefresh)
 	return tokenPair{AccessToken: access, RefreshToken: refresh}
 }
 
@@ -152,7 +152,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) Renew(w http.ResponseWriter, r *http.Request) {
 	uuidStr := r.Context().Value(h.config.UserUUIDKey).(string)
 	_, priKey, kid := h.secrets.GetKeyInfo(h.config.JWTStorePath)
-	access := libshelpers.GenerateJwt(h.config.SubjectNormal, uuidStr, priKey, kid, h.config.JWTExpirationNormal)
+	access := libshelpers.GenerateJwt(libshelpers.JWTSubjectNormal, uuidStr, priKey, kid, h.config.JWTExpirationNormal)
 	h.returns.ReturnJSON(w, map[string]string{"access_token": access}, http.StatusOK)
 }
 

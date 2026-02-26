@@ -20,9 +20,7 @@ type Config struct {
 	MinIOBucketName      string
 	MinIOUseSSL          bool
 	JWTStorePath         string
-	SubjectNormal        string
 	JWTExpirationNormal  time.Duration
-	SubjectRefresh       string
 	JWTExpirationRefresh time.Duration
 	UserUUIDKey          libsdi.ContextKey
 	RequestIDKey         libsdi.ContextKey
@@ -47,9 +45,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 	minioBucketName := os.Getenv("MINIO_BUCKET_NAME")
 	minioUseSSLStr := os.Getenv("MINIO_USE_SSL")
 	jwtStorePath := os.Getenv("JWT_STORE_PATH")
-	subjectNormal := os.Getenv("JWT_SUBJECT_NORMAL")
 	jwtTimeNormalStr := os.Getenv("JWT_TIME_IN_M_NORMAL")
-	subjectRefresh := os.Getenv("JWT_SUBJECT_REFRESH")
 	jwtTimeRefreshStr := os.Getenv("JWT_TIME_IN_D_REFRESH")
 
 	// Validate required environment variables
@@ -73,12 +69,6 @@ func LoadConfig(logger *zap.Logger) *Config {
 	}
 	if jwtStorePath == "" {
 		slogger.Warn("JWT_STORE_PATH environment variable is not set")
-	}
-	if subjectNormal == "" {
-		slogger.Warn("JWT_SUBJECT_NORMAL environment variable is not set")
-	}
-	if subjectRefresh == "" {
-		slogger.Warn("JWT_SUBJECT_REFRESH environment variable is not set")
 	}
 
 	// Parse JWT expiration times
@@ -117,9 +107,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 		MinIOBucketName:      minioBucketName,
 		MinIOUseSSL:          useSSL,
 		JWTStorePath:         jwtStorePath,
-		SubjectNormal:        subjectNormal,
 		JWTExpirationNormal:  time.Minute * time.Duration(normalTime),
-		SubjectRefresh:       subjectRefresh,
 		JWTExpirationRefresh: time.Hour * 24 * time.Duration(refreshTime),
 		UserUUIDKey:          libsdi.UserUUIDKey,
 		RequestIDKey:         libsdi.RequestIDKey,
