@@ -293,6 +293,30 @@ GET /history/*
 
 ---
 
+### Search Routes
+```http
+GET /search/users
+GET /search/artists
+GET /search/albums
+GET /search/music
+GET /search/playlists
+```
+
+**Description:** Proxies search requests to the User Database Service. Search across users, artists, albums, music, and playlists using fuzzy text matching.
+
+**Authentication:** Normal JWT required
+
+**Routes Include:**
+- User search by username or email
+- Artist search by name
+- Album search by name
+- Music track search by name
+- Playlist search by name (public and owned playlists)
+
+**See:** [Service User Database API](../service_user_database/API.md) for detailed endpoint documentation.
+
+---
+
 ### Recommendation Routes
 ```http
 GET  /recommendation/*

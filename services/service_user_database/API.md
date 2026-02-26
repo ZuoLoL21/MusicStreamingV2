@@ -1277,6 +1277,187 @@ GET /history/top
 
 ---
 
+## Search Endpoints
+
+### Search Users
+```http
+GET /search/users?q={query}&limit={limit}&cursor_score={score}&cursor_ts={timestamp}
+```
+
+**Description:** Search for users by username or email using fuzzy text matching.
+
+**Authentication:** Service JWT required
+
+**Query Parameters:**
+- `q` (required) - Search query string (min 2 characters)
+- `limit` (optional, default: 20, max: 100) - Maximum results
+- `cursor_score` (optional) - Similarity score cursor for pagination (from previous response)
+- `cursor_ts` (optional) - Timestamp cursor for pagination in ISO 8601 format
+
+**Response:**
+```json
+{
+  "users": [
+    {
+      "uuid": "123e4567-e89b-12d3-a456-426614174000",
+      "username": "johndoe",
+      "email": "john@example.com",
+      "bio": "Music lover",
+      "profile_image_path": "https://storage.example.com/pictures-profile/...",
+      "similarity_score": 0.85
+    }
+  ]
+}
+```
+
+---
+
+### Search Artists
+```http
+GET /search/artists?q={query}&limit={limit}&cursor_score={score}&cursor_ts={timestamp}
+```
+
+**Description:** Search for artists by name using fuzzy text matching.
+
+**Authentication:** Service JWT required
+
+**Query Parameters:**
+- `q` (required) - Search query string (min 2 characters)
+- `limit` (optional, default: 20, max: 100) - Maximum results
+- `cursor_score` (optional) - Similarity score cursor for pagination
+- `cursor_ts` (optional) - Timestamp cursor for pagination
+
+**Response:**
+```json
+{
+  "artists": [
+    {
+      "uuid": "123e4567-e89b-12d3-a456-426614174001",
+      "artist_name": "The Beatles",
+      "bio": "Legendary rock band",
+      "profile_image_path": "https://storage.example.com/pictures-artist/...",
+      "similarity_score": 0.92
+    }
+  ]
+}
+```
+
+---
+
+### Search Albums
+```http
+GET /search/albums?q={query}&limit={limit}&cursor_score={score}&cursor_ts={timestamp}
+```
+
+**Description:** Search for albums by name using fuzzy text matching.
+
+**Authentication:** Service JWT required
+
+**Query Parameters:**
+- `q` (required) - Search query string (min 2 characters)
+- `limit` (optional, default: 20, max: 100) - Maximum results
+- `cursor_score` (optional) - Similarity score cursor for pagination
+- `cursor_ts` (optional) - Timestamp cursor for pagination
+
+**Response:**
+```json
+{
+  "albums": [
+    {
+      "uuid": "123e4567-e89b-12d3-a456-426614174002",
+      "from_artist": "123e4567-e89b-12d3-a456-426614174001",
+      "original_name": "Abbey Road",
+      "description": "Classic album",
+      "image_path": "https://storage.example.com/pictures-album/...",
+      "similarity_score": 0.78
+    }
+  ]
+}
+```
+
+---
+
+### Search Music
+```http
+GET /search/music?q={query}&limit={limit}&cursor_score={score}&cursor_ts={timestamp}
+```
+
+**Description:** Search for music tracks by name using fuzzy text matching.
+
+**Authentication:** Service JWT required
+
+**Query Parameters:**
+- `q` (required) - Search query string (min 2 characters)
+- `limit` (optional, default: 20, max: 100) - Maximum results
+- `cursor_score` (optional) - Similarity score cursor for pagination
+- `cursor_ts` (optional) - Timestamp cursor for pagination
+
+**Response:**
+```json
+{
+  "music": [
+    {
+      "uuid": "123e4567-e89b-12d3-a456-426614174003",
+      "from_artist": "123e4567-e89b-12d3-a456-426614174001",
+      "uploaded_by": "123e4567-e89b-12d3-a456-426614174000",
+      "in_album": "123e4567-e89b-12d3-a456-426614174002",
+      "song_name": "Come Together",
+      "path_in_file_storage": "audio/...",
+      "image_path": "https://storage.example.com/pictures-music/...",
+      "play_count": 1500,
+      "duration_seconds": 259,
+      "similarity_score": 0.88
+    }
+  ]
+}
+```
+
+---
+
+### Search Playlists
+```http
+GET /search/playlists?q={query}&limit={limit}&cursor_score={score}&cursor_ts={timestamp}
+```
+
+**Description:** Search for playlists by name using fuzzy text matching.
+
+**Authentication:** Service JWT required
+
+**Query Parameters:**
+- `q` (required) - Search query string (min 2 characters)
+- `limit` (optional, default: 20, max: 100) - Maximum results
+- `cursor_score` (optional) - Similarity score cursor for pagination
+- `cursor_ts` (optional) - Timestamp cursor for pagination
+
+**Response:**
+```json
+{
+  "playlists": [
+    {
+      "uuid": "123e4567-e89b-12d3-a456-426614174004",
+      "from_user": "123e4567-e89b-12d3-a456-426614174000",
+      "original_name": "My Favorites",
+      "description": "Best songs",
+      "is_public": true,
+      "image_path": "https://storage.example.com/pictures-playlist/...",
+      "similarity_score": 0.65
+    }
+  ]
+}
+```
+
+**Notes:**
+- Playlist search only returns public playlists or playlists owned by the requesting user
+
+---
+
+### Search Notes
+- All search endpoints use PostgreSQL's `pg_trgm` extension for fuzzy text matching
+- Results are ordered by similarity score (descending), then by creation date (descending)
+- Empty arrays are returned when no matches are found
+
+---
+
 ## Pagination
 
 Most list endpoints support cursor-based pagination:
@@ -1288,9 +1469,11 @@ Most list endpoints support cursor-based pagination:
 - `cursor_name` - Name cursor (for tags/artists)
 - `cursor_pos` - Position cursor (for playlists)
 - `cursor_count` - Count cursor (for top music)
+- `cursor_score` - Similarity score cursor (for search)
+- `cursor_ts` - Timestamp cursor for search results
 
 **Response includes:**
-- `next_cursor`, `next_cursor_id`, `next_cursor_name`, etc. - Use these for next page
+- `next_cursor`, `next_cursor_id`, `next_cursor_name`, `next_cursor_score`, etc. - Use these for next page
 
 ---
 
@@ -1302,3 +1485,5 @@ Most list endpoints support cursor-based pagination:
 - `404 Not Found` - Resource not found
 - `409 Conflict` - Resource conflict (e.g., duplicate email)
 - `500 Internal Server Error` - Server error
+- `500 Internal Server Error` - Server error
+
