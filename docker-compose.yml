@@ -147,6 +147,7 @@ services:
         environment:
             WAREHOUSE_URL: ${CLICKHOUSE_CONNECTION_STRING}
             TABLE_NAME: "popularity_data"
+            JWT_STORE_PATH: ${JWT_STORE_PATH}
         depends_on:
             clickhouse-database:
                 condition: service_started
