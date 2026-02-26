@@ -150,7 +150,11 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) Renew(w http.ResponseWriter, r *http.Request) {
-	uuidStr := r.Context().Value(h.config.UserUUIDKey).(string)
+	uuidStr, ok := r.Context().Value(h.config.UserUUIDKey).(string)
+	if !ok || uuidStr == "" {
+		h.returns.ReturnError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 	_, priKey, kid := h.secrets.GetKeyInfo(h.config.JWTStorePath)
 	access := libshelpers.GenerateJwt(libshelpers.JWTSubjectNormal, uuidStr, priKey, kid, h.config.JWTExpirationNormal)
 	h.returns.ReturnJSON(w, map[string]string{"access_token": access}, http.StatusOK)

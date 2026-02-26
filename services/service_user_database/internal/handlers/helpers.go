@@ -79,10 +79,14 @@ func uuidToPgtype(uuidStr string) (pgtype.UUID, error) {
 }
 
 func userUUIDFromCtx(w http.ResponseWriter, r *http.Request, config *di.Config, returns *libsdi.ReturnManager) (pgtype.UUID, bool) {
-	uuidStr, _ := r.Context().Value(config.UserUUIDKey).(string)
+	uuidStr, ok := r.Context().Value(config.UserUUIDKey).(string)
+	if !ok || uuidStr == "" {
+		returns.ReturnError(w, "unauthorized", http.StatusUnauthorized)
+		return pgtype.UUID{}, false
+	}
 	userUUID, err := uuidToPgtype(uuidStr)
 	if err != nil {
-		returns.ReturnError(w, "invalid user uuid", http.StatusInternalServerError)
+		returns.ReturnError(w, "invalid user uuid", http.StatusUnauthorized)
 		return pgtype.UUID{}, false
 	}
 	return userUUID, true
