@@ -85,4 +85,10 @@ type DB interface {
 
 	GetListeningHistoryForUser(ctx context.Context, arg sqlhandler.GetListeningHistoryForUserParams) ([]sqlhandler.ListeningHistory, error)
 	GetTopMusicForUser(ctx context.Context, arg sqlhandler.GetTopMusicForUserParams) ([]sqlhandler.GetTopMusicForUserRow, error)
+
+	SearchForMusic(ctx context.Context, arg sqlhandler.SearchForMusicParams) ([]sqlhandler.SearchForMusicRow, error)
+	SearchForAlbum(ctx context.Context, arg sqlhandler.SearchForAlbumParams) ([]sqlhandler.SearchForAlbumRow, error)
+	SearchForArtist(ctx context.Context, arg sqlhandler.SearchForArtistParams) ([]sqlhandler.SearchForArtistRow, error)
+	SearchForUser(ctx context.Context, arg sqlhandler.SearchForUserParams) ([]sqlhandler.SearchForUserRow, error)
+	SearchForPlaylist(ctx context.Context, arg sqlhandler.SearchForPlaylistParams) ([]sqlhandler.SearchForPlaylistRow, error)
 }

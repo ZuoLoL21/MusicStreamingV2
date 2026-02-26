@@ -181,3 +181,21 @@ func (m *MinIOFileStorageClient) GetDefaultPlaylistImageURL() string {
 func (m *MinIOFileStorageClient) GetDefaultMusicImageURL() string {
 	return storage.GetDefaultMusicImageURL(m.endpoint, m.bucketName, m.useSSL)
 }
+
+// GetDefaultImageURL returns the default image URL based on entity type (user, artist, album, playlist, music)
+func (m *MinIOFileStorageClient) GetDefaultImageURL(entityType string) string {
+	switch entityType {
+	case "user":
+		return m.GetDefaultProfileImageURL()
+	case "artist":
+		return m.GetDefaultArtistImageURL()
+	case "album":
+		return m.GetDefaultAlbumImageURL()
+	case "playlist":
+		return m.GetDefaultPlaylistImageURL()
+	case "music":
+		return m.GetDefaultMusicImageURL()
+	default:
+		return m.GetDefaultMusicImageURL()
+	}
+}

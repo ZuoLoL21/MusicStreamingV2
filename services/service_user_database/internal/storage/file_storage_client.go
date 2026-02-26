@@ -36,4 +36,7 @@ type FileStorageClient interface {
 
 	// GetDefaultMusicImageURL returns the full URL for default music track images
 	GetDefaultMusicImageURL() string
+
+	// GetDefaultImageURL returns the default image URL based on entity type (user, artist, album, playlist, music)
+	GetDefaultImageURL(entityType string) string
 }

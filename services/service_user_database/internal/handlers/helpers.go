@@ -155,6 +155,32 @@ func parsePaginationPos(r *http.Request) (limit int32, cursorPos int32) {
 	return
 }
 
+// parsePaginationSearch parses search pagination query params (similarity score + timestamp cursor)
+func parsePaginationSearch(r *http.Request) (limit int32, cursorScore pgtype.Float8, cursorTS pgtype.Timestamptz) {
+	limit = 20
+	if s := r.URL.Query().Get("limit"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 && n <= 100 {
+			limit = int32(n)
+		}
+	}
+
+	cursorScoreStr := r.URL.Query().Get("cursor_score")
+	if cursorScoreStr != "" {
+		if score, err := strconv.ParseFloat(cursorScoreStr, 64); err == nil && score >= 0 && score <= 1 {
+			cursorScore = pgtype.Float8{Float64: score, Valid: true}
+		}
+	}
+
+	cursorTSStr := r.URL.Query().Get("cursor_ts")
+	if cursorTSStr != "" {
+		if t, err := time.Parse(time.RFC3339, cursorTSStr); err == nil {
+			cursorTS = pgtype.Timestamptz{Time: t, Valid: true}
+		}
+	}
+
+	return
+}
+
 var roleWeight = map[sqlhandler.ArtistMemberRole]int{
 	sqlhandler.ArtistMemberRoleMember:  1,
 	sqlhandler.ArtistMemberRoleManager: 2,
