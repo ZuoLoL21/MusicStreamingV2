@@ -992,25 +992,6 @@ GET /tags
 
 ---
 
-### Create Tag
-```http
-PUT /tags
-```
-
-**Description:** Create a new tag.
-
-**Authentication:** Service JWT required
-
-**Request Body:**
-```json
-{
-  "name": "electronic",
-  "description": "Electronic music"
-}
-```
-
----
-
 ### Get Tag
 ```http
 GET /tags/{name}

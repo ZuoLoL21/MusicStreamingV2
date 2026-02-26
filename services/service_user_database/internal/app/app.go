@@ -182,7 +182,6 @@ func (a *App) registerMusicRoutes(r *mux.Router) {
 
 func (a *App) registerTagRoutes(r *mux.Router) {
 	r.HandleFunc("/tags", a.handlers.Tags.GetAllTags).Methods("GET")
-	r.HandleFunc("/tags", a.handlers.Tags.CreateTag).Methods("PUT")
 	r.HandleFunc("/tags/{name}", a.handlers.Tags.GetTag).Methods("GET")
 	r.HandleFunc("/tags/{name}/music", a.handlers.Tags.GetMusicForTag).Methods("GET")
 }

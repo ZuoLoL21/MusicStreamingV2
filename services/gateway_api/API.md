@@ -238,7 +238,6 @@ DELETE /music/*
 ```http
 GET    /tags/*
 POST   /tags/*
-PUT    /tags/*
 DELETE /tags/*
 ```
 
