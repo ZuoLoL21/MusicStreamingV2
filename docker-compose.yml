@@ -5,8 +5,6 @@ services:
             POSTGRES_DB: ${USER_CRUD_DB}
             POSTGRES_USER: ${USER_CRUD_USER}
             POSTGRES_PASSWORD: ${USER_CRUD_PASSWORD}
-        ports:
-            - "${USER_CRUD_PORT}:5432"
         volumes:
             - user_data:/var/lib/postgresql/data
             - ./services/service_user_database/sql/schema:/docker-entrypoint-initdb.d
@@ -24,23 +22,19 @@ services:
             VAULT_DEV_ROOT_TOKEN_ID: "root"
             VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
         ports:
-            - "8200:8200"
+            - "127.0.0.1:8200:8200"
         networks:
             - vault-net
 
-    user-database-crud:
+    service-user-database:
         build:
             context: .
             dockerfile: services/service_user_database/Dockerfile
-        ports:
-            - "8080:8080"
         environment:
             USER_CRUD_CONNECTION_STRING: ${USER_CRUD_CONNECTION_STRING}
             USER_CRUD_JWT_PROVIDER_NAME: ${USER_CRUD_JWT_PROVIDER_NAME}
             JWT_STORE_PATH: ${JWT_STORE_PATH}
-            JWT_SUBJECT_NORMAL: ${JWT_SUBJECT_NORMAL}
             JWT_TIME_IN_M_NORMAL: ${JWT_TIME_IN_M_NORMAL}
-            JWT_SUBJECT_REFRESH: ${JWT_SUBJECT_REFRESH}
             JWT_TIME_IN_D_REFRESH: ${JWT_TIME_IN_D_REFRESH}
             VAULT_ADDR: http://hashicorp-vault-dev:8200
             VAULT_TOKEN: root
@@ -68,9 +62,6 @@ services:
         environment:
             MINIO_ROOT_USER: ${MINIO_ROOT_USER}
             MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-        ports:
-            - "${MINIO_API_PORT}:9000"
-            - "${MINIO_CONSOLE_PORT}:9001"
         volumes:
             - file_storage_data:/data
         healthcheck:
@@ -98,9 +89,6 @@ services:
 
     clickhouse-database:
         image: clickhouse/clickhouse-server:latest
-        ports:
-            - "${CLICKHOUSE_PORT_TCP}:9000"
-            - "${CLICKHOUSE_PORT_HTTP}:8123"
         environment:
           CLICKHOUSE_DB: ${CLICKHOUSE_DB}
           CLICKHOUSE_USER: ${CLICKHOUSE_USER}
@@ -118,8 +106,6 @@ services:
             POSTGRES_DB: ${BANDIT_DB}
             POSTGRES_USER: ${BANDIT_USER}
             POSTGRES_PASSWORD: ${BANDIT_PASSWORD}
-        ports:
-            - "${BANDIT_PORT}:5432"
         volumes:
             - bandit_data:/var/lib/postgresql/data
             - ./services/service_bandit_system/src/sql:/docker-entrypoint-initdb.d
@@ -131,12 +117,10 @@ services:
         networks:
             - bandit-db-net
 
-    bandit-system:
+    service-bandit:
         build:
             context: services/service_bandit_system
             dockerfile: Dockerfile
-        ports:
-            - "8001:8001"
         environment:
             DB_CONNECTION_STRING_WAREHOUSE: ${CLICKHOUSE_CONNECTION_STRING}
             WAREHOUSE_BANDIT_DATA_TABLE: ${WAREHOUSE_BANDIT_DATA_TABLE}
@@ -156,12 +140,10 @@ services:
             - clickhouse-net
             - general
 
-    popularity-system:
+    service-popularity:
         build:
             context: .
             dockerfile: services/service_popularity_system/Dockerfile
-        ports:
-            - "8082:8080"
         environment:
             WAREHOUSE_URL: ${CLICKHOUSE_CONNECTION_STRING}
             TABLE_NAME: "popularity_data"
@@ -176,19 +158,48 @@ services:
         build:
             context: .
             dockerfile: services/gateway_recommendation/Dockerfile
-        ports:
-            - "${GATEWAY_RECOMMENDATION_PORT}:8090"
         environment:
-            GATEWAY_PORT: "8090"
-            POPULARITY_SERVICE_URL: "http://popularity-system:8080"
-            BANDIT_SERVICE_URL: "http://bandit-system:8001"
+            GATEWAY_RECOMMENDATION_PORT: ${GATEWAY_RECOMMENDATION_PORT}
+            POPULARITY_SERVICE_URL: ${POPULARITY_SERVICE_URL}
+            BANDIT_SERVICE_URL: ${BANDIT_SERVICE_URL}
+            JWT_STORE_PATH: ${JWT_STORE_PATH}
+            VAULT_ADDR: http://hashicorp-vault-dev:8200
+            VAULT_TOKEN: root
         depends_on:
-            popularity-system:
+            service-popularity:
                 condition: service_started
-            bandit-system:
+            service-bandit:
+                condition: service_started
+            hashicorp-vault-dev:
                 condition: service_started
         networks:
             - general
+            - vault-net
+
+    gateway-api:
+        build:
+            context: .
+            dockerfile: services/gateway_api/Dockerfile
+        ports:
+            - "${GATEWAY_API_PORT}:8080"
+        environment:
+            GATEWAY_API_PORT: "8080"
+            USER_DATABASE_SERVICE_URL: ${USER_DATABASE_SERVICE_URL}
+            RECOMMENDATION_SERVICE_URL: ${RECOMMENDATION_SERVICE_URL}
+            JWT_STORE_PATH: ${JWT_STORE_PATH}
+            JWT_TIME_IN_M_SERVICE: ${JWT_TIME_IN_M_SERVICE}
+            VAULT_ADDR: http://hashicorp-vault-dev:8200
+            VAULT_TOKEN: root
+        depends_on:
+            service-user-database:
+                condition: service_started
+            gateway-recommendation:
+                condition: service_started
+            hashicorp-vault-dev:
+                condition: service_started
+        networks:
+            - general
+            - vault-net
 
 
 volumes:
