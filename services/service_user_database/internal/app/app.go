@@ -69,7 +69,7 @@ func (a *App) Router() *mux.Router {
 	// Auth
 	r.HandleFunc("/login", userH.Login).Methods("POST")
 	r.HandleFunc("/login", userH.Register).Methods("PUT")
-	r.HandleFunc("/renew", userH.Renew).Methods("POST")
+	protectedRouter.HandleFunc("/renew", userH.Renew).Methods("POST")
 
 	// Users — static /me routes BEFORE /{uuid}
 	protectedRouter.HandleFunc("/users/me", userH.GetMe).Methods("GET")
