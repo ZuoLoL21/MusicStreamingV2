@@ -6,6 +6,7 @@ import (
 	"gateway_recommendation/internal/handlers"
 
 	libsdi "libs/di"
+	libshandlers "libs/handlers"
 	libshelpers "libs/helpers"
 	libsmiddleware "libs/middleware"
 
@@ -56,7 +57,7 @@ func (a *App) Router() *mux.Router {
 	)
 
 	// Health check route (no auth)
-	r.HandleFunc("/", handlers.HealthCheck).Methods("GET")
+	r.HandleFunc("/", libshandlers.NewHealthCheckHandler("gateway-recommendation")).Methods("GET")
 
 	// Recommendation endpoint
 	protectedRouter.HandleFunc("/recommend/theme", recommendHandler.RecommendTheme).Methods("POST")

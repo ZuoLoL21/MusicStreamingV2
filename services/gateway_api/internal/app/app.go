@@ -6,6 +6,7 @@ import (
 	"gateway_api/internal/handlers"
 
 	libsdi "libs/di"
+	libshandlers "libs/handlers"
 	libshelpers "libs/helpers"
 	libsmiddleware "libs/middleware"
 
@@ -78,7 +79,7 @@ func (a *App) Router() *mux.Router {
 	)
 
 	// Public
-	publicRouter.HandleFunc("/health", handlers.HealthCheck).Methods("GET")
+	publicRouter.HandleFunc("/health", libshandlers.NewHealthCheckHandler("gateway-api")).Methods("GET")
 	publicRouter.HandleFunc("/login", proxyHandler.ProxyLogin).Methods("POST", "PUT")
 
 	// Renewal

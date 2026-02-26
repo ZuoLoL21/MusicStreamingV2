@@ -6,6 +6,7 @@ import (
 	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
+	libshandlers "libs/handlers"
 	libshelpers "libs/helpers"
 	libsmiddleware "libs/middleware"
 
@@ -64,7 +65,7 @@ func (a *App) Router() *mux.Router {
 	)
 
 	// Health
-	r.HandleFunc("/health", handlers.HealthCheck).Methods("GET")
+	r.HandleFunc("/health", libshandlers.NewHealthCheckHandler("service-user-database")).Methods("GET")
 
 	// Auth
 	r.HandleFunc("/login", userH.Login).Methods("POST")
