@@ -21,6 +21,20 @@ type App struct {
 	returns     *libsdi.ReturnManager
 	db          *sqlhandler.Queries
 	fileStorage storage.FileStorageClient
+	handlers    *HandlerRegistry
+}
+
+type HandlerRegistry struct {
+	User     *handlers.UserHandler
+	Artist   *handlers.ArtistHandler
+	Album    *handlers.AlbumHandler
+	Music    *handlers.MusicHandler
+	Likes    *handlers.LikesHandler
+	Follows  *handlers.FollowsHandler
+	Tags     *handlers.TagsHandler
+	Playlist *handlers.PlaylistHandler
+	History  *handlers.HistoryHandler
+	Search   *handlers.SearchHandler
 }
 
 func New(logger *zap.Logger, config *di.Config, secrets *libsdi.SecretsManager, returns *libsdi.ReturnManager, db *sqlhandler.Queries, fileStorage storage.FileStorageClient) *App {
@@ -37,7 +51,50 @@ func New(logger *zap.Logger, config *di.Config, secrets *libsdi.SecretsManager, 
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
 
-	// Create service JWT auth handler
+	// Initialize all handlers
+	a.initHandlers()
+
+	// Setup middleware
+	protectedRouter := a.setupMiddleware(r)
+
+	// Register all routes
+	a.registerHealthRoutes(r)
+	a.registerAuthRoutes(r, protectedRouter)
+	a.registerUserRoutes(protectedRouter)
+	a.registerArtistRoutes(protectedRouter)
+	a.registerAlbumRoutes(protectedRouter)
+	a.registerMusicRoutes(protectedRouter)
+	a.registerTagRoutes(protectedRouter)
+	a.registerPlaylistRoutes(protectedRouter)
+	a.registerHistoryRoutes(protectedRouter)
+	a.registerSearchRoutes(protectedRouter)
+
+	return r
+}
+
+func (a *App) initHandlers() {
+	a.handlers = &HandlerRegistry{
+		User:     handlers.NewUserHandler(a.logger, a.config, a.secrets, a.returns, a.db, a.fileStorage),
+		Artist:   handlers.NewArtistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
+		Album:    handlers.NewAlbumHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
+		Music:    handlers.NewMusicHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
+		Likes:    handlers.NewLikesHandler(a.logger, a.config, a.returns, a.db),
+		Follows:  handlers.NewFollowsHandler(a.logger, a.config, a.returns, a.db),
+		Tags:     handlers.NewTagsHandler(a.logger, a.config, a.returns, a.db),
+		Playlist: handlers.NewPlaylistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
+		History:  handlers.NewHistoryHandler(a.logger, a.config, a.returns, a.db),
+		Search:   handlers.NewSearchHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
+	}
+}
+
+func (a *App) setupMiddleware(r *mux.Router) *mux.Router {
+	protectedRouter := r.PathPrefix("").Subrouter()
+
+	r.Use(
+		libsmiddleware.RequestIDMiddleware(a.config),
+		libsmiddleware.LoggingMiddleware(a.logger, a.config),
+	)
+
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.logger,
 		a.config,
@@ -45,109 +102,112 @@ func (a *App) Router() *mux.Router {
 		a.returns,
 		libshelpers.JWTSubjectService,
 	)
-	userH := handlers.NewUserHandler(a.logger, a.config, a.secrets, a.returns, a.db, a.fileStorage)
-	artistH := handlers.NewArtistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage)
-	albumH := handlers.NewAlbumHandler(a.logger, a.config, a.returns, a.db, a.fileStorage)
-	musicH := handlers.NewMusicHandler(a.logger, a.config, a.returns, a.db, a.fileStorage)
-	likesH := handlers.NewLikesHandler(a.logger, a.config, a.returns, a.db)
-	followsH := handlers.NewFollowsHandler(a.logger, a.config, a.returns, a.db)
-	tagsH := handlers.NewTagsHandler(a.logger, a.config, a.returns, a.db)
-	playlistH := handlers.NewPlaylistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage)
-	historyH := handlers.NewHistoryHandler(a.logger, a.config, a.returns, a.db)
+	protectedRouter.Use(serviceAuthHandler.GetAuthMiddleware())
 
-	protectedRouter := r.PathPrefix("").Subrouter()
-	r.Use(
-		libsmiddleware.RequestIDMiddleware(a.config),
-		libsmiddleware.LoggingMiddleware(a.logger, a.config),
-	)
-	protectedRouter.Use(
-		serviceAuthHandler.GetAuthMiddleware(),
-	)
+	return protectedRouter
+}
 
-	// Health
+func (a *App) registerHealthRoutes(r *mux.Router) {
 	r.HandleFunc("/health", libshandlers.NewHealthCheckHandler("service-user-database")).Methods("GET")
+}
 
-	// Auth
-	r.HandleFunc("/login", userH.Login).Methods("POST")
-	r.HandleFunc("/login", userH.Register).Methods("PUT")
-	protectedRouter.HandleFunc("/renew", userH.Renew).Methods("POST")
+func (a *App) registerAuthRoutes(r, protected *mux.Router) {
+	r.HandleFunc("/login", a.handlers.User.Login).Methods("POST")
+	r.HandleFunc("/login", a.handlers.User.Register).Methods("PUT")
+	protected.HandleFunc("/renew", a.handlers.User.Renew).Methods("POST")
+}
 
-	// Users — static /me routes BEFORE /{uuid}
-	protectedRouter.HandleFunc("/users/me", userH.GetMe).Methods("GET")
-	protectedRouter.HandleFunc("/users/me", userH.UpdateProfile).Methods("POST")
-	protectedRouter.HandleFunc("/users/me/email", userH.UpdateEmail).Methods("POST")
-	protectedRouter.HandleFunc("/users/me/password", userH.UpdatePassword).Methods("POST")
-	protectedRouter.HandleFunc("/users/me/image", userH.UpdateImage).Methods("POST")
-	protectedRouter.HandleFunc("/users/{uuid}", userH.GetPublicUser).Methods("GET")
-	protectedRouter.HandleFunc("/users/{uuid}/artists", userH.GetArtistForUser).Methods("GET")
-	protectedRouter.HandleFunc("/users/{uuid}/likes", likesH.GetLikesForUser).Methods("GET")
-	protectedRouter.HandleFunc("/users/{uuid}/followers", followsH.GetFollowersForUser).Methods("GET")
-	protectedRouter.HandleFunc("/users/{uuid}/following/users", followsH.GetFollowingUsersForUser).Methods("GET")
-	protectedRouter.HandleFunc("/users/{uuid}/following/artists", followsH.GetFollowedArtistsForUser).Methods("GET")
-	protectedRouter.HandleFunc("/users/{uuid}/follow", followsH.FollowUser).Methods("POST")
-	protectedRouter.HandleFunc("/users/{uuid}/follow", followsH.UnfollowUser).Methods("DELETE")
-	protectedRouter.HandleFunc("/users/{uuid}/music", musicH.GetMusicForUser).Methods("GET")
-	protectedRouter.HandleFunc("/users/{uuid}/playlists", playlistH.GetPlaylistsForUser).Methods("GET")
+func (a *App) registerUserRoutes(r *mux.Router) {
+	// Static /me routes BEFORE /{uuid}
+	r.HandleFunc("/users/me", a.handlers.User.GetMe).Methods("GET")
+	r.HandleFunc("/users/me", a.handlers.User.UpdateProfile).Methods("POST")
+	r.HandleFunc("/users/me/email", a.handlers.User.UpdateEmail).Methods("POST")
+	r.HandleFunc("/users/me/password", a.handlers.User.UpdatePassword).Methods("POST")
+	r.HandleFunc("/users/me/image", a.handlers.User.UpdateImage).Methods("POST")
 
-	// Artists
-	protectedRouter.HandleFunc("/artists", artistH.GetArtistsAlphabetically).Methods("GET")
-	protectedRouter.HandleFunc("/artists", artistH.CreateArtist).Methods("PUT")
-	protectedRouter.HandleFunc("/artists/{uuid}", artistH.GetArtist).Methods("GET")
-	protectedRouter.HandleFunc("/artists/{uuid}", artistH.UpdateArtistProfile).Methods("POST")
-	protectedRouter.HandleFunc("/artists/{uuid}/image", artistH.UpdateArtistPicture).Methods("POST")
-	protectedRouter.HandleFunc("/artists/{uuid}/members", artistH.GetUsersRepresentingArtist).Methods("GET")
-	protectedRouter.HandleFunc("/artists/{uuid}/members/{userUuid}", artistH.AddUserToArtist).Methods("PUT")
-	protectedRouter.HandleFunc("/artists/{uuid}/members/{userUuid}", artistH.RemoveUserFromArtist).Methods("DELETE")
-	protectedRouter.HandleFunc("/artists/{uuid}/members/{userUuid}/role", artistH.ChangeUserRole).Methods("POST")
-	protectedRouter.HandleFunc("/artists/{uuid}/albums", albumH.GetAlbumsForArtist).Methods("GET")
-	protectedRouter.HandleFunc("/artists/{uuid}/music", musicH.GetMusicForArtist).Methods("GET")
-	protectedRouter.HandleFunc("/artists/{uuid}/followers", followsH.GetFollowersForArtist).Methods("GET")
-	protectedRouter.HandleFunc("/artists/{uuid}/follow", followsH.FollowArtist).Methods("POST")
-	protectedRouter.HandleFunc("/artists/{uuid}/follow", followsH.UnfollowArtist).Methods("DELETE")
+	// User-specific routes
+	r.HandleFunc("/users/{uuid}", a.handlers.User.GetPublicUser).Methods("GET")
+	r.HandleFunc("/users/{uuid}/artists", a.handlers.User.GetArtistForUser).Methods("GET")
+	r.HandleFunc("/users/{uuid}/likes", a.handlers.Likes.GetLikesForUser).Methods("GET")
+	r.HandleFunc("/users/{uuid}/followers", a.handlers.Follows.GetFollowersForUser).Methods("GET")
+	r.HandleFunc("/users/{uuid}/following/users", a.handlers.Follows.GetFollowingUsersForUser).Methods("GET")
+	r.HandleFunc("/users/{uuid}/following/artists", a.handlers.Follows.GetFollowedArtistsForUser).Methods("GET")
+	r.HandleFunc("/users/{uuid}/follow", a.handlers.Follows.FollowUser).Methods("POST")
+	r.HandleFunc("/users/{uuid}/follow", a.handlers.Follows.UnfollowUser).Methods("DELETE")
+	r.HandleFunc("/users/{uuid}/music", a.handlers.Music.GetMusicForUser).Methods("GET")
+	r.HandleFunc("/users/{uuid}/playlists", a.handlers.Playlist.GetPlaylistsForUser).Methods("GET")
+}
 
-	// Albums
-	protectedRouter.HandleFunc("/albums", albumH.CreateAlbum).Methods("PUT")
-	protectedRouter.HandleFunc("/albums/{uuid}", albumH.GetAlbum).Methods("GET")
-	protectedRouter.HandleFunc("/albums/{uuid}", albumH.UpdateAlbum).Methods("POST")
-	protectedRouter.HandleFunc("/albums/{uuid}/image", albumH.UpdateAlbumImage).Methods("POST")
-	protectedRouter.HandleFunc("/albums/{uuid}", albumH.DeleteAlbum).Methods("DELETE")
-	protectedRouter.HandleFunc("/albums/{uuid}/music", musicH.GetMusicForAlbum).Methods("GET")
+func (a *App) registerArtistRoutes(r *mux.Router) {
+	r.HandleFunc("/artists", a.handlers.Artist.GetArtistsAlphabetically).Methods("GET")
+	r.HandleFunc("/artists", a.handlers.Artist.CreateArtist).Methods("PUT")
+	r.HandleFunc("/artists/{uuid}", a.handlers.Artist.GetArtist).Methods("GET")
+	r.HandleFunc("/artists/{uuid}", a.handlers.Artist.UpdateArtistProfile).Methods("POST")
+	r.HandleFunc("/artists/{uuid}/image", a.handlers.Artist.UpdateArtistPicture).Methods("POST")
+	r.HandleFunc("/artists/{uuid}/members", a.handlers.Artist.GetUsersRepresentingArtist).Methods("GET")
+	r.HandleFunc("/artists/{uuid}/members/{userUuid}", a.handlers.Artist.AddUserToArtist).Methods("PUT")
+	r.HandleFunc("/artists/{uuid}/members/{userUuid}", a.handlers.Artist.RemoveUserFromArtist).Methods("DELETE")
+	r.HandleFunc("/artists/{uuid}/members/{userUuid}/role", a.handlers.Artist.ChangeUserRole).Methods("POST")
+	r.HandleFunc("/artists/{uuid}/albums", a.handlers.Album.GetAlbumsForArtist).Methods("GET")
+	r.HandleFunc("/artists/{uuid}/music", a.handlers.Music.GetMusicForArtist).Methods("GET")
+	r.HandleFunc("/artists/{uuid}/followers", a.handlers.Follows.GetFollowersForArtist).Methods("GET")
+	r.HandleFunc("/artists/{uuid}/follow", a.handlers.Follows.FollowArtist).Methods("POST")
+	r.HandleFunc("/artists/{uuid}/follow", a.handlers.Follows.UnfollowArtist).Methods("DELETE")
+}
 
-	// Music
-	protectedRouter.HandleFunc("/music", musicH.CreateMusic).Methods("PUT")
-	protectedRouter.HandleFunc("/music/{uuid}", musicH.GetMusic).Methods("GET")
-	protectedRouter.HandleFunc("/music/{uuid}", musicH.UpdateMusicDetails).Methods("POST")
-	protectedRouter.HandleFunc("/music/{uuid}/storage", musicH.UpdateMusicStorage).Methods("POST")
-	protectedRouter.HandleFunc("/music/{uuid}", musicH.DeleteMusic).Methods("DELETE")
-	protectedRouter.HandleFunc("/music/{uuid}/play", musicH.IncrementPlayCount).Methods("POST")
-	protectedRouter.HandleFunc("/music/{uuid}/listen", musicH.AddListeningHistoryEntry).Methods("POST")
-	protectedRouter.HandleFunc("/music/{uuid}/liked", likesH.IsLiked).Methods("GET")
-	protectedRouter.HandleFunc("/music/{uuid}/like", likesH.LikeMusic).Methods("POST")
-	protectedRouter.HandleFunc("/music/{uuid}/like", likesH.UnlikeMusic).Methods("DELETE")
-	protectedRouter.HandleFunc("/music/{uuid}/tags", tagsH.GetTagsForMusic).Methods("GET")
-	protectedRouter.HandleFunc("/music/{uuid}/tags/{name}", tagsH.AssignTagToMusic).Methods("POST")
-	protectedRouter.HandleFunc("/music/{uuid}/tags/{name}", tagsH.RemoveTagFromMusic).Methods("DELETE")
+func (a *App) registerAlbumRoutes(r *mux.Router) {
+	r.HandleFunc("/albums", a.handlers.Album.CreateAlbum).Methods("PUT")
+	r.HandleFunc("/albums/{uuid}", a.handlers.Album.GetAlbum).Methods("GET")
+	r.HandleFunc("/albums/{uuid}", a.handlers.Album.UpdateAlbum).Methods("POST")
+	r.HandleFunc("/albums/{uuid}/image", a.handlers.Album.UpdateAlbumImage).Methods("POST")
+	r.HandleFunc("/albums/{uuid}", a.handlers.Album.DeleteAlbum).Methods("DELETE")
+	r.HandleFunc("/albums/{uuid}/music", a.handlers.Music.GetMusicForAlbum).Methods("GET")
+}
 
-	// Tags
-	protectedRouter.HandleFunc("/tags", tagsH.GetAllTags).Methods("GET")
-	protectedRouter.HandleFunc("/tags", tagsH.CreateTag).Methods("PUT")
-	protectedRouter.HandleFunc("/tags/{name}", tagsH.GetTag).Methods("GET")
-	protectedRouter.HandleFunc("/tags/{name}/music", tagsH.GetMusicForTag).Methods("GET")
+func (a *App) registerMusicRoutes(r *mux.Router) {
+	r.HandleFunc("/music", a.handlers.Music.CreateMusic).Methods("PUT")
+	r.HandleFunc("/music/{uuid}", a.handlers.Music.GetMusic).Methods("GET")
+	r.HandleFunc("/music/{uuid}", a.handlers.Music.UpdateMusicDetails).Methods("POST")
+	r.HandleFunc("/music/{uuid}/storage", a.handlers.Music.UpdateMusicStorage).Methods("POST")
+	r.HandleFunc("/music/{uuid}", a.handlers.Music.DeleteMusic).Methods("DELETE")
+	r.HandleFunc("/music/{uuid}/play", a.handlers.Music.IncrementPlayCount).Methods("POST")
+	r.HandleFunc("/music/{uuid}/listen", a.handlers.Music.AddListeningHistoryEntry).Methods("POST")
+	r.HandleFunc("/music/{uuid}/liked", a.handlers.Likes.IsLiked).Methods("GET")
+	r.HandleFunc("/music/{uuid}/like", a.handlers.Likes.LikeMusic).Methods("POST")
+	r.HandleFunc("/music/{uuid}/like", a.handlers.Likes.UnlikeMusic).Methods("DELETE")
+	r.HandleFunc("/music/{uuid}/tags", a.handlers.Tags.GetTagsForMusic).Methods("GET")
+	r.HandleFunc("/music/{uuid}/tags/{name}", a.handlers.Tags.AssignTagToMusic).Methods("POST")
+	r.HandleFunc("/music/{uuid}/tags/{name}", a.handlers.Tags.RemoveTagFromMusic).Methods("DELETE")
+}
 
-	// Playlists
-	protectedRouter.HandleFunc("/playlists", playlistH.CreatePlaylist).Methods("PUT")
-	protectedRouter.HandleFunc("/playlists/{uuid}", playlistH.GetPlaylist).Methods("GET")
-	protectedRouter.HandleFunc("/playlists/{uuid}", playlistH.UpdatePlaylist).Methods("POST")
-	protectedRouter.HandleFunc("/playlists/{uuid}/image", playlistH.UpdatePlaylistImage).Methods("POST")
-	protectedRouter.HandleFunc("/playlists/{uuid}", playlistH.DeletePlaylist).Methods("DELETE")
-	protectedRouter.HandleFunc("/playlists/{uuid}/tracks", playlistH.GetPlaylistTracks).Methods("GET")
-	protectedRouter.HandleFunc("/playlists/{uuid}/tracks/{musicUuid}", playlistH.AddTrackToPlaylist).Methods("PUT")
-	protectedRouter.HandleFunc("/playlists/{uuid}/tracks/{musicUuid}", playlistH.RemoveTrackFromPlaylist).Methods("DELETE")
-	protectedRouter.HandleFunc("/playlists/{uuid}/tracks/{trackUuid}/position", playlistH.UpdateTrackPosition).Methods("POST")
+func (a *App) registerTagRoutes(r *mux.Router) {
+	r.HandleFunc("/tags", a.handlers.Tags.GetAllTags).Methods("GET")
+	r.HandleFunc("/tags", a.handlers.Tags.CreateTag).Methods("PUT")
+	r.HandleFunc("/tags/{name}", a.handlers.Tags.GetTag).Methods("GET")
+	r.HandleFunc("/tags/{name}/music", a.handlers.Tags.GetMusicForTag).Methods("GET")
+}
 
-	// History
-	protectedRouter.HandleFunc("/history", historyH.GetListeningHistoryForUser).Methods("GET")
-	protectedRouter.HandleFunc("/history/top", historyH.GetTopMusicForUser).Methods("GET")
+func (a *App) registerPlaylistRoutes(r *mux.Router) {
+	r.HandleFunc("/playlists", a.handlers.Playlist.CreatePlaylist).Methods("PUT")
+	r.HandleFunc("/playlists/{uuid}", a.handlers.Playlist.GetPlaylist).Methods("GET")
+	r.HandleFunc("/playlists/{uuid}", a.handlers.Playlist.UpdatePlaylist).Methods("POST")
+	r.HandleFunc("/playlists/{uuid}/image", a.handlers.Playlist.UpdatePlaylistImage).Methods("POST")
+	r.HandleFunc("/playlists/{uuid}", a.handlers.Playlist.DeletePlaylist).Methods("DELETE")
+	r.HandleFunc("/playlists/{uuid}/tracks", a.handlers.Playlist.GetPlaylistTracks).Methods("GET")
+	r.HandleFunc("/playlists/{uuid}/tracks/{musicUuid}", a.handlers.Playlist.AddTrackToPlaylist).Methods("PUT")
+	r.HandleFunc("/playlists/{uuid}/tracks/{musicUuid}", a.handlers.Playlist.RemoveTrackFromPlaylist).Methods("DELETE")
+	r.HandleFunc("/playlists/{uuid}/tracks/{trackUuid}/position", a.handlers.Playlist.UpdateTrackPosition).Methods("POST")
+}
 
-	return r
+func (a *App) registerHistoryRoutes(r *mux.Router) {
+	r.HandleFunc("/history", a.handlers.History.GetListeningHistoryForUser).Methods("GET")
+	r.HandleFunc("/history/top", a.handlers.History.GetTopMusicForUser).Methods("GET")
+}
+
+func (a *App) registerSearchRoutes(r *mux.Router) {
+	r.HandleFunc("/search/users", a.handlers.Search.SearchUsers).Methods("GET")
+	r.HandleFunc("/search/artists", a.handlers.Search.SearchArtists).Methods("GET")
+	r.HandleFunc("/search/albums", a.handlers.Search.SearchAlbums).Methods("GET")
+	r.HandleFunc("/search/music", a.handlers.Search.SearchMusic).Methods("GET")
+	r.HandleFunc("/search/playlists", a.handlers.Search.SearchPlaylists).Methods("GET")
 }
