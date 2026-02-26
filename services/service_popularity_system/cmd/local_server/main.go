@@ -27,13 +27,15 @@ func main() {
 
 	// Init components
 	config := di.LoadConfig(logger)
+	secrets := libsdi.GetSecretsManager(logger)
 	returns := libsdi.NewReturnManager(logger)
 
 	// Router
-	application := app.New(logger, config, returns)
+	application := app.New(logger, config, secrets, returns)
+	addr := ":" + config.Port
 	srv := &http.Server{
 		Handler:      application.Router(),
-		Addr:         ":8080",
+		Addr:         addr,
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 		IdleTimeout:  120 * time.Second,
@@ -41,7 +43,7 @@ func main() {
 
 	// Start server in background
 	go func() {
-		logger.Info("server starting", zap.String("addr", ":8080"))
+		logger.Info("server starting", zap.String("addr", addr))
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal(err)
 		}
