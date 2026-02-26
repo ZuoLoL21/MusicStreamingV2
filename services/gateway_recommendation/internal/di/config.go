@@ -13,6 +13,8 @@ type Config struct {
 	Port                 string
 	PopularityServiceURL string
 	BanditServiceURL     string
+	JWTStorePath         string
+	UserUUIDKey          libsdi.ContextKey
 	RequestIDKey         libsdi.ContextKey
 }
 
@@ -30,6 +32,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 	port := os.Getenv("GATEWAY_PORT")
 	popularityServiceURL := os.Getenv("POPULARITY_SERVICE_URL")
 	banditServiceURL := os.Getenv("BANDIT_SERVICE_URL")
+	jwtStorePath := os.Getenv("JWT_STORE_PATH")
 
 	// Validate required environment variables
 	if port == "" {
@@ -41,11 +44,16 @@ func LoadConfig(logger *zap.Logger) *Config {
 	if banditServiceURL == "" {
 		slogger.Warn("BANDIT_SERVICE_URL environment variable is not set")
 	}
+	if jwtStorePath == "" {
+		slogger.Warn("JWT_STORE_PATH environment variable is not set")
+	}
 
 	return &Config{
 		Port:                 port,
 		PopularityServiceURL: popularityServiceURL,
 		BanditServiceURL:     banditServiceURL,
+		JWTStorePath:         jwtStorePath,
+		UserUUIDKey:          libsdi.UserUUIDKey,
 		RequestIDKey:         libsdi.RequestIDKey,
 	}
 }
@@ -55,7 +63,7 @@ func (c *Config) GetRequestIDKey() any {
 	return c.RequestIDKey
 }
 
-// GetUserUUIDKey implements middleware.LoggingConfig
+// GetUserUUIDKey implements middleware.LoggingConfig and middleware.AuthConfig
 func (c *Config) GetUserUUIDKey() (any, bool) {
-	return nil, false // No authentication yet
+	return c.UserUUIDKey, true
 }

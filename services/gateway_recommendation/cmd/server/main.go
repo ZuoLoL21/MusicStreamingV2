@@ -27,10 +27,11 @@ func main() {
 
 	// Init components
 	config := di.LoadConfig(logger)
+	secrets := libsdi.GetSecretsManager(logger)
 	returnManager := libsdi.NewReturnManager(logger)
 
 	// Router
-	application := app.NewApp(config, logger, returnManager)
+	application := app.NewApp(config, logger, secrets, returnManager)
 	srv := &http.Server{
 		Handler:      application.Router(),
 		Addr:         ":" + config.Port,

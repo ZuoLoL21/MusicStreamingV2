@@ -6,19 +6,21 @@ import (
 	"net/http"
 	"time"
 
+	libsclients "libs/clients"
+
 	"go.uber.org/zap"
 )
 
 type BanditClient struct {
-	baseClient
+	libsclients.BaseClient
 	baseURL string
 }
 
 func NewBanditClient(baseURL string, logger *zap.Logger) *BanditClient {
 	return &BanditClient{
-		baseClient: baseClient{
-			httpClient: &http.Client{Timeout: 30 * time.Second},
-			logger:     logger,
+		BaseClient: libsclients.BaseClient{
+			HttpClient: &http.Client{Timeout: 30 * time.Second},
+			Logger:     logger,
 		},
 		baseURL: baseURL,
 	}
@@ -34,7 +36,7 @@ type PredictResponse struct {
 }
 
 func (c *BanditClient) Predict(ctx context.Context, userUUID string, requestID string) (*PredictResponse, error) {
-	c.logger.Info("Calling bandit service",
+	c.Logger.Info("Calling bandit service",
 		zap.String("request_id", requestID),
 		zap.String("user_uuid", userUUID))
 
@@ -42,14 +44,14 @@ func (c *BanditClient) Predict(ctx context.Context, userUUID string, requestID s
 	var resp PredictResponse
 
 	url := fmt.Sprintf("%s/api/v1/predict", c.baseURL)
-	if err := c.doJSON(ctx, "POST", url, req, &resp, requestID); err != nil {
-		c.logger.Error("Bandit prediction failed",
+	if err := c.DoJSON(ctx, "POST", url, req, &resp, requestID); err != nil {
+		c.Logger.Error("Bandit prediction failed",
 			zap.String("request_id", requestID),
 			zap.Error(err))
 		return nil, fmt.Errorf("bandit prediction: %w", err)
 	}
 
-	c.logger.Info("Bandit prediction successful",
+	c.Logger.Info("Bandit prediction successful",
 		zap.String("request_id", requestID),
 		zap.String("theme", resp.Theme))
 
