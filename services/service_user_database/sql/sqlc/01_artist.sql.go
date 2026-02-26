@@ -261,6 +261,73 @@ func (q *Queries) RemoveUserFromArtist(ctx context.Context, arg RemoveUserFromAr
 	return err
 }
 
+const searchForArtist = `-- name: SearchForArtist :many
+SELECT
+    a.uuid, a.artist_name, a.bio, a.profile_image_path, a.created_at, a.updated_at,
+    similarity(a.artist_name, $1) AS similarity_score
+FROM artist a
+WHERE a.artist_name % $1
+AND (
+    $3::float IS NULL
+    OR (
+        similarity(a.artist_name, $1) < $3
+        OR (similarity(a.artist_name, $1) = $3 AND a.created_at < $4)
+    )
+)
+ORDER BY similarity(a.artist_name, $1) DESC, a.created_at DESC
+LIMIT $2
+`
+
+type SearchForArtistParams struct {
+	Similarity interface{}
+	Limit      int32
+	Column3    float64
+	CreatedAt  pgtype.Timestamp
+}
+
+type SearchForArtistRow struct {
+	Uuid             pgtype.UUID
+	ArtistName       string
+	Bio              pgtype.Text
+	ProfileImagePath pgtype.Text
+	CreatedAt        pgtype.Timestamp
+	UpdatedAt        pgtype.Timestamp
+	SimilarityScore  interface{}
+}
+
+func (q *Queries) SearchForArtist(ctx context.Context, arg SearchForArtistParams) ([]SearchForArtistRow, error) {
+	rows, err := q.db.Query(ctx, searchForArtist,
+		arg.Similarity,
+		arg.Limit,
+		arg.Column3,
+		arg.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchForArtistRow
+	for rows.Next() {
+		var i SearchForArtistRow
+		if err := rows.Scan(
+			&i.Uuid,
+			&i.ArtistName,
+			&i.Bio,
+			&i.ProfileImagePath,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.SimilarityScore,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateArtistPicture = `-- name: UpdateArtistPicture :exec
 UPDATE artist
 SET profile_image_path = $2

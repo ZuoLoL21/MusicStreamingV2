@@ -33,6 +33,23 @@ AND (
 ORDER BY updated_at DESC, uuid DESC
     LIMIT $2;
 
+-- name: SearchForPlaylist :many
+SELECT
+    p.*,
+    similarity(p.original_name, $1)::float AS similarity_score
+FROM playlist p
+WHERE p.original_name % $1
+AND (p.is_public = TRUE OR p.from_user = $3)
+AND (
+    $4 < 0
+    OR (
+        similarity(p.original_name, $1) < $4
+        OR (similarity(p.original_name, $1) = $4 AND p.created_at < $5)
+    )
+)
+ORDER BY similarity(p.original_name, $1) DESC, p.created_at DESC
+LIMIT $2;
+
 
 -- name: GetPlaylistTracks :many
 SELECT m.*

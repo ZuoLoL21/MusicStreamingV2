@@ -12,6 +12,22 @@ WHERE uuid = $1;
 SELECT uuid, username, email, hashed_password, bio, profile_image_path, created_at, updated_at
 FROM users WHERE email = $1 LIMIT 1;
 
+-- name: SearchForUser :many
+SELECT
+    pu.*,
+    similarity(pu.username, $1)::float AS similarity_score
+FROM public_user pu
+WHERE pu.username % $1
+AND (
+    $3 < 0
+    OR (
+        similarity(pu.username, $1) < $3
+        OR (similarity(pu.username, $1) = $3 AND pu.created_at < $4)
+    )
+)
+ORDER BY similarity(pu.username, $1) DESC, pu.created_at DESC
+LIMIT $2;
+
 ------ POST
 -- name: UpdatePassword :exec
 UPDATE users

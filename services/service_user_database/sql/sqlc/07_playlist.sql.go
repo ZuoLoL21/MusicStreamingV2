@@ -274,6 +274,80 @@ func (q *Queries) RemoveTrackFromPlaylist(ctx context.Context, arg RemoveTrackFr
 	return err
 }
 
+const searchForPlaylist = `-- name: SearchForPlaylist :many
+SELECT
+    p.uuid, p.from_user, p.original_name, p.description, p.is_public, p.image_path, p.created_at, p.updated_at,
+    similarity(p.original_name, $1) AS similarity_score
+FROM playlist p
+WHERE p.original_name % $1
+AND (p.is_public = TRUE OR p.from_user = $3)
+AND (
+    $4::float IS NULL
+    OR (
+        similarity(p.original_name, $1) < $4
+        OR (similarity(p.original_name, $1) = $4 AND p.created_at < $5)
+    )
+)
+ORDER BY similarity(p.original_name, $1) DESC, p.created_at DESC
+LIMIT $2
+`
+
+type SearchForPlaylistParams struct {
+	Similarity interface{}
+	Limit      int32
+	FromUser   pgtype.UUID
+	Column4    float64
+	CreatedAt  pgtype.Timestamp
+}
+
+type SearchForPlaylistRow struct {
+	Uuid            pgtype.UUID
+	FromUser        pgtype.UUID
+	OriginalName    string
+	Description     pgtype.Text
+	IsPublic        pgtype.Bool
+	ImagePath       pgtype.Text
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
+	SimilarityScore interface{}
+}
+
+func (q *Queries) SearchForPlaylist(ctx context.Context, arg SearchForPlaylistParams) ([]SearchForPlaylistRow, error) {
+	rows, err := q.db.Query(ctx, searchForPlaylist,
+		arg.Similarity,
+		arg.Limit,
+		arg.FromUser,
+		arg.Column4,
+		arg.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchForPlaylistRow
+	for rows.Next() {
+		var i SearchForPlaylistRow
+		if err := rows.Scan(
+			&i.Uuid,
+			&i.FromUser,
+			&i.OriginalName,
+			&i.Description,
+			&i.IsPublic,
+			&i.ImagePath,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.SimilarityScore,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updatePlaylist = `-- name: UpdatePlaylist :exec
 UPDATE playlist
 SET original_name = $3,
@@ -329,16 +403,16 @@ AND is_user_allowed_playlist_edit($1, $2)
 `
 
 type UpdateTrackPositionParams struct {
-	UserUuid     pgtype.UUID
-	PlaylistUuid pgtype.UUID
-	Uuid         pgtype.UUID
-	Position     int32
+	UserUuid  pgtype.UUID
+	AlbumUuid pgtype.UUID
+	Uuid      pgtype.UUID
+	Position  int32
 }
 
 func (q *Queries) UpdateTrackPosition(ctx context.Context, arg UpdateTrackPositionParams) error {
 	_, err := q.db.Exec(ctx, updateTrackPosition,
 		arg.UserUuid,
-		arg.PlaylistUuid,
+		arg.AlbumUuid,
 		arg.Uuid,
 		arg.Position,
 	)

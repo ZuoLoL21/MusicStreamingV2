@@ -17,7 +17,21 @@ AND (
 ORDER BY created_at DESC, uuid DESC
 LIMIT $2;
 
--- TODO: name: SearchForAlbum :many
+-- name: SearchForAlbum :many
+SELECT
+    al.*,
+    similarity(al.original_name, $1)::float AS similarity_score
+FROM album al
+WHERE al.original_name % $1
+AND (
+    $3 < 0
+    OR (
+        similarity(al.original_name, $1) < $3
+        OR (similarity(al.original_name, $1) = $3 AND al.created_at < $4)
+    )
+)
+ORDER BY similarity(al.original_name, $1) DESC, al.created_at DESC
+LIMIT $2;
 
 ------ POST
 -- name: UpdateAlbum :exec

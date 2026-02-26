@@ -39,6 +39,22 @@ INSERT INTO artist_member (artist_uuid, user_uuid, "role")
 SELECT uuid, $1, 'owner'
 FROM new_artist;
 
+-- name: SearchForArtist :many
+SELECT
+    a.*,
+    similarity(a.artist_name, $1)::float AS similarity_score
+FROM artist a
+WHERE a.artist_name % $1
+AND (
+    $3 < 0
+    OR (
+        similarity(a.artist_name, $1) < $3
+        OR (similarity(a.artist_name, $1) = $3 AND a.created_at < $4)
+    )
+)
+ORDER BY similarity(a.artist_name, $1) DESC, a.created_at DESC
+LIMIT $2;
+
 ------ DELETE
 -- deletes are overrated
 

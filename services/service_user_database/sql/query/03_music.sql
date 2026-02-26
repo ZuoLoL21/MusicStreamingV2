@@ -43,7 +43,21 @@ AND (
 ORDER BY created_at DESC, uuid DESC
 LIMIT $2;
 
--- TODO: name: SearchForMusic :many
+-- name: SearchForMusic :many
+SELECT
+    m.*,
+    similarity(m.song_name, $1)::float AS similarity_score
+FROM music m
+WHERE m.song_name % $1
+AND (
+    $3 < 0
+    OR (
+        similarity(m.song_name, $1) < $3
+        OR (similarity(m.song_name, $1) = $3 AND m.created_at < $4)
+    )
+)
+ORDER BY similarity(m.song_name, $1) DESC, m.created_at DESC
+LIMIT $2;
 
 ------ POST
 -- name: UpdateMusicDetails :exec

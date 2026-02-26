@@ -271,8 +271,84 @@ func (q *Queries) ResetPlayCount(ctx context.Context, uuid pgtype.UUID) error {
 	return err
 }
 
-const updateMusicDetails = `-- name: UpdateMusicDetails :exec
+const searchForMusic = `-- name: SearchForMusic :many
+SELECT
+    m.uuid, m.from_artist, m.uploaded_by, m.in_album, m.song_name, m.created_at, m.updated_at, m.path_in_file_storage, m.image_path, m.play_count, m.duration_seconds,
+    similarity(m.song_name, $1) AS similarity_score
+FROM music m
+WHERE m.song_name % $1
+AND (
+    $3::float IS NULL
+    OR (
+        similarity(m.song_name, $1) < $3
+        OR (similarity(m.song_name, $1) = $3 AND m.created_at < $4)
+    )
+)
+ORDER BY similarity(m.song_name, $1) DESC, m.created_at DESC
+LIMIT $2
+`
 
+type SearchForMusicParams struct {
+	Similarity interface{}
+	Limit      int32
+	Column3    float64
+	CreatedAt  pgtype.Timestamp
+}
+
+type SearchForMusicRow struct {
+	Uuid              pgtype.UUID
+	FromArtist        pgtype.UUID
+	UploadedBy        pgtype.UUID
+	InAlbum           pgtype.UUID
+	SongName          string
+	CreatedAt         pgtype.Timestamp
+	UpdatedAt         pgtype.Timestamp
+	PathInFileStorage string
+	ImagePath         pgtype.Text
+	PlayCount         pgtype.Int4
+	DurationSeconds   int32
+	SimilarityScore   interface{}
+}
+
+func (q *Queries) SearchForMusic(ctx context.Context, arg SearchForMusicParams) ([]SearchForMusicRow, error) {
+	rows, err := q.db.Query(ctx, searchForMusic,
+		arg.Similarity,
+		arg.Limit,
+		arg.Column3,
+		arg.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchForMusicRow
+	for rows.Next() {
+		var i SearchForMusicRow
+		if err := rows.Scan(
+			&i.Uuid,
+			&i.FromArtist,
+			&i.UploadedBy,
+			&i.InAlbum,
+			&i.SongName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.PathInFileStorage,
+			&i.ImagePath,
+			&i.PlayCount,
+			&i.DurationSeconds,
+			&i.SimilarityScore,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateMusicDetails = `-- name: UpdateMusicDetails :exec
 UPDATE music
 SET song_name = $2,
     in_album = $3
@@ -285,7 +361,6 @@ type UpdateMusicDetailsParams struct {
 	InAlbum  pgtype.UUID
 }
 
-// TODO: name: SearchForMusic :many
 // ---- POST
 func (q *Queries) UpdateMusicDetails(ctx context.Context, arg UpdateMusicDetailsParams) error {
 	_, err := q.db.Exec(ctx, updateMusicDetails, arg.Uuid, arg.SongName, arg.InAlbum)

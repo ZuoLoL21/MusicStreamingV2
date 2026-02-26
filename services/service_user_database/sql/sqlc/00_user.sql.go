@@ -94,6 +94,75 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
+const searchForUser = `-- name: SearchForUser :many
+SELECT
+    pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at,
+    similarity(pu.username, $1) AS similarity_score
+FROM public_user pu
+WHERE pu.username % $1
+AND (
+    $3::float IS NULL
+    OR (
+        similarity(pu.username, $1) < $3
+        OR (similarity(pu.username, $1) = $3 AND pu.created_at < $4)
+    )
+)
+ORDER BY similarity(pu.username, $1) DESC, pu.created_at DESC
+LIMIT $2
+`
+
+type SearchForUserParams struct {
+	Similarity interface{}
+	Limit      int32
+	Column3    float64
+	CreatedAt  pgtype.Timestamp
+}
+
+type SearchForUserRow struct {
+	Uuid             pgtype.UUID
+	Username         string
+	Email            string
+	Bio              pgtype.Text
+	ProfileImagePath pgtype.Text
+	CreatedAt        pgtype.Timestamp
+	UpdatedAt        pgtype.Timestamp
+	SimilarityScore  interface{}
+}
+
+func (q *Queries) SearchForUser(ctx context.Context, arg SearchForUserParams) ([]SearchForUserRow, error) {
+	rows, err := q.db.Query(ctx, searchForUser,
+		arg.Similarity,
+		arg.Limit,
+		arg.Column3,
+		arg.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchForUserRow
+	for rows.Next() {
+		var i SearchForUserRow
+		if err := rows.Scan(
+			&i.Uuid,
+			&i.Username,
+			&i.Email,
+			&i.Bio,
+			&i.ProfileImagePath,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.SimilarityScore,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateEmail = `-- name: UpdateEmail :exec
 UPDATE users
 SET email = $2

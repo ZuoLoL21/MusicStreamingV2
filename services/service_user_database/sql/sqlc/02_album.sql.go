@@ -121,8 +121,76 @@ func (q *Queries) GetAlbumsForArtist(ctx context.Context, arg GetAlbumsForArtist
 	return items, nil
 }
 
-const updateAlbum = `-- name: UpdateAlbum :exec
+const searchForAlbum = `-- name: SearchForAlbum :many
+SELECT
+    al.uuid, al.from_artist, al.original_name, al.description, al.image_path, al.created_at, al.updated_at,
+    similarity(al.original_name, $1) AS similarity_score
+FROM album al
+WHERE al.original_name % $1
+AND (
+    $3::float IS NULL
+    OR (
+        similarity(al.original_name, $1) < $3
+        OR (similarity(al.original_name, $1) = $3 AND al.created_at < $4)
+    )
+)
+ORDER BY similarity(al.original_name, $1) DESC, al.created_at DESC
+LIMIT $2
+`
 
+type SearchForAlbumParams struct {
+	Similarity interface{}
+	Limit      int32
+	Column3    float64
+	CreatedAt  pgtype.Timestamp
+}
+
+type SearchForAlbumRow struct {
+	Uuid            pgtype.UUID
+	FromArtist      pgtype.UUID
+	OriginalName    string
+	Description     pgtype.Text
+	ImagePath       pgtype.Text
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
+	SimilarityScore interface{}
+}
+
+func (q *Queries) SearchForAlbum(ctx context.Context, arg SearchForAlbumParams) ([]SearchForAlbumRow, error) {
+	rows, err := q.db.Query(ctx, searchForAlbum,
+		arg.Similarity,
+		arg.Limit,
+		arg.Column3,
+		arg.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchForAlbumRow
+	for rows.Next() {
+		var i SearchForAlbumRow
+		if err := rows.Scan(
+			&i.Uuid,
+			&i.FromArtist,
+			&i.OriginalName,
+			&i.Description,
+			&i.ImagePath,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.SimilarityScore,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateAlbum = `-- name: UpdateAlbum :exec
 UPDATE album
 SET original_name = $2,
     description = $3
@@ -135,7 +203,6 @@ type UpdateAlbumParams struct {
 	Description  pgtype.Text
 }
 
-// TODO: name: SearchForAlbum :many
 // ---- POST
 func (q *Queries) UpdateAlbum(ctx context.Context, arg UpdateAlbumParams) error {
 	_, err := q.db.Exec(ctx, updateAlbum, arg.Uuid, arg.OriginalName, arg.Description)
