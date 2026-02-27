@@ -9,6 +9,7 @@ import (
 
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
+	libsmiddleware "libs/middleware"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -63,18 +64,26 @@ func (h *MusicHandler) checkMusicAccess(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h *MusicHandler) GetMusic(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	musicUUID, ok := parseUUID(r, "uuid")
 	if !ok {
+		logger.Warn("invalid music uuid in request")
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
 		return
 	}
 
 	music, err := h.db.GetMusic(r.Context(), musicUUID)
 	if err != nil {
-		h.returns.ReturnError(w, "music not found", http.StatusNotFound)
+		logger.Warn("music not found",
+			zap.String("music_uuid", uuidToString(musicUUID)),
+			zap.Error(err))
+		h.returns.ReturnError(w, "unable to retrieve music", http.StatusNotFound)
 		return
 	}
 
+	logger.Debug("music retrieved successfully",
+		zap.String("music_uuid", uuidToString(musicUUID)))
 	h.returns.ReturnJSON(w, music, http.StatusOK)
 }
 
@@ -85,6 +94,8 @@ func (h *MusicHandler) GetMusicForArtist(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	limit, cursorTS, cursorID := parsePagination(r)
 	music, err := h.db.GetMusicForArtist(r.Context(), sqlhandler.GetMusicForArtistParams{
 		FromArtist: artistUUID,
@@ -93,11 +104,17 @@ func (h *MusicHandler) GetMusicForArtist(w http.ResponseWriter, r *http.Request)
 		Uuid:       cursorID,
 	})
 	if err != nil {
-		h.logger.Error("failed to get music for artist", zap.Error(err))
-		h.returns.ReturnError(w, "failed to get music", http.StatusInternalServerError)
+		logger.Warn("unable to retrieve music for artist",
+			zap.String("artist_uuid", uuidToString(artistUUID)),
+			zap.Int32("limit", limit),
+			zap.Error(err))
+		h.returns.ReturnError(w, "unable to retrieve music catalog", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Debug("retrieved music for artist",
+		zap.String("artist_uuid", uuidToString(artistUUID)),
+		zap.Int("count", len(music)))
 	h.returns.ReturnJSON(w, music, http.StatusOK)
 }
 
@@ -131,6 +148,8 @@ func (h *MusicHandler) GetMusicForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	limit, cursorTS, cursorID := parsePagination(r)
 	music, err := h.db.GetMusicForUser(r.Context(), sqlhandler.GetMusicForUserParams{
 		UploadedBy: userUUID,
@@ -139,11 +158,17 @@ func (h *MusicHandler) GetMusicForUser(w http.ResponseWriter, r *http.Request) {
 		Uuid:       cursorID,
 	})
 	if err != nil {
-		h.logger.Error("failed to get music for user", zap.Error(err))
-		h.returns.ReturnError(w, "failed to get music", http.StatusInternalServerError)
+		logger.Warn("unable to retrieve music for user",
+			zap.String("uploader_uuid", uuidToString(userUUID)),
+			zap.Int32("limit", limit),
+			zap.Error(err))
+		h.returns.ReturnError(w, "unable to retrieve music catalog", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Debug("retrieved music for user",
+		zap.String("uploader_uuid", uuidToString(userUUID)),
+		zap.Int("count", len(music)))
 	h.returns.ReturnJSON(w, music, http.StatusOK)
 }
 
@@ -211,6 +236,8 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	if err := h.db.CreateMusic(r.Context(), sqlhandler.CreateMusicParams{
 		FromArtist:        artistUUID,
 		UploadedBy:        userUUID,
@@ -219,14 +246,23 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 		PathInFileStorage: audioURL,
 		DurationSeconds:   int32(durationSeconds),
 	}); err != nil {
-		h.logger.Error("failed to create music", zap.Error(err))
+		logger.Error("database operation failed",
+			zap.String("operation", "CreateMusic"),
+			zap.Error(err),
+			zap.String("music_uuid", musicID),
+			zap.String("artist_uuid", uuidToString(artistUUID)),
+			zap.String("song_name", songName))
 
 		cleanupAudio(r.Context(), h.fileStorage, musicID, h.logger)
 
-		h.returns.ReturnError(w, "failed to create music", http.StatusInternalServerError)
+		h.returns.ReturnError(w, "unable to create music", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("music created successfully",
+		zap.String("music_uuid", musicID),
+		zap.String("artist_uuid", uuidToString(artistUUID)),
+		zap.String("song_name", songName))
 	h.returns.ReturnText(w, "music created", http.StatusCreated)
 }
 

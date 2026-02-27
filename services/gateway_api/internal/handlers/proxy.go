@@ -42,7 +42,11 @@ func (h *ProxyHandler) ProxyLogin(w http.ResponseWriter, r *http.Request) {
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.logger.Error("failed to read request body", zap.Error(err), zap.String("requestID", requestID))
+		h.logger.Error("failed to read login request body",
+			zap.Error(err),
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -60,7 +64,10 @@ func (h *ProxyHandler) ProxyLogin(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		h.logger.Error("failed to forward login request", zap.Error(err), zap.String("requestID", requestID))
+		h.logger.Error("failed to forward login request to backend",
+			zap.Error(err),
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method))
 		http.Error(w, "bad gateway", http.StatusBadGateway)
 		return
 	}
@@ -75,14 +82,21 @@ func (h *ProxyHandler) ProxyRenew(w http.ResponseWriter, r *http.Request) {
 	serviceJWT := h.extractServiceJWT(r)
 
 	if serviceJWT == "" {
-		h.logger.Error("service JWT not found in context", zap.String("requestID", requestID))
+		h.logger.Error("service JWT not found in context for renew request",
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.logger.Error("failed to read request body", zap.Error(err), zap.String("requestID", requestID))
+		h.logger.Error("failed to read renew request body",
+			zap.Error(err),
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -102,7 +116,10 @@ func (h *ProxyHandler) ProxyRenew(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		h.logger.Error("failed to forward renew request", zap.Error(err), zap.String("requestID", requestID))
+		h.logger.Error("failed to forward renew request to backend",
+			zap.Error(err),
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method))
 		http.Error(w, "bad gateway", http.StatusBadGateway)
 		return
 	}
@@ -117,14 +134,21 @@ func (h *ProxyHandler) ProxyUserDatabase(w http.ResponseWriter, r *http.Request)
 	serviceJWT := h.extractServiceJWT(r)
 
 	if serviceJWT == "" {
-		h.logger.Error("service JWT not found in context", zap.String("requestID", requestID))
+		h.logger.Error("service JWT not found in context for user database request",
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.logger.Error("failed to read request body", zap.Error(err), zap.String("requestID", requestID))
+		h.logger.Error("failed to read user database request body",
+			zap.Error(err),
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -144,7 +168,10 @@ func (h *ProxyHandler) ProxyUserDatabase(w http.ResponseWriter, r *http.Request)
 	)
 
 	if err != nil {
-		h.logger.Error("failed to forward user database request", zap.Error(err), zap.String("requestID", requestID))
+		h.logger.Error("failed to forward user database request to backend",
+			zap.Error(err),
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method))
 		http.Error(w, "bad gateway", http.StatusBadGateway)
 		return
 	}
@@ -159,14 +186,21 @@ func (h *ProxyHandler) ProxyRecommendation(w http.ResponseWriter, r *http.Reques
 	serviceJWT := h.extractServiceJWT(r)
 
 	if serviceJWT == "" {
-		h.logger.Error("service JWT not found in context", zap.String("requestID", requestID))
+		h.logger.Error("service JWT not found in context for recommendation request",
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.logger.Error("failed to read request body", zap.Error(err), zap.String("requestID", requestID))
+		h.logger.Error("failed to read recommendation request body",
+			zap.Error(err),
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -186,7 +220,10 @@ func (h *ProxyHandler) ProxyRecommendation(w http.ResponseWriter, r *http.Reques
 	)
 
 	if err != nil {
-		h.logger.Error("failed to forward recommendation request", zap.Error(err), zap.String("requestID", requestID))
+		h.logger.Error("failed to forward recommendation request to backend",
+			zap.Error(err),
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method))
 		http.Error(w, "bad gateway", http.StatusBadGateway)
 		return
 	}

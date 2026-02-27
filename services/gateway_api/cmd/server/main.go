@@ -17,10 +17,26 @@ import (
 	"go.uber.org/zap"
 )
 
-func main() {
-	// Logger
+func initLogger(serviceName string) *zap.Logger {
 	logger, _ := zap.NewProduction()
 	logger = logger.WithOptions(zap.AddCaller())
+
+	environment := os.Getenv("ENVIRONMENT")
+	if environment == "" {
+		environment = "development"
+	}
+
+	logger = logger.With(
+		zap.String("service_name", serviceName),
+		zap.String("environment", environment),
+	)
+
+	return logger
+}
+
+func main() {
+	// Logger
+	logger := initLogger("gateway_api")
 	defer func() {
 		_ = logger.Sync()
 	}()

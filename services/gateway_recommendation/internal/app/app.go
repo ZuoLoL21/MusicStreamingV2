@@ -47,17 +47,29 @@ func (a *App) Router() *mux.Router {
 		libshelpers.JWTSubjectService,
 	)
 
+	publicRouter := r.PathPrefix("").Subrouter()
 	protectedRouter := r.PathPrefix("").Subrouter()
-	r.Use(
+
+	publicRouter.Use(
 		libsmiddleware.RequestIDMiddleware(a.config),
 		libsmiddleware.LoggingMiddleware(a.logger, a.config),
+		libsmiddleware.Logger(a.logger, libsmiddleware.LoggerConfig{
+			RequestIDKey: a.config.RequestIDKey,
+			UserUUIDKey:  a.config.UserUUIDKey,
+		}),
 	)
 	protectedRouter.Use(
+		libsmiddleware.RequestIDMiddleware(a.config),
+		libsmiddleware.LoggingMiddleware(a.logger, a.config),
 		serviceAuthHandler.GetAuthMiddleware(),
+		libsmiddleware.Logger(a.logger, libsmiddleware.LoggerConfig{
+			RequestIDKey: a.config.RequestIDKey,
+			UserUUIDKey:  a.config.UserUUIDKey,
+		}),
 	)
 
 	// Health check route (no auth)
-	r.HandleFunc("/", libshandlers.NewHealthCheckHandler("gateway-recommendation")).Methods("GET")
+	publicRouter.HandleFunc("/", libshandlers.NewHealthCheckHandler("gateway-recommendation")).Methods("GET")
 
 	// Recommendation endpoint
 	protectedRouter.HandleFunc("/recommend/theme", recommendHandler.RecommendTheme).Methods("POST")

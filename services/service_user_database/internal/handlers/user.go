@@ -9,6 +9,7 @@ import (
 
 	libsdi "libs/di"
 	libshelpers "libs/helpers"
+	libsmiddleware "libs/middleware"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -129,6 +130,8 @@ type loginRequest struct {
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	body, ok := decodeBody[loginRequest](w, r, h.returns)
 	if !ok {
 		return
@@ -136,16 +139,22 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.db.GetUserByEmail(r.Context(), body.Email)
 	if err != nil {
+		logger.Warn("login attempt for non-existent user",
+			zap.String("attempted_email", body.Email))
 		h.returns.ReturnError(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
 	if !libshelpers.Verify(body.Password, user.HashedPassword) {
+		logger.Warn("login attempt with invalid password",
+			zap.String("user_uuid", uuidToString(user.Uuid)))
 		h.returns.ReturnError(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
 	uuidStr := uuid.UUID(user.Uuid.Bytes).String()
+	logger.Info("user logged in successfully",
+		zap.String("user_uuid", uuidStr))
 	h.returns.ReturnJSON(w, h.issueTokenPair(uuidStr), http.StatusOK)
 }
 

@@ -55,11 +55,11 @@ func (a *App) Router() *mux.Router {
 	a.initHandlers()
 
 	// Setup middleware
-	protectedRouter := a.setupMiddleware(r)
+	publicRouter, protectedRouter := a.setupMiddleware(r)
 
 	// Register all routes
-	a.registerHealthRoutes(r)
-	a.registerAuthRoutes(r, protectedRouter)
+	a.registerHealthRoutes(publicRouter)
+	a.registerAuthRoutes(publicRouter, protectedRouter)
 	a.registerUserRoutes(protectedRouter)
 	a.registerArtistRoutes(protectedRouter)
 	a.registerAlbumRoutes(protectedRouter)
@@ -87,14 +87,7 @@ func (a *App) initHandlers() {
 	}
 }
 
-func (a *App) setupMiddleware(r *mux.Router) *mux.Router {
-	protectedRouter := r.PathPrefix("").Subrouter()
-
-	r.Use(
-		libsmiddleware.RequestIDMiddleware(a.config),
-		libsmiddleware.LoggingMiddleware(a.logger, a.config),
-	)
-
+func (a *App) setupMiddleware(r *mux.Router) (*mux.Router, *mux.Router) {
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.logger,
 		a.config,
@@ -102,9 +95,29 @@ func (a *App) setupMiddleware(r *mux.Router) *mux.Router {
 		a.returns,
 		libshelpers.JWTSubjectService,
 	)
-	protectedRouter.Use(serviceAuthHandler.GetAuthMiddleware())
 
-	return protectedRouter
+	publicRouter := r.PathPrefix("").Subrouter()
+	protectedRouter := r.PathPrefix("").Subrouter()
+
+	publicRouter.Use(
+		libsmiddleware.RequestIDMiddleware(a.config),
+		libsmiddleware.LoggingMiddleware(a.logger, a.config),
+		libsmiddleware.Logger(a.logger, libsmiddleware.LoggerConfig{
+			RequestIDKey: a.config.RequestIDKey,
+			UserUUIDKey:  a.config.UserUUIDKey,
+		}),
+	)
+	protectedRouter.Use(
+		libsmiddleware.RequestIDMiddleware(a.config),
+		libsmiddleware.LoggingMiddleware(a.logger, a.config),
+		serviceAuthHandler.GetAuthMiddleware(),
+		libsmiddleware.Logger(a.logger, libsmiddleware.LoggerConfig{
+			RequestIDKey: a.config.RequestIDKey,
+			UserUUIDKey:  a.config.UserUUIDKey,
+		}),
+	)
+
+	return publicRouter, protectedRouter
 }
 
 func (a *App) registerHealthRoutes(r *mux.Router) {

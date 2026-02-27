@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 import structlog
@@ -25,7 +26,12 @@ structlog.configure(
     logger_factory=structlog.PrintLoggerFactory(),
     cache_logger_on_first_use=True,
 )
-logger = structlog.get_logger("bandit_system")
+
+environment = os.getenv("ENVIRONMENT", "development")
+logger = structlog.get_logger("bandit_system").bind(
+    service_name="service_bandit",
+    environment=environment
+)
 
 
 @asynccontextmanager

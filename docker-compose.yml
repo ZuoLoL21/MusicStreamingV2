@@ -43,6 +43,7 @@ services:
             MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
             MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
             MINIO_USE_SSL: ${MINIO_USE_SSL}
+            ENVIRONMENT: ${ENVIRONMENT:-development}
         depends_on:
             user-database:
                 condition: service_healthy
@@ -130,6 +131,7 @@ services:
             BANDIT_RIDGE_LAMBDA: ${BANDIT_RIDGE_LAMBDA}
             SHERMAN_MORRISON_RECOMPUTE_INTERVAL: ${SHERMAN_MORRISON_RECOMPUTE_INTERVAL}
             SHERMAN_MORRISON_DIVERGENCE_THRESHOLD: ${SHERMAN_MORRISON_DIVERGENCE_THRESHOLD}
+            ENVIRONMENT: ${ENVIRONMENT:-development}
         depends_on:
             bandit-database:
                 condition: service_healthy
@@ -148,6 +150,7 @@ services:
             WAREHOUSE_URL: ${CLICKHOUSE_CONNECTION_STRING}
             TABLE_NAME: "popularity_data"
             JWT_STORE_PATH: ${JWT_STORE_PATH}
+            ENVIRONMENT: ${ENVIRONMENT:-development}
         depends_on:
             clickhouse-database:
                 condition: service_started
@@ -166,6 +169,7 @@ services:
             JWT_STORE_PATH: ${JWT_STORE_PATH}
             VAULT_ADDR: http://hashicorp-vault-dev:8200
             VAULT_TOKEN: root
+            ENVIRONMENT: ${ENVIRONMENT:-development}
         depends_on:
             service-popularity:
                 condition: service_started
@@ -191,6 +195,7 @@ services:
             JWT_TIME_IN_M_SERVICE: ${JWT_TIME_IN_M_SERVICE}
             VAULT_ADDR: http://hashicorp-vault-dev:8200
             VAULT_TOKEN: root
+            ENVIRONMENT: ${ENVIRONMENT:-development}
         depends_on:
             service-user-database:
                 condition: service_started

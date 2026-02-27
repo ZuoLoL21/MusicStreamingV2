@@ -35,6 +35,12 @@ async def predict(
     """
     try:
         theme, features = handler.predict(request.user_uuid)
+        logger.info(
+            "prediction generated successfully",
+            user_uuid=str(request.user_uuid),
+            theme=theme,
+            request_id=get_request_id(),
+        )
         return PredictResponse(
             theme=theme,
             features=features.tolist(),
@@ -74,6 +80,13 @@ async def update(
         features_array = np.array(request.features, dtype=np.float64)
         handler.update(
             request.user_uuid, request.reward, request.theme, features_array
+        )
+        logger.info(
+            "model updated successfully",
+            user_uuid=str(request.user_uuid),
+            theme=request.theme,
+            reward=request.reward,
+            request_id=get_request_id(),
         )
         return UpdateResponse(success=True)
     except RuntimeError as e:

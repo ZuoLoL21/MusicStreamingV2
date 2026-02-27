@@ -31,13 +31,25 @@ func (a *App) Router() *mux.Router {
 		libshelpers.JWTSubjectService,
 	)
 
+	publicRouter := r.PathPrefix("").Subrouter()
 	protectedRouter := r.PathPrefix("").Subrouter()
-	r.Use(
+
+	publicRouter.Use(
 		libsmiddleware.RequestIDMiddleware(a.Config),
 		libsmiddleware.LoggingMiddleware(a.Logger, a.Config),
+		libsmiddleware.Logger(a.Logger, libsmiddleware.LoggerConfig{
+			RequestIDKey: a.Config.RequestIDKey,
+			UserUUIDKey:  a.Config.UserUUIDKey,
+		}),
 	)
 	protectedRouter.Use(
+		libsmiddleware.RequestIDMiddleware(a.Config),
+		libsmiddleware.LoggingMiddleware(a.Logger, a.Config),
 		serviceAuthHandler.GetAuthMiddleware(),
+		libsmiddleware.Logger(a.Logger, libsmiddleware.LoggerConfig{
+			RequestIDKey: a.Config.RequestIDKey,
+			UserUUIDKey:  a.Config.UserUUIDKey,
+		}),
 	)
 
 	// All-time popularity endpoints

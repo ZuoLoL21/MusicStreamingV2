@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	libsdi "libs/di"
+	libsmiddleware "libs/middleware"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -84,6 +85,8 @@ func (h *ArtistHandler) checkArtistAccessWithTarget(w http.ResponseWriter, r *ht
 }
 
 func (h *ArtistHandler) GetArtistsAlphabetically(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	limit, cursorName, cursorTS := parsePaginationAlpha(r)
 	artists, err := h.db.GetArtistsAlphabetically(r.Context(), sqlhandler.GetArtistsAlphabeticallyParams{
 		Limit:      limit,
@@ -91,10 +94,15 @@ func (h *ArtistHandler) GetArtistsAlphabetically(w http.ResponseWriter, r *http.
 		Column3:    cursorTS,
 	})
 	if err != nil {
-		h.logger.Error("failed to get artists", zap.Error(err))
-		h.returns.ReturnError(w, "failed to get artists", http.StatusInternalServerError)
+		logger.Warn("unable to retrieve artists",
+			zap.Int32("limit", limit),
+			zap.String("cursor_name", cursorName),
+			zap.Error(err))
+		h.returns.ReturnError(w, "unable to list artists", http.StatusInternalServerError)
 		return
 	}
+	logger.Debug("retrieved artists alphabetically",
+		zap.Int("count", len(artists)))
 	h.returns.ReturnJSON(w, artists, http.StatusOK)
 }
 
@@ -152,21 +160,30 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 
 	bioText := optionalStringToPgtype(bio)
 
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	if err := h.db.CreateArtist(r.Context(), sqlhandler.CreateArtistParams{
 		UserUuid:         userUUID,
 		ArtistName:       artistName,
 		Bio:              bioText,
 		ProfileImagePath: profileImagePath,
 	}); err != nil {
-		h.logger.Error("failed to create artist", zap.Error(err))
+		logger.Error("database operation failed",
+			zap.String("operation", "CreateArtist"),
+			zap.Error(err),
+			zap.String("artist_uuid", artistID),
+			zap.String("artist_name", artistName))
 
 		if profileImagePath.Valid {
 			cleanupImage(r.Context(), h.fileStorage, "pictures-artist", artistID, h.logger)
 		}
-		h.returns.ReturnError(w, "failed to create artist", http.StatusInternalServerError)
+		h.returns.ReturnError(w, "unable to create artist profile", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("artist created successfully",
+		zap.String("artist_uuid", artistID),
+		zap.String("artist_name", artistName))
 	h.returns.ReturnText(w, "artist created", http.StatusCreated)
 }
 
