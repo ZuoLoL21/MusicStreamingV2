@@ -4,14 +4,16 @@ import (
 	"backend/internal/di"
 	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
-	"fmt"
+	"errors"
 	"net/http"
+	"strings"
 
 	libsdi "libs/di"
 	libshelpers "libs/helpers"
 	libsmiddleware "libs/middleware"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 )
 
@@ -38,13 +40,18 @@ func NewUserHandler(logger *zap.Logger, config *di.Config, secrets *libsdi.Secre
 type tokenPair struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+	UserUUID     string `json:"user_uuid"`
 }
 
 func (h *UserHandler) issueTokenPair(uuidStr string) tokenPair {
 	_, priKey, kid := h.secrets.GetKeyInfo(h.config.JWTStorePath)
 	access := libshelpers.GenerateJwt(libshelpers.JWTSubjectNormal, uuidStr, priKey, kid, h.config.JWTExpirationNormal)
 	refresh := libshelpers.GenerateJwt(libshelpers.JWTSubjectRefresh, uuidStr, priKey, kid, h.config.JWTExpirationRefresh)
-	return tokenPair{AccessToken: access, RefreshToken: refresh}
+	return tokenPair{
+		AccessToken:  access,
+		RefreshToken: refresh,
+		UserUUID:     uuidStr,
+	}
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -87,9 +94,24 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		h.logger.Warn("failed to create user", zap.Error(err))
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			var message string
+			if strings.Contains(pgErr.ConstraintName, "email") {
+				message = "email already in use"
+			} else if strings.Contains(pgErr.ConstraintName, "username") {
+				message = "username already taken"
+			} else {
+				message = "duplicate entry"
+			}
+			h.returns.ReturnError(w, message, http.StatusConflict)
+			return
+		}
+
 		h.returns.ReturnError(
 			w,
-			fmt.Sprintf("failed to create user, %v", err.Error()),
+			"failed to create user",
 			http.StatusInternalServerError,
 		)
 		return
