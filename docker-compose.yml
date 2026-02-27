@@ -15,6 +15,11 @@ services:
             retries: 5
         networks:
             - user-db-net
+        logging:
+            driver: fluentd
+            options:
+                fluentd-address: localhost:24224
+                tag: database.user
 
     hashicorp-vault-dev:
         image: hashicorp/vault
@@ -25,6 +30,11 @@ services:
             - "127.0.0.1:8200:8200"
         networks:
             - vault-net
+        logging:
+            driver: fluentd
+            options:
+                fluentd-address: localhost:24224
+                tag: vault.dev
 
     service-user-database:
         build:
@@ -56,6 +66,11 @@ services:
             - general
             - vault-net
             - file-storage-net
+        logging:
+            driver: fluentd
+            options:
+                fluentd-address: localhost:24224
+                tag: service.user_database
 
     minio-file-storage:
         image: minio/minio:latest
@@ -72,6 +87,11 @@ services:
             retries: 5
         networks:
             - file-storage-net
+        logging:
+            driver: fluentd
+            options:
+                fluentd-address: localhost:24224
+                tag: database.file_storage
 
     minio-init:
         image: minio/mc:latest
@@ -87,6 +107,11 @@ services:
         entrypoint: ["/bin/sh", "/scripts/init.sh"]
         networks:
             - file-storage-net
+        logging:
+            driver: fluentd
+            options:
+                fluentd-address: localhost:24224
+                tag: init.database.file_storage
 
     clickhouse-database:
         image: clickhouse/clickhouse-server:latest
@@ -100,6 +125,11 @@ services:
             - ./services/database_data_warehouse:/docker-entrypoint-initdb.d
         networks:
             - clickhouse-net
+        logging:
+            driver: fluentd
+            options:
+                fluentd-address: localhost:24224
+                tag: database.clickhouse
 
     bandit-database:
         image: postgres:16
@@ -117,6 +147,11 @@ services:
             retries: 5
         networks:
             - bandit-db-net
+        logging:
+            driver: fluentd
+            options:
+                fluentd-address: localhost:24224
+                tag: database.bandit
 
     service-bandit:
         build:
@@ -141,6 +176,11 @@ services:
             - bandit-db-net
             - clickhouse-net
             - general
+        logging:
+            driver: fluentd
+            options:
+                fluentd-address: localhost:24224
+                tag: service.bandit
 
     service-popularity:
         build:
@@ -157,6 +197,11 @@ services:
         networks:
             - clickhouse-net
             - general
+        logging:
+            driver: fluentd
+            options:
+                fluentd-address: localhost:24224
+                tag: service.popularity
 
     gateway-recommendation:
         build:
@@ -180,6 +225,11 @@ services:
         networks:
             - general
             - vault-net
+        logging:
+            driver: fluentd
+            options:
+                fluentd-address: localhost:24224
+                tag: gateway.recommendation
 
     gateway-api:
         build:
@@ -206,6 +256,11 @@ services:
         networks:
             - general
             - vault-net
+        logging:
+            driver: fluentd
+            options:
+                fluentd-address: localhost:24224
+                tag: gateway.general
 
     frontend:
         build:
@@ -221,6 +276,11 @@ services:
                 condition: service_started
         networks:
             - general
+        logging:
+            driver: fluentd
+            options:
+                fluentd-address: localhost:24224
+                tag: frontend.website
 
 
 volumes:
