@@ -25,6 +25,8 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: database.postgres.user
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
 
 
   database-postgres-bandit:
@@ -52,6 +54,8 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: database.postgres.bandit
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
 
 
   database-clickhouse:
@@ -75,6 +79,8 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: database.clickhouse
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
 
 
   database-minio:
@@ -101,6 +107,8 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: database.minio
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
 
   # Vault
   vault:
@@ -121,6 +129,8 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: infrastructure.vault
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
 
   init-minio:
     image: minio/mc:latest
@@ -144,6 +154,8 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: infrastructure.init_minio
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
 
   # Services
   service-user-database:
@@ -184,6 +196,8 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: service.user_database
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
 
 
   service-bandit:
@@ -217,6 +231,8 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: service.bandit
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
 
 
   service-popularity:
@@ -242,6 +258,8 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: service.popularity
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
 
   # Gateways
   gateway-recommendation:
@@ -274,6 +292,8 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: gateway.recommendation
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
 
 
   gateway-api:
@@ -309,6 +329,8 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: gateway.api
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
 
   # Display
   frontend:
@@ -333,6 +355,8 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: frontend.website
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
 
 volumes:
   user_data:
