@@ -1,300 +1,350 @@
 services:
-    database-user:
-        image: postgres:16
-        environment:
-            POSTGRES_DB: ${USER_CRUD_DB}
-            POSTGRES_USER: ${USER_CRUD_USER}
-            POSTGRES_PASSWORD: ${USER_CRUD_PASSWORD}
-        volumes:
-            - user_data:/var/lib/postgresql/data
-            - ./services/service_user_database/sql/schema:/docker-entrypoint-initdb.d
-        healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U postgres"]
-            interval: 10s
-            timeout: 5s
-            retries: 5
-        networks:
-            - user-db-net
-        logging:
-            driver: fluentd
-            options:
-                fluentd-address: localhost:24224
-                tag: database.user
+  # Databases
+  database-postgres-user:
+    image: postgres:16
+    container_name: postgres-user
+    environment:
+      POSTGRES_DB: ${USER_CRUD_DB}
+      POSTGRES_USER: ${USER_CRUD_USER}
+      POSTGRES_PASSWORD: ${USER_CRUD_PASSWORD}
+    volumes:
+      - user_data:/var/lib/postgresql/data
+      - ./services/service_user_database/sql/schema:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - user-db-net
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: database.postgres.user
 
-    vault-hashicorp-vault-dev:
-        image: hashicorp/vault
-        environment:
-            VAULT_DEV_ROOT_TOKEN_ID: "root"
-            VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
-        ports:
-            - "127.0.0.1:8200:8200"
-        networks:
-            - vault-net
-        logging:
-            driver: fluentd
-            options:
-                fluentd-address: localhost:24224
-                tag: vault.dev
 
-    service-user-database:
-        build:
-            context: .
-            dockerfile: services/service_user_database/Dockerfile
-        environment:
-            USER_CRUD_CONNECTION_STRING: ${USER_CRUD_CONNECTION_STRING}
-            USER_CRUD_JWT_PROVIDER_NAME: ${USER_CRUD_JWT_PROVIDER_NAME}
-            JWT_STORE_PATH: ${JWT_STORE_PATH}
-            JWT_TIME_IN_M_NORMAL: ${JWT_TIME_IN_M_NORMAL}
-            JWT_TIME_IN_D_REFRESH: ${JWT_TIME_IN_D_REFRESH}
-            VAULT_ADDR: http://hashicorp-vault-dev:8200
-            VAULT_TOKEN: root
-            MINIO_ENDPOINT: ${MINIO_ENDPOINT}
-            MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-            MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-            MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
-            MINIO_USE_SSL: ${MINIO_USE_SSL}
-            ENVIRONMENT: ${ENVIRONMENT:-development}
-        depends_on:
-            user-database:
-                condition: service_healthy
-            hashicorp-vault-dev:
-                condition: service_started
-            minio-file-storage:
-                condition: service_healthy
-        networks:
-            - user-db-net
-            - general
-            - vault-net
-            - file-storage-net
-        logging:
-            driver: fluentd
-            options:
-                fluentd-address: localhost:24224
-                tag: service.user_database
+  database-postgres-bandit:
+    image: postgres:16
+    container_name: postgres-bandit
+    environment:
+      POSTGRES_DB: ${BANDIT_DB}
+      POSTGRES_USER: ${BANDIT_USER}
+      POSTGRES_PASSWORD: ${BANDIT_PASSWORD}
+    volumes:
+      - bandit_data:/var/lib/postgresql/data
+      - ./services/service_bandit_system/src/sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - bandit-db-net
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: database.postgres.bandit
 
-    database-minio-file-storage:
-        image: minio/minio:latest
-        command: server /data --console-address ":9001"
-        environment:
-            MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-            MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-        volumes:
-            - file_storage_data:/data
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-            interval: 10s
-            timeout: 5s
-            retries: 5
-        networks:
-            - file-storage-net
-        logging:
-            driver: fluentd
-            options:
-                fluentd-address: localhost:24224
-                tag: database.file_storage
 
-    init-minio:
-        image: minio/mc:latest
-        depends_on:
-            minio-file-storage:
-                condition: service_healthy
-        environment:
-            MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-            MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-        volumes:
-            - ./services/database_minio/defaults:/defaults:ro
-            - ./services/database_minio/init.sh:/scripts/init.sh:ro
-        entrypoint: ["/bin/sh", "/scripts/init.sh"]
-        networks:
-            - file-storage-net
-        logging:
-            driver: fluentd
-            options:
-                fluentd-address: localhost:24224
-                tag: init.database.file_storage
+  database-clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse/
+      - clickhouse_logs:/var/log/clickhouse-server/
+      - ./services/database_data_warehouse:/docker-entrypoint-initdb.d
+    depends_on:
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - clickhouse-net
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: database.clickhouse
 
-    database-clickhouse:
-        image: clickhouse/clickhouse-server:latest
-        environment:
-          CLICKHOUSE_DB: ${CLICKHOUSE_DB}
-          CLICKHOUSE_USER: ${CLICKHOUSE_USER}
-          CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
-        volumes:
-            - clickhouse_data:/var/lib/clickhouse/
-            - clickhouse_logs:/var/log/clickhouse-server/
-            - ./services/database_data_warehouse:/docker-entrypoint-initdb.d
-        networks:
-            - clickhouse-net
-        logging:
-            driver: fluentd
-            options:
-                fluentd-address: localhost:24224
-                tag: database.clickhouse
 
-    database-bandit:
-        image: postgres:16
-        environment:
-            POSTGRES_DB: ${BANDIT_DB}
-            POSTGRES_USER: ${BANDIT_USER}
-            POSTGRES_PASSWORD: ${BANDIT_PASSWORD}
-        volumes:
-            - bandit_data:/var/lib/postgresql/data
-            - ./services/service_bandit_system/src/sql:/docker-entrypoint-initdb.d
-        healthcheck:
-            test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-            interval: 10s
-            timeout: 5s
-            retries: 5
-        networks:
-            - bandit-db-net
-        logging:
-            driver: fluentd
-            options:
-                fluentd-address: localhost:24224
-                tag: database.bandit
+  database-minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - file_storage_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - file-storage-net
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: database.minio
 
-    service-bandit:
-        build:
-            context: services/service_bandit_system
-            dockerfile: Dockerfile
-        environment:
-            DB_CONNECTION_STRING_WAREHOUSE: ${CLICKHOUSE_CONNECTION_STRING}
-            WAREHOUSE_BANDIT_DATA_TABLE: ${WAREHOUSE_BANDIT_DATA_TABLE}
-            DB_CONNECTION_STRING_PARAMS: ${BANDIT_CONNECTION_STRING}
-            BANDIT_DATA_TABLE: ${BANDIT_DATA_TABLE}
-            BANDIT_ALPHA: ${BANDIT_ALPHA}
-            BANDIT_RIDGE_LAMBDA: ${BANDIT_RIDGE_LAMBDA}
-            SHERMAN_MORRISON_RECOMPUTE_INTERVAL: ${SHERMAN_MORRISON_RECOMPUTE_INTERVAL}
-            SHERMAN_MORRISON_DIVERGENCE_THRESHOLD: ${SHERMAN_MORRISON_DIVERGENCE_THRESHOLD}
-            ENVIRONMENT: ${ENVIRONMENT:-development}
-        depends_on:
-            bandit-database:
-                condition: service_healthy
-            clickhouse-database:
-                condition: service_started
-        networks:
-            - bandit-db-net
-            - clickhouse-net
-            - general
-        logging:
-            driver: fluentd
-            options:
-                fluentd-address: localhost:24224
-                tag: service.bandit
+  # Vault
+  vault:
+    image: hashicorp/vault
+    container_name: vault
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - "127.0.0.1:8200:8200"
+    depends_on:
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - vault-net
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: infrastructure.vault
 
-    service-popularity:
-        build:
-            context: .
-            dockerfile: services/service_popularity_system/Dockerfile
-        environment:
-            WAREHOUSE_URL: ${CLICKHOUSE_CONNECTION_STRING}
-            TABLE_NAME: "popularity_data"
-            JWT_STORE_PATH: ${JWT_STORE_PATH}
-            ENVIRONMENT: ${ENVIRONMENT:-development}
-        depends_on:
-            clickhouse-database:
-                condition: service_started
-        networks:
-            - clickhouse-net
-            - general
-        logging:
-            driver: fluentd
-            options:
-                fluentd-address: localhost:24224
-                tag: service.popularity
+  init-minio:
+    image: minio/mc:latest
+    container_name: init-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ./services/database_minio/defaults:/defaults:ro
+      - ./services/database_minio/init.sh:/scripts/init.sh:ro
+    entrypoint: ["/bin/sh", "/scripts/init.sh"]
+    depends_on:
+      database-minio:
+        condition: service_healthy
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - file-storage-net
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: infrastructure.init_minio
 
-    gateway-recommendation:
-        build:
-            context: .
-            dockerfile: services/gateway_recommendation/Dockerfile
-        environment:
-            GATEWAY_RECOMMENDATION_PORT: ${GATEWAY_RECOMMENDATION_PORT}
-            POPULARITY_SERVICE_URL: ${POPULARITY_SERVICE_URL}
-            BANDIT_SERVICE_URL: ${BANDIT_SERVICE_URL}
-            JWT_STORE_PATH: ${JWT_STORE_PATH}
-            VAULT_ADDR: http://hashicorp-vault-dev:8200
-            VAULT_TOKEN: root
-            ENVIRONMENT: ${ENVIRONMENT:-development}
-        depends_on:
-            service-popularity:
-                condition: service_started
-            service-bandit:
-                condition: service_started
-            hashicorp-vault-dev:
-                condition: service_started
-        networks:
-            - general
-            - vault-net
-        logging:
-            driver: fluentd
-            options:
-                fluentd-address: localhost:24224
-                tag: gateway.recommendation
+  # Services
+  service-user-database:
+    build:
+      context: .
+      dockerfile: services/service_user_database/Dockerfile
+    container_name: service-user-database
+    environment:
+      USER_CRUD_CONNECTION_STRING: ${USER_CRUD_CONNECTION_STRING}
+      USER_CRUD_JWT_PROVIDER_NAME: ${USER_CRUD_JWT_PROVIDER_NAME}
+      JWT_STORE_PATH: ${JWT_STORE_PATH}
+      JWT_TIME_IN_M_NORMAL: ${JWT_TIME_IN_M_NORMAL}
+      JWT_TIME_IN_D_REFRESH: ${JWT_TIME_IN_D_REFRESH}
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: root
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    depends_on:
+      database-postgres-user:
+        condition: service_healthy
+      vault:
+        condition: service_started
+      database-minio:
+        condition: service_healthy
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - user-db-net
+      - general
+      - vault-net
+      - file-storage-net
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: service.user_database
 
-    gateway-api:
-        build:
-            context: .
-            dockerfile: services/gateway_api/Dockerfile
-        ports:
-            - "${GATEWAY_API_PORT}:8080"
-        environment:
-            GATEWAY_API_PORT: "8080"
-            USER_DATABASE_SERVICE_URL: ${USER_DATABASE_SERVICE_URL}
-            RECOMMENDATION_SERVICE_URL: ${RECOMMENDATION_SERVICE_URL}
-            JWT_STORE_PATH: ${JWT_STORE_PATH}
-            JWT_TIME_IN_M_SERVICE: ${JWT_TIME_IN_M_SERVICE}
-            VAULT_ADDR: http://hashicorp-vault-dev:8200
-            VAULT_TOKEN: root
-            ENVIRONMENT: ${ENVIRONMENT:-development}
-        depends_on:
-            service-user-database:
-                condition: service_started
-            gateway-recommendation:
-                condition: service_started
-            hashicorp-vault-dev:
-                condition: service_started
-        networks:
-            - general
-            - vault-net
-        logging:
-            driver: fluentd
-            options:
-                fluentd-address: localhost:24224
-                tag: gateway.general
 
-    frontend:
-        build:
-            context: services/frontend
-            dockerfile: Dockerfile
-        ports:
-            - "${FRONTEND_PORT:-3000}:3000"
-        environment:
-            NEXT_PUBLIC_API_URL: http://gateway-api:8080
-            NEXT_PUBLIC_API_URL_BROWSER: http://localhost:${GATEWAY_API_PORT:-8080}
-        depends_on:
-            gateway-api:
-                condition: service_started
-        networks:
-            - general
-        logging:
-            driver: fluentd
-            options:
-                fluentd-address: localhost:24224
-                tag: frontend.website
+  service-bandit:
+    build:
+      context: services/service_bandit_system
+      dockerfile: Dockerfile
+    container_name: service-bandit
+    environment:
+      DB_CONNECTION_STRING_WAREHOUSE: ${CLICKHOUSE_CONNECTION_STRING}
+      WAREHOUSE_BANDIT_DATA_TABLE: ${WAREHOUSE_BANDIT_DATA_TABLE}
+      DB_CONNECTION_STRING_PARAMS: ${BANDIT_CONNECTION_STRING}
+      BANDIT_DATA_TABLE: ${BANDIT_DATA_TABLE}
+      BANDIT_ALPHA: ${BANDIT_ALPHA}
+      BANDIT_RIDGE_LAMBDA: ${BANDIT_RIDGE_LAMBDA}
+      SHERMAN_MORRISON_RECOMPUTE_INTERVAL: ${SHERMAN_MORRISON_RECOMPUTE_INTERVAL}
+      SHERMAN_MORRISON_DIVERGENCE_THRESHOLD: ${SHERMAN_MORRISON_DIVERGENCE_THRESHOLD}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    depends_on:
+      database-postgres-bandit:
+        condition: service_healthy
+      database-clickhouse:
+        condition: service_started
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - bandit-db-net
+      - clickhouse-net
+      - general
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: service.bandit
 
+
+  service-popularity:
+    build:
+      context: .
+      dockerfile: services/service_popularity_system/Dockerfile
+    container_name: service-popularity
+    environment:
+      WAREHOUSE_URL: ${CLICKHOUSE_CONNECTION_STRING}
+      TABLE_NAME: popularity_data
+      JWT_STORE_PATH: ${JWT_STORE_PATH}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    depends_on:
+      database-clickhouse:
+        condition: service_started
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - clickhouse-net
+      - general
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: service.popularity
+
+  # Gateways
+  gateway-recommendation:
+    build:
+      context: .
+      dockerfile: services/gateway_recommendation/Dockerfile
+    container_name: gateway-recommendation
+    environment:
+      GATEWAY_RECOMMENDATION_PORT: ${GATEWAY_RECOMMENDATION_PORT}
+      POPULARITY_SERVICE_URL: ${POPULARITY_SERVICE_URL}
+      BANDIT_SERVICE_URL: ${BANDIT_SERVICE_URL}
+      JWT_STORE_PATH: ${JWT_STORE_PATH}
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: root
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    depends_on:
+      service-popularity:
+        condition: service_started
+      service-bandit:
+        condition: service_started
+      vault:
+        condition: service_started
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - general
+      - vault-net
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: gateway.recommendation
+
+
+  gateway-api:
+    build:
+      context: .
+      dockerfile: services/gateway_api/Dockerfile
+    container_name: gateway-api
+    ports:
+      - "${GATEWAY_API_PORT}:8080"
+    environment:
+      GATEWAY_API_PORT: "8080"
+      USER_DATABASE_SERVICE_URL: ${USER_DATABASE_SERVICE_URL}
+      RECOMMENDATION_SERVICE_URL: ${RECOMMENDATION_SERVICE_URL}
+      JWT_STORE_PATH: ${JWT_STORE_PATH}
+      JWT_TIME_IN_M_SERVICE: ${JWT_TIME_IN_M_SERVICE}
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: root
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    depends_on:
+      service-user-database:
+        condition: service_started
+      gateway-recommendation:
+        condition: service_started
+      vault:
+        condition: service_started
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - general
+      - vault-net
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: gateway.api
+
+  # Display
+  frontend:
+    build:
+      context: services/frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://gateway-api:8080
+      NEXT_PUBLIC_API_URL_BROWSER: http://localhost:${GATEWAY_API_PORT:-8080}
+    depends_on:
+      gateway-api:
+        condition: service_started
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - general
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: frontend.website
 
 volumes:
-    user_data:
-    clickhouse_data:
-    clickhouse_logs:
-    file_storage_data:
-    bandit_data:
+  user_data:
+  bandit_data:
+  clickhouse_data:
+  clickhouse_logs:
+  file_storage_data:
 
 networks:
-    clickhouse-net:
-    user-db-net:
-    file-storage-net:
-    vault-net:
-    bandit-db-net:
-    general:
-
+  user-db-net:
+  bandit-db-net:
+  clickhouse-net:
+  file-storage-net:
+  vault-net:
+  general:
