@@ -32,9 +32,7 @@ class ApiClient {
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      // Don't set default Content-Type - let axios handle it based on request data
     });
 
     // Add auth token to requests
@@ -43,6 +41,12 @@ class ApiClient {
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+
+      // Set Content-Type to JSON only for non-FormData requests
+      if (!(config.data instanceof FormData)) {
+        config.headers['Content-Type'] = 'application/json';
+      }
+
       return config;
     });
   }
@@ -54,12 +58,14 @@ class ApiClient {
   }
 
   async register(email: string, password: string, username: string, displayName: string): Promise<AuthResponse> {
-    const response = await this.client.put('/login', { 
-      email, 
-      password, 
-      username, 
-      display_name: displayName 
-    });
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('password', password);
+    formData.append('username', username);
+    formData.append('display_name', displayName);
+
+    // Don't set Content-Type manually - axios will set it with the correct boundary
+    const response = await this.client.put('/login', formData);
     return response.data;
   }
 
