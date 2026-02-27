@@ -89,11 +89,11 @@ func (b *BaseClient) DoRaw(ctx context.Context, method, url string, requestID st
 	return body, resp.StatusCode, nil
 }
 
-// DoProxy forwards a raw HTTP request with body and headers, returning raw response
-func (b *BaseClient) DoProxy(ctx context.Context, method, url string, body io.Reader, headers http.Header, requestID string) ([]byte, int, error) {
+// DoProxy forwards a raw HTTP request with body and headers, returning raw response with headers
+func (b *BaseClient) DoProxy(ctx context.Context, method, url string, body io.Reader, headers http.Header, requestID string) ([]byte, int, http.Header, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("create request: %w", err)
+		return nil, http.StatusInternalServerError, nil, fmt.Errorf("create request: %w", err)
 	}
 
 	// Copy headers from original request
@@ -108,7 +108,7 @@ func (b *BaseClient) DoProxy(ctx context.Context, method, url string, body io.Re
 
 	resp, err := b.HttpClient.Do(req)
 	if err != nil {
-		return nil, http.StatusBadGateway, fmt.Errorf("request failed: %w", err)
+		return nil, http.StatusBadGateway, nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
@@ -116,8 +116,8 @@ func (b *BaseClient) DoProxy(ctx context.Context, method, url string, body io.Re
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("read response: %w", err)
+		return nil, http.StatusInternalServerError, nil, fmt.Errorf("read response: %w", err)
 	}
 
-	return respBody, resp.StatusCode, nil
+	return respBody, resp.StatusCode, resp.Header, nil
 }

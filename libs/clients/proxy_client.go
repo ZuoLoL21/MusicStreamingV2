@@ -38,10 +38,10 @@ func (c *ProxyClient) ForwardRequest(
 	body io.Reader,
 	headers http.Header,
 	requestID string,
-) ([]byte, int, error) {
+) ([]byte, int, http.Header, error) {
 	fullURL, err := c.buildURL(path, query)
 	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("build URL: %w", err)
+		return nil, http.StatusInternalServerError, nil, fmt.Errorf("build URL: %w", err)
 	}
 
 	return c.BaseClient.DoProxy(ctx, method, fullURL, body, headers, requestID)
@@ -54,10 +54,10 @@ func (c *ProxyClient) ForwardWithServiceJWT(
 	body io.Reader,
 	headers http.Header,
 	serviceJWT, requestID string,
-) ([]byte, int, error) {
+) ([]byte, int, http.Header, error) {
 	fullURL, err := c.buildURL(path, query)
 	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("build URL: %w", err)
+		return nil, http.StatusInternalServerError, nil, fmt.Errorf("build URL: %w", err)
 	}
 
 	// Create a copy of headers to avoid modifying the original
@@ -98,7 +98,7 @@ func (c *ProxyClient) ForwardRequestWithBuffer(
 	bodyBytes []byte,
 	headers http.Header,
 	requestID string,
-) ([]byte, int, error) {
+) ([]byte, int, http.Header, error) {
 	var body io.Reader
 	if len(bodyBytes) > 0 {
 		body = bytes.NewReader(bodyBytes)
@@ -113,7 +113,7 @@ func (c *ProxyClient) ForwardWithServiceJWTBuffer(
 	bodyBytes []byte,
 	headers http.Header,
 	serviceJWT, requestID string,
-) ([]byte, int, error) {
+) ([]byte, int, http.Header, error) {
 	var body io.Reader
 	if len(bodyBytes) > 0 {
 		body = bytes.NewReader(bodyBytes)

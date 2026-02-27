@@ -4,6 +4,7 @@ import (
 	"gateway_api/internal/clients"
 	"gateway_api/internal/di"
 	"gateway_api/internal/handlers"
+	"gateway_api/internal/middleware"
 
 	libsdi "libs/di"
 	libshandlers "libs/handlers"
@@ -25,6 +26,7 @@ type App struct {
 
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
+	r.Use(middleware.CORSMiddleware)
 
 	// Create handlers
 	proxyHandler := handlers.NewProxyHandler(
@@ -92,7 +94,7 @@ func (a *App) Router() *mux.Router {
 
 	// Public
 	publicRouter.HandleFunc("/health", libshandlers.NewHealthCheckHandler("gateway-api")).Methods("GET")
-	publicRouter.HandleFunc("/login", proxyHandler.ProxyLogin).Methods("POST", "PUT")
+	publicRouter.HandleFunc("/login", proxyHandler.ProxyLogin).Methods("POST", "PUT", "OPTIONS")
 
 	// Renewal
 	refreshRouter.HandleFunc("/renew", proxyHandler.ProxyRenew).Methods("POST")

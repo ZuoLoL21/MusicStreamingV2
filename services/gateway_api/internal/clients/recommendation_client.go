@@ -29,6 +29,6 @@ func (c *RecommendationClient) ProxyRequest(
 	body io.Reader,
 	headers http.Header,
 	serviceJWT, requestID string,
-) ([]byte, int, error) {
+) ([]byte, int, http.Header, error) {
 	return c.ForwardWithServiceJWT(ctx, method, path, query, body, headers, serviceJWT, requestID)
 }

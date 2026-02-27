@@ -53,7 +53,7 @@ func (h *ProxyHandler) ProxyLogin(w http.ResponseWriter, r *http.Request) {
 	_ = r.Body.Close()
 
 	headers := h.copyHeaders(r.Header, false)
-	respBody, statusCode, err := h.userDBClient.ForwardRequest(
+	respBody, statusCode, respHeaders, err := h.userDBClient.ForwardRequest(
 		r.Context(),
 		r.Method,
 		r.URL.Path,
@@ -72,7 +72,7 @@ func (h *ProxyHandler) ProxyLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.writeResponse(w, respBody, statusCode, headers)
+	h.writeResponse(w, respBody, statusCode, respHeaders)
 }
 
 // ProxyRenew handles token renewal requests (POST /renew)
@@ -104,7 +104,7 @@ func (h *ProxyHandler) ProxyRenew(w http.ResponseWriter, r *http.Request) {
 
 	headers := h.copyHeaders(r.Header, true)
 
-	respBody, statusCode, err := h.userDBClient.ProxyRequest(
+	respBody, statusCode, respHeaders, err := h.userDBClient.ProxyRequest(
 		r.Context(),
 		r.Method,
 		r.URL.Path,
@@ -124,7 +124,7 @@ func (h *ProxyHandler) ProxyRenew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.writeResponse(w, respBody, statusCode, headers)
+	h.writeResponse(w, respBody, statusCode, respHeaders)
 }
 
 // ProxyUserDatabase handles all user database service routes
@@ -156,7 +156,7 @@ func (h *ProxyHandler) ProxyUserDatabase(w http.ResponseWriter, r *http.Request)
 
 	headers := h.copyHeaders(r.Header, true)
 
-	respBody, statusCode, err := h.userDBClient.ProxyRequest(
+	respBody, statusCode, respHeaders, err := h.userDBClient.ProxyRequest(
 		r.Context(),
 		r.Method,
 		r.URL.Path,
@@ -176,7 +176,7 @@ func (h *ProxyHandler) ProxyUserDatabase(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	h.writeResponse(w, respBody, statusCode, headers)
+	h.writeResponse(w, respBody, statusCode, respHeaders)
 }
 
 // ProxyRecommendation handles all recommendation service routes
@@ -208,7 +208,7 @@ func (h *ProxyHandler) ProxyRecommendation(w http.ResponseWriter, r *http.Reques
 
 	headers := h.copyHeaders(r.Header, true)
 
-	respBody, statusCode, err := h.recommendClient.ProxyRequest(
+	respBody, statusCode, respHeaders, err := h.recommendClient.ProxyRequest(
 		r.Context(),
 		r.Method,
 		r.URL.Path,
@@ -228,7 +228,7 @@ func (h *ProxyHandler) ProxyRecommendation(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	h.writeResponse(w, respBody, statusCode, headers)
+	h.writeResponse(w, respBody, statusCode, respHeaders)
 }
 
 // extractRequestID extracts the request ID from the context

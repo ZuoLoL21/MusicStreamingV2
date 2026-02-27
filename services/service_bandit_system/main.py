@@ -10,7 +10,7 @@ from src.middleware import RequestIDMiddleware, LoggingMiddleware
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.ERROR, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 structlog.configure(
     processors=[
