@@ -5,38 +5,47 @@ This document provides an overview of all microservices in the MusicStreamingV2 
 ## Architecture Overview
 
 ```
-┌─────────────┐
-│   Client    │
-└──────┬──────┘
-       │ User JWT (Normal/Refresh)
-       ▼
-┌─────────────────────────────────────┐
-│       gateway_api (Port 8080)       │  Public-facing API Gateway
-│  - Validates user JWTs              │
-│  - Generates service JWTs           │
-│  - Routes to backend services       │
-└──────┬──────────────────────┬───────┘
-       │ Service JWT          │ Service JWT
-       ▼                      ▼
-┌──────────────────┐   ┌──────────────────────────┐
-│ service_user_db  │   │ gateway_recommendation   │
-│  (Port 8001)     │   │    (Port 8002)           │
-│                  │   │ - Routes recommendations │
-└──────────────────┘   └─────┬──────────────┬─────┘
-                             │              │ Service JWT
-                             │              ▼
-                             │   ┌─────────────────────┐
-                             │   │ service_bandit      │
-                             │   │  (Port 8004)        │
-                             │   │ - LinUCB algorithm  │
-                             │   └─────────────────────┘
-                             │ Service JWT
-                             ▼
-                      ┌─────────────────────┐
-                      │ service_popularity  │
-                      │  (Port 8003)        │
-                      │ - Trending content  │
-                      └─────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                    Client (Browser)                   │
+└──────────────────────────┬───────────────────────────┘
+                           │
+                           ▼
+┌──────────────────────────────────────────────────────┐
+│         frontend (Next.js - Port 3000)               │
+│  - Web UI for music streaming                        │
+│  - User authentication                               │
+│  - Music player interface                            │
+└──────────────────────────┬───────────────────────────┘
+                           │ User JWT (Normal/Refresh)
+                           ▼
+┌──────────────────────────────────────────────────────┐
+│         gateway_api (Port 8080)                      │
+│  - Public-facing API Gateway                         │
+│  - Validates user JWTs                               │
+│  - Generates service JWTs                            │
+│  - Routes to backend services                        │
+└──────────────┬─────────────────────────┬─────────────┘
+               │ Service JWT             │ Service JWT
+               ▼                         ▼
+┌──────────────────────────┐  ┌──────────────────────────┐
+│ service_user_database    │  │ gateway_recommendation   │
+│  (Port 8001)             │  │    (Port 8002)           │
+│  - User management       │  │ - Routes recommendations │
+│  - Music catalog         │  └─────┬───────────┬────────┘
+│  - Playlists             │        │           │ Service JWT
+└──────────────────────────┘        │           ▼
+                                    │  ┌─────────────────────┐
+                                    │  │ service_bandit      │
+                                    │  │  (Port 8004)        │
+                                    │  │ - LinUCB algorithm  │
+                                    │  └─────────────────────┘
+                                    │ Service JWT
+                                    ▼
+                           ┌─────────────────────┐
+                           │ service_popularity  │
+                           │  (Port 8003)        │
+                           │ - Trending content  │
+                           └─────────────────────┘
 ```
 
 ---
@@ -161,6 +170,37 @@ This document provides an overview of all microservices in the MusicStreamingV2 
 - Reinforcement learning from rewards
 - Model persistence
 - Cold start handling
+
+---
+
+### 6. frontend
+**Port:** 3000\
+**Language:** TypeScript (Next.js)\
+**Role:** Web-based user interface for the music streaming platform
+
+**Responsibilities:**
+- User authentication (login/register)
+- Music browsing and playback
+- Artist and album discovery
+- Playlist management
+- Search functionality
+- User profile management
+
+**Tech Stack:**
+- Next.js 14 (App Router)
+- React 18
+- TypeScript
+- Tailwind CSS
+- Axios for API communication
+
+**Features:**
+- Responsive design
+- Dark theme UI
+- JWT-based authentication with secure cookie storage
+- Music player with play/pause/skip controls
+- Artist, album, and playlist browsing
+- Personalized recommendations
+- Search for songs, artists, and albums
 
 ---
 
