@@ -32,17 +32,17 @@ export default function LoginPage() {
       }
 
       // Store tokens and user UUID in cookies
-      Cookies.set('token', response.normal_token, { expires: 7 });
+      Cookies.set('token', response.access_token, { expires: 7 });
       Cookies.set('refresh_token', response.refresh_token, { expires: 30 });
       Cookies.set('user_uuid', response.user_uuid, { expires: 30 });
 
       // Sync with Zustand store
-      setAuth(response.normal_token, response.refresh_token, response.user_uuid);
+      setAuth(response.access_token, response.refresh_token, response.user_uuid);
 
       // Redirect to home
       router.push('/');
     } catch (error: any) {
-      const message = error.response?.data?.message || (isLogin ? 'Login failed' : 'Registration failed');
+      const message = error.response?.data?.error || (isLogin ? 'Login failed' : 'Registration failed');
       toast.error(message);
       console.error(error);
     } finally {

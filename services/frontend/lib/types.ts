@@ -55,7 +55,7 @@ export interface Tag {
 }
 
 export interface AuthResponse {
-  normal_token: string;
+  access_token: string;
   refresh_token: string;
   user_uuid: string;
 }

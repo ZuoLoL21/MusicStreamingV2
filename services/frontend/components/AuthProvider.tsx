@@ -25,11 +25,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const cookieRefreshToken = Cookies.get('refresh_token');
     const cookieUserUuid = Cookies.get('user_uuid');
 
-    if (cookieToken && cookieRefreshToken && cookieUserUuid) {
+    // Validate cookies exist and are not the string "undefined"
+    const isValid =
+      cookieToken && cookieToken !== 'undefined' &&
+      cookieRefreshToken && cookieRefreshToken !== 'undefined' &&
+      cookieUserUuid && cookieUserUuid !== 'undefined';
+
+    if (isValid) {
       // Sync cookies with Zustand store
-      setAuth(cookieToken, cookieRefreshToken, cookieUserUuid);
+      setAuth(cookieToken!, cookieRefreshToken!, cookieUserUuid!);
       setIsAuthenticated(true);
     } else {
+      // Clear invalid cookies
+      Cookies.remove('token');
+      Cookies.remove('refresh_token');
+      Cookies.remove('user_uuid');
       setIsAuthenticated(false);
     }
 
