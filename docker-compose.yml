@@ -1,5 +1,5 @@
 services:
-    user-database:
+    database-user:
         image: postgres:16
         environment:
             POSTGRES_DB: ${USER_CRUD_DB}
@@ -21,7 +21,7 @@ services:
                 fluentd-address: localhost:24224
                 tag: database.user
 
-    hashicorp-vault-dev:
+    vault-hashicorp-vault-dev:
         image: hashicorp/vault
         environment:
             VAULT_DEV_ROOT_TOKEN_ID: "root"
@@ -72,7 +72,7 @@ services:
                 fluentd-address: localhost:24224
                 tag: service.user_database
 
-    minio-file-storage:
+    database-minio-file-storage:
         image: minio/minio:latest
         command: server /data --console-address ":9001"
         environment:
@@ -93,7 +93,7 @@ services:
                 fluentd-address: localhost:24224
                 tag: database.file_storage
 
-    minio-init:
+    init-minio:
         image: minio/mc:latest
         depends_on:
             minio-file-storage:
@@ -113,7 +113,7 @@ services:
                 fluentd-address: localhost:24224
                 tag: init.database.file_storage
 
-    clickhouse-database:
+    database-clickhouse:
         image: clickhouse/clickhouse-server:latest
         environment:
           CLICKHOUSE_DB: ${CLICKHOUSE_DB}
@@ -131,7 +131,7 @@ services:
                 fluentd-address: localhost:24224
                 tag: database.clickhouse
 
-    bandit-database:
+    database-bandit:
         image: postgres:16
         environment:
             POSTGRES_DB: ${BANDIT_DB}
