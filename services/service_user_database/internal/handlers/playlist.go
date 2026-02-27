@@ -131,7 +131,7 @@ func (h *PlaylistHandler) CreatePlaylist(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns) {
+	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
 		return
 	}
 
@@ -322,7 +322,7 @@ func (h *PlaylistHandler) UpdatePlaylistImage(w http.ResponseWriter, r *http.Req
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns) {
+	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
 		return
 	}
 

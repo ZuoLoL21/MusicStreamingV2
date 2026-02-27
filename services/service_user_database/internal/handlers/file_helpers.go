@@ -14,10 +14,26 @@ import (
 )
 
 // parseMultipartForm parses multipart form with size limit and handles errors
-func parseMultipartForm(w http.ResponseWriter, r *http.Request, maxSizeMB int64, returns *libsdi.ReturnManager) bool {
+func parseMultipartForm(w http.ResponseWriter, r *http.Request, maxSizeMB int64, returns *libsdi.ReturnManager, logger *zap.Logger) bool {
 	maxSize := maxSizeMB << 20
 	if err := r.ParseMultipartForm(maxSize); err != nil {
-		returns.ReturnError(w, "failed to parse form", http.StatusBadRequest)
+		logger.Warn("failed to parse multipart form",
+			zap.Error(err),
+			zap.String("content_type", r.Header.Get("Content-Type")),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
+
+		contentType := r.Header.Get("Content-Type")
+		errorMsg := "request must be multipart/form-data"
+		if contentType == "application/json" {
+			errorMsg = "request must be multipart/form-data, not application/json"
+		} else if contentType == "" {
+			errorMsg = "missing Content-Type header, expected multipart/form-data"
+		} else {
+			errorMsg = fmt.Sprintf("invalid Content-Type: %s, expected multipart/form-data", contentType)
+		}
+
+		returns.ReturnError(w, errorMsg, http.StatusBadRequest)
 		return false
 	}
 	return true

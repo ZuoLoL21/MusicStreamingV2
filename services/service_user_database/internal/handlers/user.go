@@ -49,7 +49,7 @@ func (h *UserHandler) issueTokenPair(uuidStr string) tokenPair {
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns) {
+	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
 		return
 	}
 
@@ -319,7 +319,7 @@ func (h *UserHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns) {
+	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
 		return
 	}
 

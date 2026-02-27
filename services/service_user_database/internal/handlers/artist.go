@@ -130,7 +130,7 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns) {
+	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
 		return
 	}
 
@@ -225,7 +225,7 @@ func (h *ArtistHandler) UpdateArtistPicture(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns) {
+	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
 		return
 	}
 

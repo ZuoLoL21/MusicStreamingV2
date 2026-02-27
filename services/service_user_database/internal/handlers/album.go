@@ -108,7 +108,7 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns) {
+	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
 		return
 	}
 
@@ -214,7 +214,7 @@ func (h *AlbumHandler) UpdateAlbumImage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns) {
+	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
 		return
 	}
 

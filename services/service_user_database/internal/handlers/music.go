@@ -179,7 +179,7 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 100, h.returns) {
+	if !parseMultipartForm(w, r, 100, h.returns, h.logger) {
 		return
 	}
 
@@ -310,7 +310,7 @@ func (h *MusicHandler) UpdateMusicStorage(w http.ResponseWriter, r *http.Request
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 100, h.returns) {
+	if !parseMultipartForm(w, r, 100, h.returns, h.logger) {
 		return
 	}
 
