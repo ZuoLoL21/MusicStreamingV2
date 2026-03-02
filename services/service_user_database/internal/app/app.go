@@ -4,10 +4,10 @@ import (
 	"backend/internal/di"
 	"backend/internal/handlers"
 	"backend/internal/storage"
+
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
 	libshandlers "libs/handlers"
-	libshelpers "libs/helpers"
 	libsmiddleware "libs/middleware"
 
 	"github.com/gorilla/mux"
@@ -17,7 +17,7 @@ import (
 type App struct {
 	logger      *zap.Logger
 	config      *di.Config
-	secrets     *libsdi.SecretsManager
+	jwtHandler  *libsdi.JWTHandler
 	returns     *libsdi.ReturnManager
 	db          *sqlhandler.Queries
 	fileStorage storage.FileStorageClient
@@ -37,11 +37,11 @@ type HandlerRegistry struct {
 	Search   *handlers.SearchHandler
 }
 
-func New(logger *zap.Logger, config *di.Config, secrets *libsdi.SecretsManager, returns *libsdi.ReturnManager, db *sqlhandler.Queries, fileStorage storage.FileStorageClient) *App {
+func New(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db *sqlhandler.Queries, fileStorage storage.FileStorageClient) *App {
 	return &App{
 		logger:      logger,
 		config:      config,
-		secrets:     secrets,
+		jwtHandler:  jwtHandler,
 		returns:     returns,
 		db:          db,
 		fileStorage: fileStorage,
@@ -74,7 +74,7 @@ func (a *App) Router() *mux.Router {
 
 func (a *App) initHandlers() {
 	a.handlers = &HandlerRegistry{
-		User:     handlers.NewUserHandler(a.logger, a.config, a.secrets, a.returns, a.db, a.fileStorage),
+		User:     handlers.NewUserHandler(a.logger, a.config, a.jwtHandler, a.returns, a.db, a.fileStorage),
 		Artist:   handlers.NewArtistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		Album:    handlers.NewAlbumHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		Music:    handlers.NewMusicHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
@@ -91,9 +91,9 @@ func (a *App) setupMiddleware(r *mux.Router) (*mux.Router, *mux.Router) {
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.logger,
 		a.config,
-		a.secrets,
+		a.jwtHandler,
 		a.returns,
-		libshelpers.JWTSubjectService,
+		libsdi.JWTSubjectService,
 	)
 
 	publicRouter := r.PathPrefix("").Subrouter()

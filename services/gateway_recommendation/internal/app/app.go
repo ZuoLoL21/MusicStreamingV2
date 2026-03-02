@@ -7,7 +7,6 @@ import (
 
 	libsdi "libs/di"
 	libshandlers "libs/handlers"
-	libshelpers "libs/helpers"
 	libsmiddleware "libs/middleware"
 
 	"github.com/gorilla/mux"
@@ -17,7 +16,7 @@ import (
 type App struct {
 	config           *di.Config
 	logger           *zap.Logger
-	secrets          *libsdi.SecretsManager
+	jwtHandler       *libsdi.JWTHandler
 	returnManager    *libsdi.ReturnManager
 	banditClient     *clients.BanditClient
 	popularityClient *clients.PopularityClient
@@ -42,9 +41,9 @@ func (a *App) Router() *mux.Router {
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.logger,
 		a.config,
-		a.secrets,
+		a.jwtHandler,
 		a.returnManager,
-		libshelpers.JWTSubjectService,
+		libsdi.JWTSubjectService,
 	)
 
 	publicRouter := r.PathPrefix("").Subrouter()
@@ -89,14 +88,14 @@ func (a *App) Router() *mux.Router {
 	return r
 }
 
-func NewApp(config *di.Config, logger *zap.Logger, secrets *libsdi.SecretsManager, returnManager *libsdi.ReturnManager) *App {
+func NewApp(config *di.Config, logger *zap.Logger, jwtHandler *libsdi.JWTHandler, returnManager *libsdi.ReturnManager) *App {
 	banditClient := clients.NewBanditClient(config.BanditServiceURL, logger)
 	popularityClient := clients.NewPopularityClient(config.PopularityServiceURL, logger)
 
 	return &App{
 		config:           config,
 		logger:           logger,
-		secrets:          secrets,
+		jwtHandler:       jwtHandler,
 		returnManager:    returnManager,
 		banditClient:     banditClient,
 		popularityClient: popularityClient,

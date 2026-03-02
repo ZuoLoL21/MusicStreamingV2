@@ -5,7 +5,6 @@ import (
 	"popularity/internal/handlers"
 
 	libsdi "libs/di"
-	libshelpers "libs/helpers"
 	libsmiddleware "libs/middleware"
 
 	"github.com/gorilla/mux"
@@ -13,10 +12,10 @@ import (
 )
 
 type App struct {
-	Logger  *zap.Logger
-	Config  *di.Config
-	Secrets *libsdi.SecretsManager
-	Returns *libsdi.ReturnManager
+	Logger     *zap.Logger
+	Config     *di.Config
+	JWTHandler *libsdi.JWTHandler
+	Returns    *libsdi.ReturnManager
 }
 
 func (a *App) Router() *mux.Router {
@@ -26,9 +25,9 @@ func (a *App) Router() *mux.Router {
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.Logger,
 		a.Config,
-		a.Secrets,
+		a.JWTHandler,
 		a.Returns,
-		libshelpers.JWTSubjectService,
+		libsdi.JWTSubjectService,
 	)
 
 	publicRouter := r.PathPrefix("").Subrouter()
@@ -67,11 +66,11 @@ func (a *App) Router() *mux.Router {
 	return r
 }
 
-func New(logger *zap.Logger, config *di.Config, secrets *libsdi.SecretsManager, returns *libsdi.ReturnManager) *App {
+func New(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager) *App {
 	return &App{
-		Logger:  logger,
-		Config:  config,
-		Secrets: secrets,
-		Returns: returns,
+		Logger:     logger,
+		Config:     config,
+		JWTHandler: jwtHandler,
+		Returns:    returns,
 	}
 }

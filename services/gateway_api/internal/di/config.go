@@ -17,6 +17,10 @@ type Config struct {
 	RecommendationServiceURL string
 	JWTStorePath             string
 	JWTExpirationService     time.Duration
+	ApplicationName          string
+	JWTTimeout               time.Duration
+	VaultAddr                string
+	VaultToken               string
 	UserUUIDKey              libsdi.ContextKey
 	ServiceJWTKey            libsdi.ContextKey
 	RequestIDKey             libsdi.ContextKey
@@ -38,6 +42,10 @@ func LoadConfig(logger *zap.Logger) *Config {
 	recommendationServiceURL := os.Getenv("RECOMMENDATION_SERVICE_URL")
 	jwtStorePath := os.Getenv("JWT_STORE_PATH")
 	jwtTimeServiceStr := os.Getenv("JWT_TIME_IN_M_SERVICE")
+	applicationName := os.Getenv("VAULT_APPLICATION_NAME")
+	jwtTimeoutStr := os.Getenv("VAULT_JWT_TIMEOUT_SECONDS")
+	vaultAddr := os.Getenv("VAULT_ADDR")
+	vaultToken := os.Getenv("VAULT_TOKEN")
 
 	// Validate required environment variables
 	if port == "" {
@@ -65,12 +73,35 @@ func LoadConfig(logger *zap.Logger) *Config {
 		}
 	}
 
+	// Parse JWT timeout for Vault operations
+	jwtTimeout := 30 * time.Second
+	if jwtTimeoutStr == "" {
+		slogger.Warn("VAULT_JWT_TIMEOUT_SECONDS environment variable is not set, using default: 30 seconds")
+	} else {
+		timeoutSec, err := strconv.Atoi(jwtTimeoutStr)
+		if err != nil {
+			slogger.Errorf("Error parsing VAULT_JWT_TIMEOUT_SECONDS: %v", err)
+		} else {
+			jwtTimeout = time.Duration(timeoutSec) * time.Second
+		}
+	}
+
+	// Set default application name if not provided
+	if applicationName == "" {
+		applicationName = "gateway_api"
+		slogger.Warn("VAULT_APPLICATION_NAME environment variable is not set, using default: gateway_api")
+	}
+
 	return &Config{
 		Port:                     port,
 		UserDatabaseServiceURL:   userDatabaseServiceURL,
 		RecommendationServiceURL: recommendationServiceURL,
 		JWTStorePath:             jwtStorePath,
 		JWTExpirationService:     time.Minute * time.Duration(serviceTime),
+		ApplicationName:          applicationName,
+		JWTTimeout:               jwtTimeout,
+		VaultAddr:                vaultAddr,
+		VaultToken:               vaultToken,
 		UserUUIDKey:              libsdi.UserUUIDKey,
 		ServiceJWTKey:            libsdi.ServiceJWTKey,
 		RequestIDKey:             libsdi.RequestIDKey,
@@ -90,4 +121,19 @@ func (c *Config) GetUserUUIDKey() (any, bool) {
 // GetServiceJWTKey implements middleware.ServiceJWTConfig
 func (c *Config) GetServiceJWTKey() (any, bool) {
 	return c.ServiceJWTKey, true
+}
+
+// GetJWTTimeout implements HashicorpConfig
+func (c *Config) GetJWTTimeout() time.Duration {
+	return c.JWTTimeout
+}
+
+// GetVaultAddr implements VaultConfig
+func (c *Config) GetVaultAddr() string {
+	return c.VaultAddr
+}
+
+// GetVaultToken implements VaultConfig
+func (c *Config) GetVaultToken() string {
+	return c.VaultToken
 }

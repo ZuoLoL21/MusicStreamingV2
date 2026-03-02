@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"libs/di"
-	"libs/vault"
 	"net/http"
 	"strings"
 
@@ -18,7 +17,7 @@ type AuthConfig interface {
 
 type AuthHandler struct {
 	logger     *zap.Logger
-	jwtHandler *vault.JWTHandler
+	jwtHandler *di.JWTHandler
 	returns    *di.ReturnManager
 	subject    string
 	uuidKey    di.ContextKey
@@ -27,7 +26,7 @@ type AuthHandler struct {
 func NewAuthHandler(
 	logger *zap.Logger,
 	config AuthConfig,
-	jwtHandler *vault.JWTHandler,
+	jwtHandler *di.JWTHandler,
 	returns *di.ReturnManager,
 	subject string,
 ) *AuthHandler {

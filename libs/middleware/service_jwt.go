@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"libs/di"
-	"libs/vault"
 	"net/http"
 	"time"
 
@@ -21,7 +20,7 @@ type ServiceJWTConfig interface {
 // ServiceJWTHandler generates service JWTs for authenticated requests
 type ServiceJWTHandler struct {
 	logger        *zap.Logger
-	jwtHandler    *vault.JWTHandler
+	jwtHandler    *di.JWTHandler
 	returns       *di.ReturnManager
 	duration      time.Duration
 	uuidKey       di.ContextKey
@@ -32,7 +31,7 @@ type ServiceJWTHandler struct {
 func NewServiceJWTHandler(
 	logger *zap.Logger,
 	config ServiceJWTConfig,
-	jwtHandler *vault.JWTHandler,
+	jwtHandler *di.JWTHandler,
 	returns *di.ReturnManager,
 	duration time.Duration,
 ) *ServiceJWTHandler {
@@ -70,7 +69,7 @@ func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 			}
 
 			// Generate service JWT using Vault Transit
-			serviceJWT := h.jwtHandler.GenerateJwt(vault.JWTSubjectService, uuid, h.duration)
+			serviceJWT := h.jwtHandler.GenerateJwt(di.JWTSubjectService, uuid, h.duration)
 			if serviceJWT == "" {
 				h.logger.Error("failed to generate service JWT",
 					zap.String("user_uuid", uuid))

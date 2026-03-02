@@ -46,7 +46,7 @@ func main() {
 
 	// Init components
 	config := di.LoadConfig(logger)
-	secrets := libsdi.GetSecretsManager(logger)
+	jwtHandler := libsdi.GetJWTHandler(logger, config, config.ApplicationName)
 	returns := libsdi.NewReturnManager(logger)
 
 	// Database
@@ -71,7 +71,7 @@ func main() {
 	}
 
 	// Router
-	application := app.New(logger, config, secrets, returns, db, fileStorage)
+	application := app.New(logger, config, jwtHandler, returns, db, fileStorage)
 	srv := &http.Server{
 		Handler:      application.Router(),
 		Addr:         ":8080",

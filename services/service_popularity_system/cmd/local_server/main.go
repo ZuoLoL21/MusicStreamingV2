@@ -43,11 +43,11 @@ func main() {
 
 	// Init components
 	config := di.LoadConfig(logger)
-	secrets := libsdi.GetSecretsManager(logger)
+	jwtHandler := libsdi.GetJWTHandler(logger, config, config.ApplicationName)
 	returns := libsdi.NewReturnManager(logger)
 
 	// Router
-	application := app.New(logger, config, secrets, returns)
+	application := app.New(logger, config, jwtHandler, returns)
 	addr := ":" + config.Port
 	srv := &http.Server{
 		Handler:      application.Router(),

@@ -8,7 +8,6 @@ import (
 
 	libsdi "libs/di"
 	libshandlers "libs/handlers"
-	libshelpers "libs/helpers"
 	libsmiddleware "libs/middleware"
 
 	"github.com/gorilla/mux"
@@ -18,7 +17,7 @@ import (
 type App struct {
 	Config          *di.Config
 	Logger          *zap.Logger
-	Secrets         *libsdi.SecretsManager
+	JWTHandler      *libsdi.JWTHandler
 	Returns         *libsdi.ReturnManager
 	UserDBClient    *clients.UserDatabaseClient
 	RecommendClient *clients.RecommendationClient
@@ -39,23 +38,22 @@ func (a *App) Router() *mux.Router {
 	normalAuthHandler := libsmiddleware.NewAuthHandler(
 		a.Logger,
 		a.Config,
-		a.Secrets,
+		a.JWTHandler,
 		a.Returns,
-		libshelpers.JWTSubjectNormal,
+		libsdi.JWTSubjectNormal,
 	)
 	refreshAuthHandler := libsmiddleware.NewAuthHandler(
 		a.Logger,
 		a.Config,
-		a.Secrets,
+		a.JWTHandler,
 		a.Returns,
-		libshelpers.JWTSubjectRefresh,
+		libsdi.JWTSubjectRefresh,
 	)
 	serviceJWTHandler := libsmiddleware.NewServiceJWTHandler(
 		a.Logger,
 		a.Config,
-		a.Secrets,
+		a.JWTHandler,
 		a.Returns,
-		a.Config.JWTStorePath,
 		a.Config.JWTExpirationService,
 	)
 
@@ -118,7 +116,7 @@ func (a *App) Router() *mux.Router {
 func NewApp(
 	config *di.Config,
 	logger *zap.Logger,
-	secrets *libsdi.SecretsManager,
+	jwtHandler *libsdi.JWTHandler,
 	returns *libsdi.ReturnManager,
 ) *App {
 	userDBClient := clients.NewUserDatabaseClient(config.UserDatabaseServiceURL, logger)
@@ -127,7 +125,7 @@ func NewApp(
 	return &App{
 		Config:          config,
 		Logger:          logger,
-		Secrets:         secrets,
+		JWTHandler:      jwtHandler,
 		Returns:         returns,
 		UserDBClient:    userDBClient,
 		RecommendClient: recommendClient,

@@ -20,17 +20,17 @@ import (
 type UserHandler struct {
 	logger      *zap.Logger
 	config      *di.Config
-	secrets     *libsdi.SecretsManager
+	jwtHandler  *libsdi.JWTHandler
 	returns     *libsdi.ReturnManager
 	db          DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewUserHandler(logger *zap.Logger, config *di.Config, secrets *libsdi.SecretsManager, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *UserHandler {
+func NewUserHandler(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *UserHandler {
 	return &UserHandler{
 		logger:      logger,
 		config:      config,
-		secrets:     secrets,
+		jwtHandler:  jwtHandler,
 		returns:     returns,
 		db:          db,
 		fileStorage: fileStorage,
@@ -44,9 +44,16 @@ type tokenPair struct {
 }
 
 func (h *UserHandler) issueTokenPair(uuidStr string) tokenPair {
-	_, priKey, kid := h.secrets.GetKeyInfo(h.config.JWTStorePath)
-	access := libshelpers.GenerateJwt(libshelpers.JWTSubjectNormal, uuidStr, priKey, kid, h.config.JWTExpirationNormal)
-	refresh := libshelpers.GenerateJwt(libshelpers.JWTSubjectRefresh, uuidStr, priKey, kid, h.config.JWTExpirationRefresh)
+	access := h.jwtHandler.GenerateJwt(
+		libsdi.JWTSubjectNormal,
+		uuidStr,
+		h.config.JWTExpirationNormal,
+	)
+	refresh := h.jwtHandler.GenerateJwt(
+		libsdi.JWTSubjectRefresh,
+		uuidStr,
+		h.config.JWTExpirationRefresh,
+	)
 	return tokenPair{
 		AccessToken:  access,
 		RefreshToken: refresh,
@@ -175,9 +182,13 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	uuidStr := uuid.UUID(user.Uuid.Bytes).String()
+	tokens := h.issueTokenPair(uuidStr)
 	logger.Info("user logged in successfully",
 		zap.String("user_uuid", uuidStr))
-	h.returns.ReturnJSON(w, h.issueTokenPair(uuidStr), http.StatusOK)
+	h.logger.Info("token pair issued",
+		zap.String("user_uuid", uuidStr),
+		zap.String("operation", "login"))
+	h.returns.ReturnJSON(w, tokens, http.StatusOK)
 }
 
 func (h *UserHandler) Renew(w http.ResponseWriter, r *http.Request) {
@@ -186,8 +197,16 @@ func (h *UserHandler) Renew(w http.ResponseWriter, r *http.Request) {
 		h.returns.ReturnError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	_, priKey, kid := h.secrets.GetKeyInfo(h.config.JWTStorePath)
-	access := libshelpers.GenerateJwt(libshelpers.JWTSubjectNormal, uuidStr, priKey, kid, h.config.JWTExpirationNormal)
+
+	access := h.jwtHandler.GenerateJwt(
+		libsdi.JWTSubjectNormal,
+		uuidStr,
+		h.config.JWTExpirationNormal,
+	)
+
+	h.logger.Info("access token renewed",
+		zap.String("user_uuid", uuidStr))
+
 	h.returns.ReturnJSON(w, map[string]string{"access_token": access}, http.StatusOK)
 }
 
