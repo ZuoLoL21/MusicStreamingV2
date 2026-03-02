@@ -1,5 +1,7 @@
 package vault_v2
 
+import "fmt"
+
 type SigningMethodVault struct {
 	Algorithm string
 }
@@ -15,20 +17,28 @@ type SigningKey struct {
 }
 
 func (h *SigningMethodVault) Sign(signingString string, key interface{}) ([]byte, error) {
-	data := key.(*SigningKey)
+	data, ok := key.(*SigningKey)
+	if !ok {
+		return nil, fmt.Errorf(ErrInvalidKey)
+	}
 
-	var version = data.Version
+	var previousVersion = data.Version
+	var version int32
 	var signature string
 	var err error
 
 	for {
-		signature, version, err = data.VaultHandler.Sign(nil, data.Version, data.ApplicationName, signingString)
+		signature, version, err = data.VaultHandler.Sign(nil, previousVersion, data.ApplicationName, signingString)
 
 		if err != nil {
 			return nil, err
 		}
-		if version != data.Version {
-			data.Version = version
+		if version != previousVersion {
+			if !UpdateVersion(version, previousVersion) {
+				previousVersion = GetVersion()
+			} else {
+				previousVersion = version
+			}
 			continue
 		}
 		break
@@ -38,7 +48,10 @@ func (h *SigningMethodVault) Sign(signingString string, key interface{}) ([]byte
 }
 
 func (h *SigningMethodVault) Verify(signingString string, sig []byte, key interface{}) error {
-	data := key.(*SigningKey)
+	data, ok := key.(*SigningKey)
+	if !ok {
+		return fmt.Errorf(ErrInvalidKey)
+	}
 
 	return data.VaultHandler.Verify(nil, data.Version, data.ApplicationName, signingString, sig)
 }

@@ -27,4 +27,5 @@ const (
 	ErrInvalidToken      = "invalid token"
 	ErrInvalidTransitKey = "invalid transit key"
 	ErrInvalidFormat     = "invalid format"
+	ErrInvalidKey        = "invalid key: must be of type *SigningKey"
 )

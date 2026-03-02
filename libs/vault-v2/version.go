@@ -11,3 +11,7 @@ func SetVersion(version int32) {
 func GetVersion() int32 {
 	return atomic.LoadInt32(&counter)
 }
+
+func UpdateVersion(version int32, previous int32) bool {
+	return atomic.CompareAndSwapInt32(&counter, previous, version)
+}
