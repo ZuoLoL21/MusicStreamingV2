@@ -1,10 +1,25 @@
 package di
 
 import (
+	"fmt"
 	"libs/vault"
+	"strconv"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 )
+
+const (
+	JWTSubjectNormal  = "normal"
+	JWTSubjectRefresh = "refresh"
+	JWTSubjectService = "service"
+)
+
+type MyCustomClaims struct {
+	Uuid string `json:"uuid"`
+	jwt.RegisteredClaims
+}
 
 // JWTConfig combines the required configuration interfaces for JWT management
 type JWTConfig interface {
@@ -13,16 +28,22 @@ type JWTConfig interface {
 }
 
 // GetJWTHandler initializes and returns a fully configured JWT handler using Vault Transit
-func GetJWTHandler(logger *zap.Logger, config JWTConfig, applicationName string) *vault.JWTHandler {
+func GetJWTHandler(logger *zap.Logger, config JWTConfig, applicationName string) *JWTHandler {
 	vaultClient, err := vault.NewVaultClient(logger, config)
 	if err != nil {
 		logger.Fatal("failed to initialize vault client",
 			zap.Error(err))
 	}
 
+	if err := vault.InitializeKeyVersion(vaultClient, applicationName, logger); err != nil {
+		logger.Fatal("failed to initialize key version",
+			zap.String("application_name", applicationName),
+			zap.Error(err))
+	}
+
 	hashicorpHandler := vault.NewHashicorpHandler(vaultClient, config)
 
-	jwtHandler := vault.NewJWTManager()
+	jwtHandler := NewJWTManager()
 	jwtHandler.VaultHandler = hashicorpHandler
 	jwtHandler.ApplicationName = applicationName
 
@@ -30,4 +51,94 @@ func GetJWTHandler(logger *zap.Logger, config JWTConfig, applicationName string)
 		zap.String("application_name", applicationName))
 
 	return jwtHandler
+}
+
+type JWTHandler struct {
+	VaultHandler    *vault.HashicorpHandler
+	ApplicationName string
+}
+
+func NewJWTManager() *JWTHandler {
+	signingAlg := &vault.SigningMethodVault{vault.HeaderAlgorithm}
+
+	jwt.RegisterSigningMethod(
+		signingAlg.Alg(),
+		func() jwt.SigningMethod { return signingAlg },
+	)
+	return &JWTHandler{}
+}
+
+func (h *JWTHandler) GenerateJwt(subject string, uuid string, duration time.Duration) string {
+	claims := MyCustomClaims{
+		Uuid: uuid,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   subject,
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
+		},
+	}
+	t := jwt.NewWithClaims(
+		jwt.GetSigningMethod(vault.HeaderAlgorithm),
+		claims,
+	)
+
+	kid := vault.GetVersion()
+	t.Header[vault.HeaderKeyID] = kid
+	t.Header[vault.HeaderAppName] = h.ApplicationName
+
+	key := vault.SigningKey{
+		VaultHandler:    h.VaultHandler,
+		ApplicationName: h.ApplicationName,
+		Version:         kid,
+	}
+	s, err := t.SignedString(key)
+
+	if err != nil {
+		panic(err)
+	}
+	return s
+}
+
+func (h *JWTHandler) ValidateJwt(
+	subject string,
+	tokenStr string,
+) (string, error) {
+	claims := &MyCustomClaims{}
+	token, err := jwt.ParseWithClaims(
+		tokenStr,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			kid, ok := token.Header[vault.HeaderKeyID]
+			if !ok {
+				return nil, fmt.Errorf(vault.ErrKIDMissing)
+			}
+
+			kidI, err := strconv.ParseInt(kid.(string), 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf(vault.ErrKIDNotInt, err)
+			}
+
+			appName, ok := token.Header[vault.HeaderAppName]
+			if !ok {
+				return nil, fmt.Errorf(vault.ErrAppNameMissing)
+			}
+
+			return vault.SigningKey{
+				VaultHandler:    h.VaultHandler,
+				ApplicationName: appName.(string),
+				Version:         int32(kidI),
+			}, nil
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+
+	if claims, ok := token.Claims.(*MyCustomClaims); ok && token.Valid {
+		if claims.Subject != subject {
+			return "", fmt.Errorf(vault.ErrInvalidSubject, subject, claims.Subject)
+		}
+		return claims.Uuid, nil
+	}
+	return "", fmt.Errorf(vault.ErrInvalidToken)
 }
