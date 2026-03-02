@@ -139,8 +139,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
-      - ./services/database_minio/defaults:/defaults:ro
-      - ./services/database_minio/init.sh:/scripts/init.sh:ro
+      - ./services/init_database_minio/defaults:/defaults:ro
+      - ./services/init_database_minio/init.sh:/scripts/init.sh:ro
     entrypoint: ["/bin/sh", "/scripts/init.sh"]
     depends_on:
       database-minio:
@@ -154,6 +154,30 @@ services:
       options:
         fluentd-address: localhost:24224
         tag: infrastructure.init_minio
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
+
+  init-vault:
+    image: hashicorp/vault
+    container_name: init-vault
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN}
+    volumes:
+      - ./services/init_hashicorp_vault/init.sh:/scripts/init.sh:ro
+    entrypoint: ["/bin/sh", "/scripts/init.sh"]
+    depends_on:
+      vault:
+        condition: service_started
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - vault-net
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: infrastructure.init_vault
         fluentd-async: "true"
         fluentd-max-retries: "10"
 
@@ -180,8 +204,8 @@ services:
     depends_on:
       database-postgres-user:
         condition: service_healthy
-      vault:
-        condition: service_started
+      init-vault:
+        condition: service_completed_successfully
       database-minio:
         condition: service_healthy
       logging-fluentd:
@@ -250,8 +274,8 @@ services:
     depends_on:
       database-clickhouse:
         condition: service_started
-      vault:
-        condition: service_started
+      init-vault:
+        condition: service_completed_successfully
       logging-fluentd:
         condition: service_started
     networks:
@@ -285,8 +309,8 @@ services:
         condition: service_started
       service-bandit:
         condition: service_started
-      vault:
-        condition: service_started
+      init-vault:
+        condition: service_completed_successfully
       logging-fluentd:
         condition: service_started
     networks:
@@ -322,8 +346,8 @@ services:
         condition: service_started
       gateway-recommendation:
         condition: service_started
-      vault:
-        condition: service_started
+      init-vault:
+        condition: service_completed_successfully
       logging-fluentd:
         condition: service_started
     networks:

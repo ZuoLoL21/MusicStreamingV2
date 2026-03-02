@@ -1,10 +1,10 @@
 services:
   # EFK Stack
   logging-fluentd:
-    build: ./services/fluentd
+    build: services/config_fluentd
     container_name: fluentd
     volumes:
-      - ./services/fluentd/conf:/fluentd/etc
+      - ./services/config_fluentd/conf:/fluentd/etc
     depends_on:
       logging-elasticsearch:
         condition: service_healthy
