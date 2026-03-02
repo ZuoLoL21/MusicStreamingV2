@@ -115,7 +115,7 @@ services:
     image: hashicorp/vault
     container_name: vault
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: root
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN}
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
     ports:
       - "127.0.0.1:8200:8200"
@@ -170,7 +170,7 @@ services:
       JWT_TIME_IN_M_NORMAL: ${JWT_TIME_IN_M_NORMAL}
       JWT_TIME_IN_D_REFRESH: ${JWT_TIME_IN_D_REFRESH}
       VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: root
+      VAULT_TOKEN: ${VAULT_TOKEN}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
@@ -244,15 +244,20 @@ services:
       WAREHOUSE_URL: ${CLICKHOUSE_CONNECTION_STRING}
       TABLE_NAME: popularity_data
       JWT_STORE_PATH: ${JWT_STORE_PATH}
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN}
       ENVIRONMENT: ${ENVIRONMENT:-development}
     depends_on:
       database-clickhouse:
+        condition: service_started
+      vault:
         condition: service_started
       logging-fluentd:
         condition: service_started
     networks:
       - clickhouse-net
       - general
+      - vault-net
     logging:
       driver: fluentd
       options:
@@ -273,7 +278,7 @@ services:
       BANDIT_SERVICE_URL: ${BANDIT_SERVICE_URL}
       JWT_STORE_PATH: ${JWT_STORE_PATH}
       VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: root
+      VAULT_TOKEN: ${VAULT_TOKEN}
       ENVIRONMENT: ${ENVIRONMENT:-development}
     depends_on:
       service-popularity:
@@ -310,7 +315,7 @@ services:
       JWT_STORE_PATH: ${JWT_STORE_PATH}
       JWT_TIME_IN_M_SERVICE: ${JWT_TIME_IN_M_SERVICE}
       VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: root
+      VAULT_TOKEN: ${VAULT_TOKEN}
       ENVIRONMENT: ${ENVIRONMENT:-development}
     depends_on:
       service-user-database:
