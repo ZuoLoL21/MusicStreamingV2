@@ -2,92 +2,106 @@ package vault
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"errors"
+	"encoding/base64"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
 
-	vault "github.com/hashicorp/vault/api"
+	vault "github.com/hashicorp/vault-client-go"
+	"github.com/hashicorp/vault-client-go/schema"
 )
 
-type KeyPair struct {
-	PrivateKey *ecdsa.PrivateKey
-	PublicKey  *ecdsa.PublicKey
-	KID        string
+// HashicorpConfig is the interface that services must implement to use HashicorpHandler (e.g. Config must have these methods)
+type HashicorpConfig interface {
+	GetJWTTimeout() time.Duration
+}
+type HashicorpHandler struct {
+	Client     *vault.Client
+	JWTTimeout time.Duration
 }
 
-const (
-	vaultPrivateKeyField = "private_key_pem"
-	vaultPublicKeyField  = "public_key_pem"
-	vaultKIDField        = "kid"
-)
-
-func LoadOrCreateKeyPair(
-	ctx context.Context,
-	client *vault.Client,
-	secretPath string,
-) (*KeyPair, error) {
-	key, err := LoadKeyPair(ctx, client, secretPath)
-	if err == nil {
-		return key, nil
-	}
-
-	if !errors.Is(err, vault.ErrSecretNotFound) {
-		return nil, err
-	}
-
-	key, err = generateKeyPair()
-	if err != nil {
-		return nil, err
-	}
-
-	err = storeKeyPair(ctx, client, secretPath, key)
-	if err != nil {
-		return LoadKeyPair(ctx, client, secretPath)
-	}
-
-	return key, nil
+func NewHashicorpHandler(c *vault.Client, config HashicorpConfig) *HashicorpHandler {
+	return &HashicorpHandler{Client: c, JWTTimeout: config.GetJWTTimeout()}
 }
 
-func LoadKeyPair(
+func (h *HashicorpHandler) Sign(
 	ctx context.Context,
-	client *vault.Client,
-	secretPath string,
-) (*KeyPair, error) {
+	keyVersion int32,
+	applicationName string,
+	signingString string) (string, int32, error) {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), h.JWTTimeout)
+		defer cancel()
+	}
 
-	secret, err := client.KVv2("secret").Get(ctx, secretPath)
+	resp, err := h.Client.Secrets.TransitSign(
+		ctx,
+		applicationName,
+		schema.TransitSignRequest{
+			Input:               base64.StdEncoding.EncodeToString([]byte(signingString)),
+			HashAlgorithm:       VaultHashAlgorithm,
+			MarshalingAlgorithm: VaultMarshalingAlg,
+			KeyVersion:          keyVersion,
+		},
+		vault.WithMountPath(VaultMountPath),
+	)
 	if err != nil {
-		return nil, err
+		return "", 0, err
 	}
 
-	data := secret.Data
-
-	priPEM, ok := data[vaultPrivateKeyField].(string)
+	signature, ok := resp.Data[VaultSignatureKey].(string)
 	if !ok {
-		return nil, errors.New("invalid private key format in vault")
+		panic(resp.Data)
 	}
 
-	pubPEM, ok := data[vaultPublicKeyField].(string)
-	if !ok {
-		return nil, errors.New("invalid public key format in vault")
+	parts := strings.Split(signature, ":")
+	if len(parts) != 3 || parts[0] != VaultSignaturePrefix {
+		panic(ErrInvalidFormat)
 	}
 
-	kid, ok := data[vaultKIDField].(string)
-	if !ok {
-		return nil, errors.New("missing kid in vault")
-	}
-
-	privateKey, err := parsePrivateKeyPEM([]byte(priPEM))
+	version, err := strconv.ParseInt(parts[1][1:], 10, 32)
 	if err != nil {
-		return nil, err
+		panic(err)
+	}
+	signature = parts[2]
+
+	return signature, int32(version), nil
+}
+
+func (h *HashicorpHandler) Verify(ctx context.Context, keyVersion int32, applicationName string, signingString string, sig []byte) error {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), h.JWTTimeout)
+		defer cancel()
 	}
 
-	publicKey, err := parsePublicKeyPEM([]byte(pubPEM))
+	prependedSignature := fmt.Sprintf(VaultSignatureFormat, keyVersion, sig)
+
+	resp, err := h.Client.Secrets.TransitVerify(
+		ctx,
+		applicationName,
+		schema.TransitVerifyRequest{
+			Input:               base64.StdEncoding.EncodeToString([]byte(signingString)),
+			Signature:           base64.StdEncoding.EncodeToString([]byte(prependedSignature)),
+			HashAlgorithm:       VaultHashAlgorithm,
+			MarshalingAlgorithm: VaultMarshalingAlg,
+		},
+		vault.WithMountPath(VaultMountPath),
+	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &KeyPair{
-		PrivateKey: privateKey,
-		PublicKey:  publicKey,
-		KID:        kid,
-	}, nil
+	valid, ok := resp.Data[VaultValidKey].(bool)
+	if !ok {
+		panic(resp.Data)
+	}
+
+	if !valid {
+		return fmt.Errorf(ErrInvalidTransitKey)
+	}
+
+	return nil
 }

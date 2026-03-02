@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"libs/di"
-	"libs/helpers"
+	"libs/vault"
 	"net/http"
 	"time"
 
@@ -21,9 +21,8 @@ type ServiceJWTConfig interface {
 // ServiceJWTHandler generates service JWTs for authenticated requests
 type ServiceJWTHandler struct {
 	logger        *zap.Logger
-	secrets       *di.SecretsManager
+	jwtHandler    *vault.JWTHandler
 	returns       *di.ReturnManager
-	jwtStorePath  string
 	duration      time.Duration
 	uuidKey       di.ContextKey
 	serviceJWTKey di.ContextKey
@@ -33,9 +32,8 @@ type ServiceJWTHandler struct {
 func NewServiceJWTHandler(
 	logger *zap.Logger,
 	config ServiceJWTConfig,
-	secrets *di.SecretsManager,
+	jwtHandler *vault.JWTHandler,
 	returns *di.ReturnManager,
-	jwtStorePath string,
 	duration time.Duration,
 ) *ServiceJWTHandler {
 	uuidKey, uuidOk := config.GetUserUUIDKey()
@@ -50,9 +48,8 @@ func NewServiceJWTHandler(
 
 	return &ServiceJWTHandler{
 		logger:        logger,
-		secrets:       secrets,
+		jwtHandler:    jwtHandler,
 		returns:       returns,
-		jwtStorePath:  jwtStorePath,
 		duration:      duration,
 		uuidKey:       uuidKey.(di.ContextKey),
 		serviceJWTKey: serviceJWTKey.(di.ContextKey),
@@ -72,10 +69,20 @@ func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 				return
 			}
 
-			_, privateKey, kid := h.secrets.GetKeyInfo(h.jwtStorePath)
+			// Generate service JWT using Vault Transit
+			serviceJWT := h.jwtHandler.GenerateJwt(vault.JWTSubjectService, uuid, h.duration)
+			if serviceJWT == "" {
+				h.logger.Error("failed to generate service JWT",
+					zap.String("user_uuid", uuid))
+				h.returns.ReturnError(w, "internal server error: failed to generate service token", http.StatusInternalServerError)
+				return
+			}
+
+			h.logger.Info("service JWT generated",
+				zap.String("user_uuid", uuid),
+				zap.Duration("ttl", h.duration))
 
 			// Add service JWT to context
-			serviceJWT := helpers.GenerateServiceJwt(uuid, privateKey, kid, h.duration)
 			ctx := context.WithValue(r.Context(), h.serviceJWTKey, serviceJWT)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

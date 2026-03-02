@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"libs/di"
+	"libs/vault"
 	"net/http"
 	"strings"
-
-	libshelpers "libs/helpers"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -18,19 +17,31 @@ type AuthConfig interface {
 }
 
 type AuthHandler struct {
-	logger  *zap.Logger
-	secrets *di.SecretsManager
-	returns *di.ReturnManager
-	subject string
-	uuidKey di.ContextKey
+	logger     *zap.Logger
+	jwtHandler *vault.JWTHandler
+	returns    *di.ReturnManager
+	subject    string
+	uuidKey    di.ContextKey
 }
 
-func NewAuthHandler(logger *zap.Logger, config AuthConfig, secrets *di.SecretsManager, returns *di.ReturnManager, subject string) *AuthHandler {
+func NewAuthHandler(
+	logger *zap.Logger,
+	config AuthConfig,
+	jwtHandler *vault.JWTHandler,
+	returns *di.ReturnManager,
+	subject string,
+) *AuthHandler {
 	uuidKey, ok := config.GetUserUUIDKey()
 	if !ok {
 		logger.Error("not able to initialize AuthHandler: no user uuid key")
 	}
-	return &AuthHandler{logger: logger, secrets: secrets, returns: returns, subject: subject, uuidKey: uuidKey.(di.ContextKey)}
+	return &AuthHandler{
+		logger:     logger,
+		jwtHandler: jwtHandler,
+		returns:    returns,
+		subject:    subject,
+		uuidKey:    uuidKey.(di.ContextKey),
+	}
 }
 
 func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
@@ -75,10 +86,24 @@ func (h *AuthHandler) authenticate(token string, subject string) (string, error)
 		return "", fmt.Errorf("invalid jwt")
 	}
 
-	uuid, err := libshelpers.ValidateJwt(subject, token, h.secrets.GetPublicKeyFunc())
+	uuid, err := h.jwtHandler.ValidateJwt(subject, token)
 	if err != nil {
-		h.logger.Info("auth failed", zap.Error(err))
+		if strings.Contains(err.Error(), "transit") || strings.Contains(err.Error(), "vault") {
+			h.logger.Error("vault transit verify failed",
+				zap.String("operation", "ValidateJwt"),
+				zap.Error(err))
+		} else {
+			h.logger.Warn("authentication failed",
+				zap.String("subject", subject),
+				zap.String("reason", "invalid_token"),
+				zap.Error(err))
+		}
 		return "", fmt.Errorf("invalid jwt: %v", err.Error())
 	}
+
+	h.logger.Info("authentication successful",
+		zap.String("subject", subject),
+		zap.String("user_uuid", uuid))
+
 	return uuid, nil
 }

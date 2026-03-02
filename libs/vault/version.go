@@ -1,4 +1,4 @@
-package vault_v2
+package vault
 
 import "sync/atomic"
 

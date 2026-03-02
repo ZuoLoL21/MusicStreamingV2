@@ -1,4 +1,4 @@
-package vault_v2
+package vault
 
 const (
 	// JWT Header Keys
@@ -28,4 +28,6 @@ const (
 	ErrInvalidTransitKey = "invalid transit key"
 	ErrInvalidFormat     = "invalid format"
 	ErrInvalidKey        = "invalid key: must be of type *SigningKey"
+	ErrVaultAddrMissing  = "VAULT_ADDR environment variable not set"
+	ErrVaultTokenMissing = "VAULT_TOKEN environment variable not set"
 )
