@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"libs/consts"
 	libsdi "libs/di"
 
 	"github.com/joho/godotenv"
@@ -73,8 +74,8 @@ func LoadConfig(logger *zap.Logger) *Config {
 
 	// Set default application name if not provided
 	if applicationName == "" {
-		applicationName = "service_popularity_system"
-		slogger.Warn("VAULT_APPLICATION_NAME environment variable is not set, using default: service_popularity_system")
+		applicationName = consts.VaultAppPopularitySystem
+		slogger.Warnf("VAULT_APPLICATION_NAME environment variable is not set, using default: %s", applicationName)
 	}
 
 	return &Config{
