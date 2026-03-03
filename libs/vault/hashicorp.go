@@ -120,11 +120,11 @@ func (h *HashicorpHandler) Verify(
 		defer cancel()
 	}
 
-	prependedSignature := fmt.Sprintf(VaultSignatureFormat, keyVersion, sig)
+	vaultSignature := fmt.Sprintf(VaultSignatureFormat, keyVersion, string(sig))
 
 	payload := map[string]interface{}{
 		"input":                base64.StdEncoding.EncodeToString([]byte(signingString)),
-		"signature":            base64.StdEncoding.EncodeToString([]byte(prependedSignature)),
+		"signature":            vaultSignature,
 		"hash_algorithm":       VaultHashAlgorithm,
 		"marshaling_algorithm": VaultMarshalingAlg,
 	}
