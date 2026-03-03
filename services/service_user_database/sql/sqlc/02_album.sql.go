@@ -17,10 +17,10 @@ VALUES ($1, $2, $3, $4)
 `
 
 type CreateAlbumParams struct {
-	FromArtist   pgtype.UUID
-	OriginalName string
-	Description  pgtype.Text
-	ImagePath    pgtype.Text
+	FromArtist   pgtype.UUID `json:"from_artist"`
+	OriginalName string      `json:"original_name"`
+	Description  pgtype.Text `json:"description"`
+	ImagePath    pgtype.Text `json:"image_path"`
 }
 
 // ---- PUT
@@ -82,10 +82,10 @@ LIMIT $2
 `
 
 type GetAlbumsForArtistParams struct {
-	FromArtist pgtype.UUID
-	Limit      int32
-	Column3    pgtype.Timestamptz
-	Uuid       pgtype.UUID
+	FromArtist pgtype.UUID        `json:"from_artist"`
+	Limit      int32              `json:"limit"`
+	Column3    pgtype.Timestamptz `json:"column_3"`
+	Uuid       pgtype.UUID        `json:"uuid"`
 }
 
 func (q *Queries) GetAlbumsForArtist(ctx context.Context, arg GetAlbumsForArtistParams) ([]Album, error) {
@@ -124,11 +124,11 @@ func (q *Queries) GetAlbumsForArtist(ctx context.Context, arg GetAlbumsForArtist
 const searchForAlbum = `-- name: SearchForAlbum :many
 SELECT
     al.uuid, al.from_artist, al.original_name, al.description, al.image_path, al.created_at, al.updated_at,
-    similarity(al.original_name, $1) AS similarity_score
+    similarity(al.original_name, $1)::float AS similarity_score
 FROM album al
 WHERE al.original_name % $1
 AND (
-    $3::float IS NULL
+    $3 < 0
     OR (
         similarity(al.original_name, $1) < $3
         OR (similarity(al.original_name, $1) = $3 AND al.created_at < $4)
@@ -139,21 +139,21 @@ LIMIT $2
 `
 
 type SearchForAlbumParams struct {
-	Similarity interface{}
-	Limit      int32
-	Column3    float64
-	CreatedAt  pgtype.Timestamp
+	Similarity interface{}      `json:"similarity"`
+	Limit      int32            `json:"limit"`
+	Column3    interface{}      `json:"column_3"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
 }
 
 type SearchForAlbumRow struct {
-	Uuid            pgtype.UUID
-	FromArtist      pgtype.UUID
-	OriginalName    string
-	Description     pgtype.Text
-	ImagePath       pgtype.Text
-	CreatedAt       pgtype.Timestamp
-	UpdatedAt       pgtype.Timestamp
-	SimilarityScore interface{}
+	Uuid            pgtype.UUID      `json:"uuid"`
+	FromArtist      pgtype.UUID      `json:"from_artist"`
+	OriginalName    string           `json:"original_name"`
+	Description     pgtype.Text      `json:"description"`
+	ImagePath       pgtype.Text      `json:"image_path"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
+	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
+	SimilarityScore float64          `json:"similarity_score"`
 }
 
 func (q *Queries) SearchForAlbum(ctx context.Context, arg SearchForAlbumParams) ([]SearchForAlbumRow, error) {
@@ -198,9 +198,9 @@ WHERE uuid = $1
 `
 
 type UpdateAlbumParams struct {
-	Uuid         pgtype.UUID
-	OriginalName string
-	Description  pgtype.Text
+	Uuid         pgtype.UUID `json:"uuid"`
+	OriginalName string      `json:"original_name"`
+	Description  pgtype.Text `json:"description"`
 }
 
 // ---- POST
@@ -216,8 +216,8 @@ WHERE uuid = $1
 `
 
 type UpdateAlbumImageParams struct {
-	Uuid      pgtype.UUID
-	ImagePath pgtype.Text
+	Uuid      pgtype.UUID `json:"uuid"`
+	ImagePath pgtype.Text `json:"image_path"`
 }
 
 func (q *Queries) UpdateAlbumImage(ctx context.Context, arg UpdateAlbumImageParams) error {

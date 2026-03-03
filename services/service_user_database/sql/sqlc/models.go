@@ -32,8 +32,8 @@ func (e *ArtistMemberRole) Scan(src interface{}) error {
 }
 
 type NullArtistMemberRole struct {
-	ArtistMemberRole ArtistMemberRole
-	Valid            bool // Valid is true if ArtistMemberRole is not NULL
+	ArtistMemberRole ArtistMemberRole `json:"artist_member_role"`
+	Valid            bool             `json:"valid"` // Valid is true if ArtistMemberRole is not NULL
 }
 
 // Scan implements the Scanner interface.
@@ -55,120 +55,120 @@ func (ns NullArtistMemberRole) Value() (driver.Value, error) {
 }
 
 type Album struct {
-	Uuid         pgtype.UUID
-	FromArtist   pgtype.UUID
-	OriginalName string
-	Description  pgtype.Text
-	ImagePath    pgtype.Text
-	CreatedAt    pgtype.Timestamp
-	UpdatedAt    pgtype.Timestamp
+	Uuid         pgtype.UUID      `json:"uuid"`
+	FromArtist   pgtype.UUID      `json:"from_artist"`
+	OriginalName string           `json:"original_name"`
+	Description  pgtype.Text      `json:"description"`
+	ImagePath    pgtype.Text      `json:"image_path"`
+	CreatedAt    pgtype.Timestamp `json:"created_at"`
+	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
 }
 
 type Artist struct {
-	Uuid             pgtype.UUID
-	ArtistName       string
-	Bio              pgtype.Text
-	ProfileImagePath pgtype.Text
-	CreatedAt        pgtype.Timestamp
-	UpdatedAt        pgtype.Timestamp
+	Uuid             pgtype.UUID      `json:"uuid"`
+	ArtistName       string           `json:"artist_name"`
+	Bio              pgtype.Text      `json:"bio"`
+	ProfileImagePath pgtype.Text      `json:"profile_image_path"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
 }
 
 type ArtistMember struct {
-	Uuid       pgtype.UUID
-	ArtistUuid pgtype.UUID
-	UserUuid   pgtype.UUID
-	Role       ArtistMemberRole
-	JoinedAt   pgtype.Timestamp
-	UpdatedAt  pgtype.Timestamp
+	Uuid       pgtype.UUID      `json:"uuid"`
+	ArtistUuid pgtype.UUID      `json:"artist_uuid"`
+	UserUuid   pgtype.UUID      `json:"user_uuid"`
+	Role       ArtistMemberRole `json:"role"`
+	JoinedAt   pgtype.Timestamp `json:"joined_at"`
+	UpdatedAt  pgtype.Timestamp `json:"updated_at"`
 }
 
 type Follow struct {
-	Uuid      pgtype.UUID
-	FromUser  pgtype.UUID
-	ToUser    pgtype.UUID
-	ToArtist  pgtype.UUID
-	CreatedAt pgtype.Timestamp
+	Uuid      pgtype.UUID      `json:"uuid"`
+	FromUser  pgtype.UUID      `json:"from_user"`
+	ToUser    pgtype.UUID      `json:"to_user"`
+	ToArtist  pgtype.UUID      `json:"to_artist"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
 }
 
 type Like struct {
-	Uuid      pgtype.UUID
-	FromUser  pgtype.UUID
-	ToMusic   pgtype.UUID
-	CreatedAt pgtype.Timestamp
+	Uuid      pgtype.UUID      `json:"uuid"`
+	FromUser  pgtype.UUID      `json:"from_user"`
+	ToMusic   pgtype.UUID      `json:"to_music"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
 }
 
 type ListeningHistory struct {
-	Uuid                  pgtype.UUID
-	UserUuid              pgtype.UUID
-	MusicUuid             pgtype.UUID
-	PlayedAt              pgtype.Timestamp
-	ListenDurationSeconds pgtype.Int4
-	CompletionPercentage  pgtype.Numeric
+	Uuid                  pgtype.UUID      `json:"uuid"`
+	UserUuid              pgtype.UUID      `json:"user_uuid"`
+	MusicUuid             pgtype.UUID      `json:"music_uuid"`
+	PlayedAt              pgtype.Timestamp `json:"played_at"`
+	ListenDurationSeconds pgtype.Int4      `json:"listen_duration_seconds"`
+	CompletionPercentage  pgtype.Numeric   `json:"completion_percentage"`
 }
 
 type Music struct {
-	Uuid              pgtype.UUID
-	FromArtist        pgtype.UUID
-	UploadedBy        pgtype.UUID
-	InAlbum           pgtype.UUID
-	SongName          string
-	CreatedAt         pgtype.Timestamp
-	UpdatedAt         pgtype.Timestamp
-	PathInFileStorage string
-	ImagePath         pgtype.Text
-	PlayCount         pgtype.Int4
-	DurationSeconds   int32
+	Uuid              pgtype.UUID      `json:"uuid"`
+	FromArtist        pgtype.UUID      `json:"from_artist"`
+	UploadedBy        pgtype.UUID      `json:"uploaded_by"`
+	InAlbum           pgtype.UUID      `json:"in_album"`
+	SongName          string           `json:"song_name"`
+	CreatedAt         pgtype.Timestamp `json:"created_at"`
+	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+	PathInFileStorage string           `json:"path_in_file_storage"`
+	ImagePath         pgtype.Text      `json:"image_path"`
+	PlayCount         pgtype.Int4      `json:"play_count"`
+	DurationSeconds   int32            `json:"duration_seconds"`
 }
 
 type MusicTag struct {
-	TagName        string
-	TagDescription pgtype.Text
-	CreatedAt      pgtype.Timestamp
+	TagName        string           `json:"tag_name"`
+	TagDescription pgtype.Text      `json:"tag_description"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
 }
 
 type Playlist struct {
-	Uuid         pgtype.UUID
-	FromUser     pgtype.UUID
-	OriginalName string
-	Description  pgtype.Text
-	IsPublic     pgtype.Bool
-	ImagePath    pgtype.Text
-	CreatedAt    pgtype.Timestamp
-	UpdatedAt    pgtype.Timestamp
+	Uuid         pgtype.UUID      `json:"uuid"`
+	FromUser     pgtype.UUID      `json:"from_user"`
+	OriginalName string           `json:"original_name"`
+	Description  pgtype.Text      `json:"description"`
+	IsPublic     pgtype.Bool      `json:"is_public"`
+	ImagePath    pgtype.Text      `json:"image_path"`
+	CreatedAt    pgtype.Timestamp `json:"created_at"`
+	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
 }
 
 type PlaylistTrack struct {
-	Uuid         pgtype.UUID
-	MusicUuid    pgtype.UUID
-	Position     int32
-	PlaylistUuid pgtype.UUID
-	AddedAt      pgtype.Timestamp
+	Uuid         pgtype.UUID      `json:"uuid"`
+	MusicUuid    pgtype.UUID      `json:"music_uuid"`
+	Position     int32            `json:"position"`
+	PlaylistUuid pgtype.UUID      `json:"playlist_uuid"`
+	AddedAt      pgtype.Timestamp `json:"added_at"`
 }
 
 type PublicUser struct {
-	Uuid             pgtype.UUID
-	Username         string
-	Email            string
-	Bio              pgtype.Text
-	ProfileImagePath pgtype.Text
-	CreatedAt        pgtype.Timestamp
-	UpdatedAt        pgtype.Timestamp
+	Uuid             pgtype.UUID      `json:"uuid"`
+	Username         string           `json:"username"`
+	Email            string           `json:"email"`
+	Bio              pgtype.Text      `json:"bio"`
+	ProfileImagePath pgtype.Text      `json:"profile_image_path"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
 }
 
 type TagAssignment struct {
-	Uuid      pgtype.UUID
-	MusicUuid pgtype.UUID
-	TagName   string
-	CreatedAt pgtype.Timestamp
+	Uuid      pgtype.UUID      `json:"uuid"`
+	MusicUuid pgtype.UUID      `json:"music_uuid"`
+	TagName   string           `json:"tag_name"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
 }
 
 type User struct {
-	Uuid             pgtype.UUID
-	Username         string
-	Email            string
-	HashedPassword   string
-	Bio              pgtype.Text
-	ProfileImagePath pgtype.Text
-	CreatedAt        pgtype.Timestamp
-	UpdatedAt        pgtype.Timestamp
+	Uuid             pgtype.UUID      `json:"uuid"`
+	Username         string           `json:"username"`
+	Email            string           `json:"email"`
+	HashedPassword   string           `json:"hashed_password"`
+	Bio              pgtype.Text      `json:"bio"`
+	ProfileImagePath pgtype.Text      `json:"profile_image_path"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
 }

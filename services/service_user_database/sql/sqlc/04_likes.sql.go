@@ -55,10 +55,10 @@ LIMIT $2
 `
 
 type GetLikesForUserParams struct {
-	FromUser pgtype.UUID
-	Limit    int32
-	Column3  pgtype.Timestamptz
-	Uuid     pgtype.UUID
+	FromUser pgtype.UUID        `json:"from_user"`
+	Limit    int32              `json:"limit"`
+	Column3  pgtype.Timestamptz `json:"column_3"`
+	Uuid     pgtype.UUID        `json:"uuid"`
 }
 
 func (q *Queries) GetLikesForUser(ctx context.Context, arg GetLikesForUserParams) ([]Music, error) {
@@ -108,8 +108,8 @@ SELECT EXISTS (
 `
 
 type IsLikedParams struct {
-	FromUser pgtype.UUID
-	ToMusic  pgtype.UUID
+	FromUser pgtype.UUID `json:"from_user"`
+	ToMusic  pgtype.UUID `json:"to_music"`
 }
 
 func (q *Queries) IsLiked(ctx context.Context, arg IsLikedParams) (bool, error) {
@@ -125,8 +125,8 @@ VALUES ($1, $2)
 `
 
 type LikeMusicParams struct {
-	FromUser pgtype.UUID
-	ToMusic  pgtype.UUID
+	FromUser pgtype.UUID `json:"from_user"`
+	ToMusic  pgtype.UUID `json:"to_music"`
 }
 
 // ---- PUT
@@ -141,8 +141,8 @@ WHERE from_user = $1 AND to_music = $2
 `
 
 type UnlikeMusicParams struct {
-	FromUser pgtype.UUID
-	ToMusic  pgtype.UUID
+	FromUser pgtype.UUID `json:"from_user"`
+	ToMusic  pgtype.UUID `json:"to_music"`
 }
 
 // ---- DELETE

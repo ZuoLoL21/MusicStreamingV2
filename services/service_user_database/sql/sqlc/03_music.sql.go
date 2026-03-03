@@ -17,12 +17,12 @@ VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type CreateMusicParams struct {
-	FromArtist        pgtype.UUID
-	UploadedBy        pgtype.UUID
-	InAlbum           pgtype.UUID
-	SongName          string
-	PathInFileStorage string
-	DurationSeconds   int32
+	FromArtist        pgtype.UUID `json:"from_artist"`
+	UploadedBy        pgtype.UUID `json:"uploaded_by"`
+	InAlbum           pgtype.UUID `json:"in_album"`
+	SongName          string      `json:"song_name"`
+	PathInFileStorage string      `json:"path_in_file_storage"`
+	DurationSeconds   int32       `json:"duration_seconds"`
 }
 
 // ---- PUT
@@ -90,10 +90,10 @@ LIMIT $2
 `
 
 type GetMusicForAlbumParams struct {
-	InAlbum pgtype.UUID
-	Limit   int32
-	Column3 pgtype.Timestamptz
-	Uuid    pgtype.UUID
+	InAlbum pgtype.UUID        `json:"in_album"`
+	Limit   int32              `json:"limit"`
+	Column3 pgtype.Timestamptz `json:"column_3"`
+	Uuid    pgtype.UUID        `json:"uuid"`
 }
 
 func (q *Queries) GetMusicForAlbum(ctx context.Context, arg GetMusicForAlbumParams) ([]Music, error) {
@@ -148,10 +148,10 @@ LIMIT $2
 `
 
 type GetMusicForArtistParams struct {
-	FromArtist pgtype.UUID
-	Limit      int32
-	Column3    pgtype.Timestamptz
-	Uuid       pgtype.UUID
+	FromArtist pgtype.UUID        `json:"from_artist"`
+	Limit      int32              `json:"limit"`
+	Column3    pgtype.Timestamptz `json:"column_3"`
+	Uuid       pgtype.UUID        `json:"uuid"`
 }
 
 func (q *Queries) GetMusicForArtist(ctx context.Context, arg GetMusicForArtistParams) ([]Music, error) {
@@ -206,10 +206,10 @@ LIMIT $2
 `
 
 type GetMusicForUserParams struct {
-	UploadedBy pgtype.UUID
-	Limit      int32
-	Column3    pgtype.Timestamptz
-	Uuid       pgtype.UUID
+	UploadedBy pgtype.UUID        `json:"uploaded_by"`
+	Limit      int32              `json:"limit"`
+	Column3    pgtype.Timestamptz `json:"column_3"`
+	Uuid       pgtype.UUID        `json:"uuid"`
 }
 
 func (q *Queries) GetMusicForUser(ctx context.Context, arg GetMusicForUserParams) ([]Music, error) {
@@ -274,11 +274,11 @@ func (q *Queries) ResetPlayCount(ctx context.Context, uuid pgtype.UUID) error {
 const searchForMusic = `-- name: SearchForMusic :many
 SELECT
     m.uuid, m.from_artist, m.uploaded_by, m.in_album, m.song_name, m.created_at, m.updated_at, m.path_in_file_storage, m.image_path, m.play_count, m.duration_seconds,
-    similarity(m.song_name, $1) AS similarity_score
+    similarity(m.song_name, $1)::float AS similarity_score
 FROM music m
 WHERE m.song_name % $1
 AND (
-    $3::float IS NULL
+    $3 < 0
     OR (
         similarity(m.song_name, $1) < $3
         OR (similarity(m.song_name, $1) = $3 AND m.created_at < $4)
@@ -289,25 +289,25 @@ LIMIT $2
 `
 
 type SearchForMusicParams struct {
-	Similarity interface{}
-	Limit      int32
-	Column3    float64
-	CreatedAt  pgtype.Timestamp
+	Similarity interface{}      `json:"similarity"`
+	Limit      int32            `json:"limit"`
+	Column3    interface{}      `json:"column_3"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
 }
 
 type SearchForMusicRow struct {
-	Uuid              pgtype.UUID
-	FromArtist        pgtype.UUID
-	UploadedBy        pgtype.UUID
-	InAlbum           pgtype.UUID
-	SongName          string
-	CreatedAt         pgtype.Timestamp
-	UpdatedAt         pgtype.Timestamp
-	PathInFileStorage string
-	ImagePath         pgtype.Text
-	PlayCount         pgtype.Int4
-	DurationSeconds   int32
-	SimilarityScore   interface{}
+	Uuid              pgtype.UUID      `json:"uuid"`
+	FromArtist        pgtype.UUID      `json:"from_artist"`
+	UploadedBy        pgtype.UUID      `json:"uploaded_by"`
+	InAlbum           pgtype.UUID      `json:"in_album"`
+	SongName          string           `json:"song_name"`
+	CreatedAt         pgtype.Timestamp `json:"created_at"`
+	UpdatedAt         pgtype.Timestamp `json:"updated_at"`
+	PathInFileStorage string           `json:"path_in_file_storage"`
+	ImagePath         pgtype.Text      `json:"image_path"`
+	PlayCount         pgtype.Int4      `json:"play_count"`
+	DurationSeconds   int32            `json:"duration_seconds"`
+	SimilarityScore   float64          `json:"similarity_score"`
 }
 
 func (q *Queries) SearchForMusic(ctx context.Context, arg SearchForMusicParams) ([]SearchForMusicRow, error) {
@@ -356,9 +356,9 @@ WHERE uuid = $1
 `
 
 type UpdateMusicDetailsParams struct {
-	Uuid     pgtype.UUID
-	SongName string
-	InAlbum  pgtype.UUID
+	Uuid     pgtype.UUID `json:"uuid"`
+	SongName string      `json:"song_name"`
+	InAlbum  pgtype.UUID `json:"in_album"`
 }
 
 // ---- POST
@@ -375,9 +375,9 @@ WHERE uuid = $1
 `
 
 type UpdateMusicStorageParams struct {
-	Uuid              pgtype.UUID
-	PathInFileStorage string
-	DurationSeconds   int32
+	Uuid              pgtype.UUID `json:"uuid"`
+	PathInFileStorage string      `json:"path_in_file_storage"`
+	DurationSeconds   int32       `json:"duration_seconds"`
 }
 
 func (q *Queries) UpdateMusicStorage(ctx context.Context, arg UpdateMusicStorageParams) error {

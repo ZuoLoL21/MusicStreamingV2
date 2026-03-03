@@ -17,9 +17,9 @@ VALUES ($1, $2, $3)
 `
 
 type AddUserToArtistParams struct {
-	ArtistUuid pgtype.UUID
-	UserUuid   pgtype.UUID
-	Role       ArtistMemberRole
+	ArtistUuid pgtype.UUID      `json:"artist_uuid"`
+	UserUuid   pgtype.UUID      `json:"user_uuid"`
+	Role       ArtistMemberRole `json:"role"`
 }
 
 // ---- PUT
@@ -35,9 +35,9 @@ WHERE artist_uuid = $1 AND user_uuid = $2
 `
 
 type ChangeUserRoleParams struct {
-	ArtistUuid pgtype.UUID
-	UserUuid   pgtype.UUID
-	Role       ArtistMemberRole
+	ArtistUuid pgtype.UUID      `json:"artist_uuid"`
+	UserUuid   pgtype.UUID      `json:"user_uuid"`
+	Role       ArtistMemberRole `json:"role"`
 }
 
 // ---- POST
@@ -58,10 +58,10 @@ FROM new_artist
 `
 
 type CreateArtistParams struct {
-	UserUuid         pgtype.UUID
-	ArtistName       string
-	Bio              pgtype.Text
-	ProfileImagePath pgtype.Text
+	UserUuid         pgtype.UUID `json:"user_uuid"`
+	ArtistName       string      `json:"artist_name"`
+	Bio              pgtype.Text `json:"bio"`
+	ProfileImagePath pgtype.Text `json:"profile_image_path"`
 }
 
 // ---- PUT
@@ -105,14 +105,14 @@ WHERE am.user_uuid = $1
 `
 
 type GetArtistForUserRow struct {
-	Uuid             pgtype.UUID
-	ArtistName       string
-	Bio              pgtype.Text
-	ProfileImagePath pgtype.Text
-	CreatedAt        pgtype.Timestamp
-	UpdatedAt        pgtype.Timestamp
-	Role             ArtistMemberRole
-	JoinedAt         pgtype.Timestamp
+	Uuid             pgtype.UUID      `json:"uuid"`
+	ArtistName       string           `json:"artist_name"`
+	Bio              pgtype.Text      `json:"bio"`
+	ProfileImagePath pgtype.Text      `json:"profile_image_path"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
+	Role             ArtistMemberRole `json:"role"`
+	JoinedAt         pgtype.Timestamp `json:"joined_at"`
 }
 
 func (q *Queries) GetArtistForUser(ctx context.Context, userUuid pgtype.UUID) ([]GetArtistForUserRow, error) {
@@ -158,9 +158,9 @@ LIMIT $1
 `
 
 type GetArtistsAlphabeticallyParams struct {
-	Limit      int32
-	ArtistName string
-	Column3    pgtype.Timestamptz
+	Limit      int32              `json:"limit"`
+	ArtistName string             `json:"artist_name"`
+	Column3    pgtype.Timestamptz `json:"column_3"`
 }
 
 func (q *Queries) GetArtistsAlphabetically(ctx context.Context, arg GetArtistsAlphabeticallyParams) ([]Artist, error) {
@@ -200,15 +200,15 @@ WHERE am.artist_uuid = $1
 `
 
 type GetUsersRepresentingArtistRow struct {
-	Uuid             pgtype.UUID
-	Username         string
-	Email            string
-	Bio              pgtype.Text
-	ProfileImagePath pgtype.Text
-	CreatedAt        pgtype.Timestamp
-	UpdatedAt        pgtype.Timestamp
-	Role             ArtistMemberRole
-	JoinedAt         pgtype.Timestamp
+	Uuid             pgtype.UUID      `json:"uuid"`
+	Username         string           `json:"username"`
+	Email            string           `json:"email"`
+	Bio              pgtype.Text      `json:"bio"`
+	ProfileImagePath pgtype.Text      `json:"profile_image_path"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
+	Role             ArtistMemberRole `json:"role"`
+	JoinedAt         pgtype.Timestamp `json:"joined_at"`
 }
 
 // ---- DELETE
@@ -251,8 +251,8 @@ WHERE artist_uuid = $1 AND user_uuid = $2
 `
 
 type RemoveUserFromArtistParams struct {
-	ArtistUuid pgtype.UUID
-	UserUuid   pgtype.UUID
+	ArtistUuid pgtype.UUID `json:"artist_uuid"`
+	UserUuid   pgtype.UUID `json:"user_uuid"`
 }
 
 // ---- DELETE
@@ -264,11 +264,11 @@ func (q *Queries) RemoveUserFromArtist(ctx context.Context, arg RemoveUserFromAr
 const searchForArtist = `-- name: SearchForArtist :many
 SELECT
     a.uuid, a.artist_name, a.bio, a.profile_image_path, a.created_at, a.updated_at,
-    similarity(a.artist_name, $1) AS similarity_score
+    similarity(a.artist_name, $1)::float AS similarity_score
 FROM artist a
 WHERE a.artist_name % $1
 AND (
-    $3::float IS NULL
+    $3 < 0
     OR (
         similarity(a.artist_name, $1) < $3
         OR (similarity(a.artist_name, $1) = $3 AND a.created_at < $4)
@@ -279,20 +279,20 @@ LIMIT $2
 `
 
 type SearchForArtistParams struct {
-	Similarity interface{}
-	Limit      int32
-	Column3    float64
-	CreatedAt  pgtype.Timestamp
+	Similarity interface{}      `json:"similarity"`
+	Limit      int32            `json:"limit"`
+	Column3    interface{}      `json:"column_3"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
 }
 
 type SearchForArtistRow struct {
-	Uuid             pgtype.UUID
-	ArtistName       string
-	Bio              pgtype.Text
-	ProfileImagePath pgtype.Text
-	CreatedAt        pgtype.Timestamp
-	UpdatedAt        pgtype.Timestamp
-	SimilarityScore  interface{}
+	Uuid             pgtype.UUID      `json:"uuid"`
+	ArtistName       string           `json:"artist_name"`
+	Bio              pgtype.Text      `json:"bio"`
+	ProfileImagePath pgtype.Text      `json:"profile_image_path"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
+	SimilarityScore  float64          `json:"similarity_score"`
 }
 
 func (q *Queries) SearchForArtist(ctx context.Context, arg SearchForArtistParams) ([]SearchForArtistRow, error) {
@@ -335,8 +335,8 @@ WHERE uuid = $1
 `
 
 type UpdateArtistPictureParams struct {
-	Uuid             pgtype.UUID
-	ProfileImagePath pgtype.Text
+	Uuid             pgtype.UUID `json:"uuid"`
+	ProfileImagePath pgtype.Text `json:"profile_image_path"`
 }
 
 func (q *Queries) UpdateArtistPicture(ctx context.Context, arg UpdateArtistPictureParams) error {
@@ -352,9 +352,9 @@ WHERE uuid = $1
 `
 
 type UpdateArtistProfileParams struct {
-	Uuid       pgtype.UUID
-	ArtistName string
-	Bio        pgtype.Text
+	Uuid       pgtype.UUID `json:"uuid"`
+	ArtistName string      `json:"artist_name"`
+	Bio        pgtype.Text `json:"bio"`
 }
 
 // ---- POST

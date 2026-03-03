@@ -17,9 +17,9 @@ VALUES ($1, $2, $3)
 `
 
 type AddTrackToPlaylistParams struct {
-	MusicUuid    pgtype.UUID
-	Position     int32
-	PlaylistUuid pgtype.UUID
+	MusicUuid    pgtype.UUID `json:"music_uuid"`
+	Position     int32       `json:"position"`
+	PlaylistUuid pgtype.UUID `json:"playlist_uuid"`
 }
 
 func (q *Queries) AddTrackToPlaylist(ctx context.Context, arg AddTrackToPlaylistParams) error {
@@ -33,11 +33,11 @@ VALUES ($1, $2, $3, $4, $5)
 `
 
 type CreatePlaylistParams struct {
-	FromUser     pgtype.UUID
-	OriginalName string
-	Description  pgtype.Text
-	IsPublic     pgtype.Bool
-	ImagePath    pgtype.Text
+	FromUser     pgtype.UUID `json:"from_user"`
+	OriginalName string      `json:"original_name"`
+	Description  pgtype.Text `json:"description"`
+	IsPublic     pgtype.Bool `json:"is_public"`
+	ImagePath    pgtype.Text `json:"image_path"`
 }
 
 // ---- PUT
@@ -59,8 +59,8 @@ AND is_user_allowed_playlist_edit($1, $2)
 `
 
 type DeletePlaylistParams struct {
-	UserUuid pgtype.UUID
-	Uuid     pgtype.UUID
+	UserUuid pgtype.UUID `json:"user_uuid"`
+	Uuid     pgtype.UUID `json:"uuid"`
 }
 
 func (q *Queries) DeletePlaylist(ctx context.Context, arg DeletePlaylistParams) error {
@@ -106,9 +106,9 @@ LIMIT $2
 `
 
 type GetPlaylistTracksParams struct {
-	PlaylistUuid pgtype.UUID
-	Limit        int32
-	Column3      int32
+	PlaylistUuid pgtype.UUID `json:"playlist_uuid"`
+	Limit        int32       `json:"limit"`
+	Column3      int32       `json:"column_3"`
 }
 
 func (q *Queries) GetPlaylistTracks(ctx context.Context, arg GetPlaylistTracksParams) ([]Music, error) {
@@ -161,10 +161,10 @@ ORDER BY updated_at DESC, uuid DESC
 `
 
 type GetPlaylistsParams struct {
-	FromUser pgtype.UUID
-	Limit    int32
-	Column3  pgtype.Timestamptz
-	Uuid     pgtype.UUID
+	FromUser pgtype.UUID        `json:"from_user"`
+	Limit    int32              `json:"limit"`
+	Column3  pgtype.Timestamptz `json:"column_3"`
+	Uuid     pgtype.UUID        `json:"uuid"`
 }
 
 func (q *Queries) GetPlaylists(ctx context.Context, arg GetPlaylistsParams) ([]Playlist, error) {
@@ -216,10 +216,10 @@ LIMIT $2
 `
 
 type GetPlaylistsForUserParams struct {
-	FromUser pgtype.UUID
-	Limit    int32
-	Column3  pgtype.Timestamptz
-	Uuid     pgtype.UUID
+	FromUser pgtype.UUID        `json:"from_user"`
+	Limit    int32              `json:"limit"`
+	Column3  pgtype.Timestamptz `json:"column_3"`
+	Uuid     pgtype.UUID        `json:"uuid"`
 }
 
 func (q *Queries) GetPlaylistsForUser(ctx context.Context, arg GetPlaylistsForUserParams) ([]Playlist, error) {
@@ -263,9 +263,9 @@ AND is_user_allowed_playlist_edit($1, $2)
 `
 
 type RemoveTrackFromPlaylistParams struct {
-	UserUuid     pgtype.UUID
-	PlaylistUuid pgtype.UUID
-	MusicUuid    pgtype.UUID
+	UserUuid     pgtype.UUID `json:"user_uuid"`
+	PlaylistUuid pgtype.UUID `json:"playlist_uuid"`
+	MusicUuid    pgtype.UUID `json:"music_uuid"`
 }
 
 // ---- DELETE
@@ -277,12 +277,12 @@ func (q *Queries) RemoveTrackFromPlaylist(ctx context.Context, arg RemoveTrackFr
 const searchForPlaylist = `-- name: SearchForPlaylist :many
 SELECT
     p.uuid, p.from_user, p.original_name, p.description, p.is_public, p.image_path, p.created_at, p.updated_at,
-    similarity(p.original_name, $1) AS similarity_score
+    similarity(p.original_name, $1)::float AS similarity_score
 FROM playlist p
 WHERE p.original_name % $1
 AND (p.is_public = TRUE OR p.from_user = $3)
 AND (
-    $4::float IS NULL
+    $4 < 0
     OR (
         similarity(p.original_name, $1) < $4
         OR (similarity(p.original_name, $1) = $4 AND p.created_at < $5)
@@ -293,23 +293,23 @@ LIMIT $2
 `
 
 type SearchForPlaylistParams struct {
-	Similarity interface{}
-	Limit      int32
-	FromUser   pgtype.UUID
-	Column4    float64
-	CreatedAt  pgtype.Timestamp
+	Similarity interface{}      `json:"similarity"`
+	Limit      int32            `json:"limit"`
+	FromUser   pgtype.UUID      `json:"from_user"`
+	Column4    interface{}      `json:"column_4"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
 }
 
 type SearchForPlaylistRow struct {
-	Uuid            pgtype.UUID
-	FromUser        pgtype.UUID
-	OriginalName    string
-	Description     pgtype.Text
-	IsPublic        pgtype.Bool
-	ImagePath       pgtype.Text
-	CreatedAt       pgtype.Timestamp
-	UpdatedAt       pgtype.Timestamp
-	SimilarityScore interface{}
+	Uuid            pgtype.UUID      `json:"uuid"`
+	FromUser        pgtype.UUID      `json:"from_user"`
+	OriginalName    string           `json:"original_name"`
+	Description     pgtype.Text      `json:"description"`
+	IsPublic        pgtype.Bool      `json:"is_public"`
+	ImagePath       pgtype.Text      `json:"image_path"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
+	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
+	SimilarityScore float64          `json:"similarity_score"`
 }
 
 func (q *Queries) SearchForPlaylist(ctx context.Context, arg SearchForPlaylistParams) ([]SearchForPlaylistRow, error) {
@@ -358,11 +358,11 @@ AND is_user_allowed_playlist_edit($1, $2)
 `
 
 type UpdatePlaylistParams struct {
-	UserUuid     pgtype.UUID
-	Uuid         pgtype.UUID
-	OriginalName string
-	Description  pgtype.Text
-	IsPublic     pgtype.Bool
+	UserUuid     pgtype.UUID `json:"user_uuid"`
+	Uuid         pgtype.UUID `json:"uuid"`
+	OriginalName string      `json:"original_name"`
+	Description  pgtype.Text `json:"description"`
+	IsPublic     pgtype.Bool `json:"is_public"`
 }
 
 // ---- POST
@@ -385,9 +385,9 @@ AND is_user_allowed_playlist_edit($1, $2)
 `
 
 type UpdatePlaylistImageParams struct {
-	UserUuid  pgtype.UUID
-	Uuid      pgtype.UUID
-	ImagePath pgtype.Text
+	UserUuid  pgtype.UUID `json:"user_uuid"`
+	Uuid      pgtype.UUID `json:"uuid"`
+	ImagePath pgtype.Text `json:"image_path"`
 }
 
 func (q *Queries) UpdatePlaylistImage(ctx context.Context, arg UpdatePlaylistImageParams) error {
@@ -403,10 +403,10 @@ AND is_user_allowed_playlist_edit($1, $2)
 `
 
 type UpdateTrackPositionParams struct {
-	UserUuid     pgtype.UUID
-	PlaylistUuid pgtype.UUID
-	Uuid         pgtype.UUID
-	Position     int32
+	UserUuid     pgtype.UUID `json:"user_uuid"`
+	PlaylistUuid pgtype.UUID `json:"playlist_uuid"`
+	Uuid         pgtype.UUID `json:"uuid"`
+	Position     int32       `json:"position"`
 }
 
 func (q *Queries) UpdateTrackPosition(ctx context.Context, arg UpdateTrackPositionParams) error {

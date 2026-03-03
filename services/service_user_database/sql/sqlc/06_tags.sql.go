@@ -17,8 +17,8 @@ VALUES ($1, $2)
 `
 
 type AssignTagToMusicParams struct {
-	MusicUuid pgtype.UUID
-	TagName   string
+	MusicUuid pgtype.UUID `json:"music_uuid"`
+	TagName   string      `json:"tag_name"`
 }
 
 func (q *Queries) AssignTagToMusic(ctx context.Context, arg AssignTagToMusicParams) error {
@@ -32,8 +32,8 @@ VALUES ($1, $2)
 `
 
 type CreateTagParams struct {
-	TagName        string
-	TagDescription pgtype.Text
+	TagName        string      `json:"tag_name"`
+	TagDescription pgtype.Text `json:"tag_description"`
 }
 
 // ---- PUT
@@ -53,8 +53,8 @@ LIMIT $1
 `
 
 type GetAllTagsParams struct {
-	Limit   int32
-	Column2 string
+	Limit   int32  `json:"limit"`
+	Column2 string `json:"column_2"`
 }
 
 // ------------- Tags -----------------
@@ -97,10 +97,10 @@ LIMIT $2
 `
 
 type GetMusicForTagParams struct {
-	TagName string
-	Limit   int32
-	Column3 pgtype.Timestamptz
-	Uuid    pgtype.UUID
+	TagName string             `json:"tag_name"`
+	Limit   int32              `json:"limit"`
+	Column3 pgtype.Timestamptz `json:"column_3"`
+	Uuid    pgtype.UUID        `json:"uuid"`
 }
 
 func (q *Queries) GetMusicForTag(ctx context.Context, arg GetMusicForTagParams) ([]Music, error) {
@@ -167,9 +167,9 @@ LIMIT $2
 `
 
 type GetTagsForMusicParams struct {
-	MusicUuid pgtype.UUID
-	Limit     int32
-	Column3   string
+	MusicUuid pgtype.UUID `json:"music_uuid"`
+	Limit     int32       `json:"limit"`
+	Column3   string      `json:"column_3"`
 }
 
 func (q *Queries) GetTagsForMusic(ctx context.Context, arg GetTagsForMusicParams) ([]MusicTag, error) {
@@ -198,8 +198,8 @@ WHERE music_uuid = $1 AND tag_name = $2
 `
 
 type RemoveTagFromMusicParams struct {
-	MusicUuid pgtype.UUID
-	TagName   string
+	MusicUuid pgtype.UUID `json:"music_uuid"`
+	TagName   string      `json:"tag_name"`
 }
 
 // ---- DELETE

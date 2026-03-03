@@ -18,11 +18,11 @@ RETURNING uuid
 `
 
 type CreateUserParams struct {
-	Username         string
-	Email            string
-	HashedPassword   string
-	Bio              pgtype.Text
-	ProfileImagePath pgtype.Text
+	Username         string      `json:"username"`
+	Email            string      `json:"email"`
+	HashedPassword   string      `json:"hashed_password"`
+	Bio              pgtype.Text `json:"bio"`
+	ProfileImagePath pgtype.Text `json:"profile_image_path"`
 }
 
 // ---- PUT
@@ -97,11 +97,11 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 const searchForUser = `-- name: SearchForUser :many
 SELECT
     pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at,
-    similarity(pu.username, $1) AS similarity_score
+    similarity(pu.username, $1)::float AS similarity_score
 FROM public_user pu
 WHERE pu.username % $1
 AND (
-    $3::float IS NULL
+    $3 < 0
     OR (
         similarity(pu.username, $1) < $3
         OR (similarity(pu.username, $1) = $3 AND pu.created_at < $4)
@@ -112,21 +112,21 @@ LIMIT $2
 `
 
 type SearchForUserParams struct {
-	Similarity interface{}
-	Limit      int32
-	Column3    float64
-	CreatedAt  pgtype.Timestamp
+	Similarity interface{}      `json:"similarity"`
+	Limit      int32            `json:"limit"`
+	Column3    interface{}      `json:"column_3"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
 }
 
 type SearchForUserRow struct {
-	Uuid             pgtype.UUID
-	Username         string
-	Email            string
-	Bio              pgtype.Text
-	ProfileImagePath pgtype.Text
-	CreatedAt        pgtype.Timestamp
-	UpdatedAt        pgtype.Timestamp
-	SimilarityScore  interface{}
+	Uuid             pgtype.UUID      `json:"uuid"`
+	Username         string           `json:"username"`
+	Email            string           `json:"email"`
+	Bio              pgtype.Text      `json:"bio"`
+	ProfileImagePath pgtype.Text      `json:"profile_image_path"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
+	SimilarityScore  float64          `json:"similarity_score"`
 }
 
 func (q *Queries) SearchForUser(ctx context.Context, arg SearchForUserParams) ([]SearchForUserRow, error) {
@@ -170,8 +170,8 @@ WHERE uuid = $1
 `
 
 type UpdateEmailParams struct {
-	Uuid  pgtype.UUID
-	Email string
+	Uuid  pgtype.UUID `json:"uuid"`
+	Email string      `json:"email"`
 }
 
 func (q *Queries) UpdateEmail(ctx context.Context, arg UpdateEmailParams) error {
@@ -186,8 +186,8 @@ WHERE uuid = $1
 `
 
 type UpdateImageParams struct {
-	Uuid             pgtype.UUID
-	ProfileImagePath pgtype.Text
+	Uuid             pgtype.UUID `json:"uuid"`
+	ProfileImagePath pgtype.Text `json:"profile_image_path"`
 }
 
 func (q *Queries) UpdateImage(ctx context.Context, arg UpdateImageParams) error {
@@ -202,8 +202,8 @@ WHERE uuid = $1
 `
 
 type UpdatePasswordParams struct {
-	Uuid           pgtype.UUID
-	HashedPassword string
+	Uuid           pgtype.UUID `json:"uuid"`
+	HashedPassword string      `json:"hashed_password"`
 }
 
 // ---- POST
@@ -220,9 +220,9 @@ WHERE uuid = $1
 `
 
 type UpdateProfileParams struct {
-	Uuid     pgtype.UUID
-	Username string
-	Bio      pgtype.Text
+	Uuid     pgtype.UUID `json:"uuid"`
+	Username string      `json:"username"`
+	Bio      pgtype.Text `json:"bio"`
 }
 
 func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) error {

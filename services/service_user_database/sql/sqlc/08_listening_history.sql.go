@@ -17,10 +17,10 @@ VALUES ($1, $2, $3, $4)
 `
 
 type AddListeningHistoryEntryParams struct {
-	UserUuid              pgtype.UUID
-	MusicUuid             pgtype.UUID
-	ListenDurationSeconds pgtype.Int4
-	CompletionPercentage  pgtype.Numeric
+	UserUuid              pgtype.UUID    `json:"user_uuid"`
+	MusicUuid             pgtype.UUID    `json:"music_uuid"`
+	ListenDurationSeconds pgtype.Int4    `json:"listen_duration_seconds"`
+	CompletionPercentage  pgtype.Numeric `json:"completion_percentage"`
 }
 
 // ---- PUT
@@ -50,10 +50,10 @@ LIMIT $2
 `
 
 type GetListeningHistoryForUserParams struct {
-	UserUuid pgtype.UUID
-	Limit    int32
-	Column3  pgtype.Timestamptz
-	Uuid     pgtype.UUID
+	UserUuid pgtype.UUID        `json:"user_uuid"`
+	Limit    int32              `json:"limit"`
+	Column3  pgtype.Timestamptz `json:"column_3"`
+	Uuid     pgtype.UUID        `json:"uuid"`
 }
 
 // ------------- ListeningHistory -----------------
@@ -107,15 +107,15 @@ LIMIT $2
 `
 
 type GetTopMusicForUserParams struct {
-	UserUuid pgtype.UUID
-	Limit    int32
-	Column3  pgtype.UUID
-	Column4  interface{}
+	UserUuid pgtype.UUID `json:"user_uuid"`
+	Limit    int32       `json:"limit"`
+	Column3  pgtype.UUID `json:"column_3"`
+	Column4  interface{} `json:"column_4"`
 }
 
 type GetTopMusicForUserRow struct {
-	MusicUuid pgtype.UUID
-	PlayCount int64
+	MusicUuid pgtype.UUID `json:"music_uuid"`
+	PlayCount int64       `json:"play_count"`
 }
 
 func (q *Queries) GetTopMusicForUser(ctx context.Context, arg GetTopMusicForUserParams) ([]GetTopMusicForUserRow, error) {

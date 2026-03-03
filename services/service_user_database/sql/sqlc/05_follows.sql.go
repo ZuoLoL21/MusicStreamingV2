@@ -17,8 +17,8 @@ VALUES ($1, $2)
 `
 
 type FollowArtistParams struct {
-	FromUser pgtype.UUID
-	ToArtist pgtype.UUID
+	FromUser pgtype.UUID `json:"from_user"`
+	ToArtist pgtype.UUID `json:"to_artist"`
 }
 
 func (q *Queries) FollowArtist(ctx context.Context, arg FollowArtistParams) error {
@@ -32,8 +32,8 @@ VALUES ($1, $2)
 `
 
 type FollowUserParams struct {
-	FromUser pgtype.UUID
-	ToUser   pgtype.UUID
+	FromUser pgtype.UUID `json:"from_user"`
+	ToUser   pgtype.UUID `json:"to_user"`
 }
 
 // ---- PUT
@@ -73,10 +73,10 @@ ORDER BY f.created_at DESC, f.uuid DESC
 `
 
 type GetFollowedArtistsForUserParams struct {
-	FromUser pgtype.UUID
-	Limit    int32
-	Column3  pgtype.Timestamptz
-	Uuid     pgtype.UUID
+	FromUser pgtype.UUID        `json:"from_user"`
+	Limit    int32              `json:"limit"`
+	Column3  pgtype.Timestamptz `json:"column_3"`
+	Uuid     pgtype.UUID        `json:"uuid"`
 }
 
 func (q *Queries) GetFollowedArtistsForUser(ctx context.Context, arg GetFollowedArtistsForUserParams) ([]PublicUser, error) {
@@ -130,10 +130,10 @@ LIMIT $2
 `
 
 type GetFollowedUsersForUserParams struct {
-	FromUser pgtype.UUID
-	Limit    int32
-	Column3  pgtype.Timestamptz
-	Uuid     pgtype.UUID
+	FromUser pgtype.UUID        `json:"from_user"`
+	Limit    int32              `json:"limit"`
+	Column3  pgtype.Timestamptz `json:"column_3"`
+	Uuid     pgtype.UUID        `json:"uuid"`
 }
 
 func (q *Queries) GetFollowedUsersForUser(ctx context.Context, arg GetFollowedUsersForUserParams) ([]PublicUser, error) {
@@ -200,10 +200,10 @@ LIMIT $2
 `
 
 type GetFollowersForArtistParams struct {
-	ToArtist pgtype.UUID
-	Limit    int32
-	Column3  pgtype.Timestamptz
-	Uuid     pgtype.UUID
+	ToArtist pgtype.UUID        `json:"to_artist"`
+	Limit    int32              `json:"limit"`
+	Column3  pgtype.Timestamptz `json:"column_3"`
+	Uuid     pgtype.UUID        `json:"uuid"`
 }
 
 func (q *Queries) GetFollowersForArtist(ctx context.Context, arg GetFollowersForArtistParams) ([]PublicUser, error) {
@@ -257,10 +257,10 @@ LIMIT $2
 `
 
 type GetFollowersForUserParams struct {
-	ToUser  pgtype.UUID
-	Limit   int32
-	Column3 pgtype.Timestamptz
-	Uuid    pgtype.UUID
+	ToUser  pgtype.UUID        `json:"to_user"`
+	Limit   int32              `json:"limit"`
+	Column3 pgtype.Timestamptz `json:"column_3"`
+	Uuid    pgtype.UUID        `json:"uuid"`
 }
 
 // ------------- Follows -----------------
@@ -321,8 +321,8 @@ SELECT EXISTS (
 `
 
 type IsFollowingArtistParams struct {
-	FromUser pgtype.UUID
-	ToArtist pgtype.UUID
+	FromUser pgtype.UUID `json:"from_user"`
+	ToArtist pgtype.UUID `json:"to_artist"`
 }
 
 func (q *Queries) IsFollowingArtist(ctx context.Context, arg IsFollowingArtistParams) (bool, error) {
@@ -342,8 +342,8 @@ SELECT EXISTS (
 `
 
 type IsFollowingUserParams struct {
-	FromUser pgtype.UUID
-	ToUser   pgtype.UUID
+	FromUser pgtype.UUID `json:"from_user"`
+	ToUser   pgtype.UUID `json:"to_user"`
 }
 
 func (q *Queries) IsFollowingUser(ctx context.Context, arg IsFollowingUserParams) (bool, error) {
@@ -359,8 +359,8 @@ WHERE from_user = $1 AND to_artist = $2
 `
 
 type UnfollowArtistParams struct {
-	FromUser pgtype.UUID
-	ToArtist pgtype.UUID
+	FromUser pgtype.UUID `json:"from_user"`
+	ToArtist pgtype.UUID `json:"to_artist"`
 }
 
 func (q *Queries) UnfollowArtist(ctx context.Context, arg UnfollowArtistParams) error {
@@ -374,8 +374,8 @@ WHERE from_user = $1 AND to_user = $2
 `
 
 type UnfollowUserParams struct {
-	FromUser pgtype.UUID
-	ToUser   pgtype.UUID
+	FromUser pgtype.UUID `json:"from_user"`
+	ToUser   pgtype.UUID `json:"to_user"`
 }
 
 // ---- DELETE
