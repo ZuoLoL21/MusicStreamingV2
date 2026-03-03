@@ -187,6 +187,45 @@ services:
         fluentd-async: "true"
         fluentd-max-retries: "10"
 
+  init-music-data:
+    build:
+      context: ./services/init_music_data
+      dockerfile: Dockerfile
+    container_name: init-music-data
+    environment:
+      POSTGRES_HOST: database-postgres-user
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${USER_CRUD_USER}
+      POSTGRES_PASSWORD: ${USER_CRUD_PASSWORD}
+      POSTGRES_DB: ${USER_CRUD_DB}
+      MINIO_ENDPOINT: database-minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+      MINIO_USE_SSL: "false"
+    volumes:
+      - ./services/init_music_data/seed_music:/seed_music:ro
+    depends_on:
+      database-postgres-user:
+        condition: service_healthy
+      database-minio:
+        condition: service_healthy
+      init-minio:
+        condition: service_completed_successfully
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - user-db-net
+      - file-storage-net
+    restart: "no"
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: infrastructure.init_music_data
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
+
   # Services
   service-user-database:
     build:
@@ -393,6 +432,50 @@ services:
         fluentd-async: "true"
         fluentd-max-retries: "10"
 
+
+  # EFK Stack
+  logging-fluentd:
+    build: services/config_fluentd
+    container_name: fluentd
+    volumes:
+      - ./services/config_fluentd/conf:/fluentd/etc
+    depends_on:
+      logging-elasticsearch:
+        condition: service_healthy
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    networks:
+      - efk-net
+
+
+  logging-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.1
+    container_name: elasticsearch
+    hostname: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+    networks:
+      - efk-net
+
+
+  logging-kibana:
+    image: docker.elastic.co/kibana/kibana:8.17.1
+    container_name: kibana
+    depends_on:
+      logging-elasticsearch:
+        condition: service_healthy
+    ports:
+      - "5601:5601"
+    networks:
+      - efk-net
+
 volumes:
   user_data:
   bandit_data:
@@ -407,3 +490,4 @@ networks:
   file-storage-net:
   vault-net:
   general:
+  efk-net:
