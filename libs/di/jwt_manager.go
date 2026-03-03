@@ -29,19 +29,13 @@ type JWTConfig interface {
 
 // GetJWTHandler initializes and returns a fully configured JWT handler using Vault Transit
 func GetJWTHandler(logger *zap.Logger, config JWTConfig, applicationName string) *JWTHandler {
-	vaultClient, err := vault.NewVaultClient(logger, config)
-	if err != nil {
-		logger.Fatal("failed to initialize vault client",
-			zap.Error(err))
-	}
-
-	if err := vault.InitializeKeyVersion(vaultClient, applicationName, logger); err != nil {
+	if err := vault.InitializeKeyVersion(applicationName, logger, config); err != nil {
 		logger.Fatal("failed to initialize key version",
 			zap.String("application_name", applicationName),
 			zap.Error(err))
 	}
 
-	hashicorpHandler := vault.NewHashicorpHandler(vaultClient, config)
+	hashicorpHandler := vault.NewHashicorpHandler(config)
 
 	jwtHandler := NewJWTManager()
 	jwtHandler.VaultHandler = hashicorpHandler
@@ -59,7 +53,7 @@ type JWTHandler struct {
 }
 
 func NewJWTManager() *JWTHandler {
-	signingAlg := &vault.SigningMethodVault{vault.HeaderAlgorithm}
+	signingAlg := &vault.SigningMethodVault{Algorithm: vault.HeaderAlgorithm}
 
 	jwt.RegisterSigningMethod(
 		signingAlg.Alg(),
@@ -91,7 +85,7 @@ func (h *JWTHandler) GenerateJwt(subject string, uuid string, duration time.Dura
 		ApplicationName: h.ApplicationName,
 		Version:         kid,
 	}
-	s, err := t.SignedString(key)
+	s, err := t.SignedString(&key)
 
 	if err != nil {
 		panic(err)
@@ -113,9 +107,15 @@ func (h *JWTHandler) ValidateJwt(
 				return nil, fmt.Errorf(vault.ErrKIDMissing)
 			}
 
-			kidI, err := strconv.ParseInt(kid.(string), 10, 32)
-			if err != nil {
-				return nil, fmt.Errorf(vault.ErrKIDNotInt, err)
+			var kidI int64
+			if kidStr, ok := kid.(string); ok {
+				var err error
+				kidI, err = strconv.ParseInt(kidStr, 10, 32)
+				if err != nil {
+					return nil, fmt.Errorf(vault.ErrKIDNotInt, err)
+				}
+			} else {
+				kidI = int64(kid.(float64))
 			}
 
 			appName, ok := token.Header[vault.HeaderAppName]
@@ -123,7 +123,7 @@ func (h *JWTHandler) ValidateJwt(
 				return nil, fmt.Errorf(vault.ErrAppNameMissing)
 			}
 
-			return vault.SigningKey{
+			return &vault.SigningKey{
 				VaultHandler:    h.VaultHandler,
 				ApplicationName: appName.(string),
 				Version:         int32(kidI),

@@ -119,6 +119,12 @@ services:
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
     ports:
       - "127.0.0.1:8200:8200"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "--timeout=1", "http://127.0.0.1:8200/v1/sys/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     depends_on:
       logging-fluentd:
         condition: service_started
@@ -168,7 +174,7 @@ services:
     entrypoint: ["/bin/sh", "/scripts/init.sh"]
     depends_on:
       vault:
-        condition: service_started
+        condition: service_healthy
       logging-fluentd:
         condition: service_started
     networks:
