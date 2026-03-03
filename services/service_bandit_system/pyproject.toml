@@ -13,6 +13,7 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "pydantic>=2.12.5",
     "python-dotenv>=1.2.1",
+    "python-json-logger>=4.0.0",
     "sqlalchemy>=2.0.46",
     "structlog>=25.5.0",
     "typing>=3.10.0.0",

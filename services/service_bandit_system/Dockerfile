@@ -15,6 +15,7 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
 
+COPY logging.json ./
 COPY main.py ./
 COPY src ./src
 
@@ -23,4 +24,4 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8001
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--log-config", "logging.json"]
