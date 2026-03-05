@@ -13,21 +13,22 @@ import (
 )
 
 type Config struct {
-	Provider             string
-	DatabaseURL          string
-	MinIOEndpoint        string
-	MinIOAccessKey       string
-	MinIOSecretKey       string
-	MinIOBucketName      string
-	JWTStorePath         string
-	JWTExpirationNormal  time.Duration
-	JWTExpirationRefresh time.Duration
-	ApplicationName      string
-	JWTTimeout           time.Duration
-	VaultAddr            string
-	VaultToken           string
-	UserUUIDKey          libsdi.ContextKey
-	RequestIDKey         libsdi.ContextKey
+	Provider                 string
+	DatabaseURL              string
+	MinIOEndpoint            string
+	MinIOAccessKey           string
+	MinIOSecretKey           string
+	MinIOBucketName          string
+	EventIngestionServiceURL string
+	JWTStorePath             string
+	JWTExpirationNormal      time.Duration
+	JWTExpirationRefresh     time.Duration
+	ApplicationName          string
+	JWTTimeout               time.Duration
+	VaultAddr                string
+	VaultToken               string
+	UserUUIDKey              libsdi.ContextKey
+	RequestIDKey             libsdi.ContextKey
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -47,6 +48,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
 	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
 	minioBucketName := os.Getenv("MINIO_BUCKET_NAME")
+	eventIngestionServiceURL := os.Getenv("EVENT_INGESTION_SERVICE_URL")
 	jwtStorePath := os.Getenv("JWT_STORE_PATH")
 	jwtTimeNormalStr := os.Getenv("JWT_TIME_IN_M_NORMAL")
 	jwtTimeRefreshStr := os.Getenv("JWT_TIME_IN_D_REFRESH")
@@ -119,21 +121,22 @@ func LoadConfig(logger *zap.Logger) *Config {
 	}
 
 	return &Config{
-		Provider:             provider,
-		DatabaseURL:          databaseURL,
-		MinIOEndpoint:        minioEndpoint,
-		MinIOAccessKey:       minioAccessKey,
-		MinIOSecretKey:       minioSecretKey,
-		MinIOBucketName:      minioBucketName,
-		JWTStorePath:         jwtStorePath,
-		JWTExpirationNormal:  time.Minute * time.Duration(normalTime),
-		JWTExpirationRefresh: time.Hour * 24 * time.Duration(refreshTime),
-		ApplicationName:      applicationName,
-		JWTTimeout:           jwtTimeout,
-		VaultAddr:            vaultAddr,
-		VaultToken:           vaultToken,
-		UserUUIDKey:          libsdi.UserUUIDKey,
-		RequestIDKey:         libsdi.RequestIDKey,
+		Provider:                 provider,
+		DatabaseURL:              databaseURL,
+		MinIOEndpoint:            minioEndpoint,
+		MinIOAccessKey:           minioAccessKey,
+		MinIOSecretKey:           minioSecretKey,
+		MinIOBucketName:          minioBucketName,
+		EventIngestionServiceURL: eventIngestionServiceURL,
+		JWTStorePath:             jwtStorePath,
+		JWTExpirationNormal:      time.Minute * time.Duration(normalTime),
+		JWTExpirationRefresh:     time.Hour * 24 * time.Duration(refreshTime),
+		ApplicationName:          applicationName,
+		JWTTimeout:               jwtTimeout,
+		VaultAddr:                vaultAddr,
+		VaultToken:               vaultToken,
+		UserUUIDKey:              libsdi.UserUUIDKey,
+		RequestIDKey:             libsdi.RequestIDKey,
 	}
 }
 

@@ -1,7 +1,11 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http"
+	"time"
 
 	"backend/internal/di"
 	"backend/internal/storage"
@@ -9,6 +13,7 @@ import (
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
@@ -17,18 +22,22 @@ import (
 type TagsHandler struct {
 	logger      *zap.Logger
 	config      *di.Config
+	jwtHandler  *libsdi.JWTHandler
 	returns     *libsdi.ReturnManager
 	db          DB
 	fileStorage storage.FileStorageClient
+	httpClient  *http.Client
 }
 
-func NewTagsHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *TagsHandler {
+func NewTagsHandler(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *TagsHandler {
 	return &TagsHandler{
 		logger:      logger,
 		config:      config,
+		jwtHandler:  jwtHandler,
 		returns:     returns,
 		db:          db,
 		fileStorage: fileStorage,
+		httpClient:  &http.Client{Timeout: 5 * time.Second},
 	}
 }
 
@@ -177,6 +186,8 @@ func (h *TagsHandler) AssignTagToMusic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go h.syncThemeToClickHouse(musicUUID, name)
+
 	h.returns.ReturnText(w, "tag assigned to music", http.StatusOK)
 }
 
@@ -198,4 +209,56 @@ func (h *TagsHandler) RemoveTagFromMusic(w http.ResponseWriter, r *http.Request)
 	}
 
 	h.returns.ReturnText(w, "tag removed from music", http.StatusOK)
+}
+
+// syncThemeToClickHouse sends theme data to the event ingestion service
+func (h *TagsHandler) syncThemeToClickHouse(musicUUID pgtype.UUID, theme string) {
+	if h.config.EventIngestionServiceURL == "" {
+		return
+	}
+
+	musicUUIDStr := uuid.UUID(musicUUID.Bytes).String()
+
+	payload := map[string]interface{}{
+		"music_uuid": musicUUIDStr,
+		"theme":      theme,
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		h.logger.Error("failed to marshal theme payload", zap.Error(err))
+		return
+	}
+
+	req, err := http.NewRequest("POST", h.config.EventIngestionServiceURL+"/api/v1/events/theme", bytes.NewBuffer(jsonData))
+	if err != nil {
+		h.logger.Error("failed to create theme request", zap.Error(err))
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	serviceJWT := h.jwtHandler.GenerateJwt(
+		libsdi.JWTSubjectService,
+		"system",
+		2*time.Minute,
+	)
+	req.Header.Set("Authorization", "Bearer "+serviceJWT)
+
+	resp, err := h.httpClient.Do(req)
+	if err != nil {
+		h.logger.Warn("failed to sync theme to ClickHouse", zap.Error(err))
+		return
+	}
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		h.logger.Warn("theme sync failed", zap.Int("status", resp.StatusCode))
+	} else {
+		h.logger.Debug("theme synced to ClickHouse",
+			zap.String("music_uuid", musicUUIDStr),
+			zap.String("theme", theme))
+	}
 }

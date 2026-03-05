@@ -82,7 +82,7 @@ func (a *App) initHandlers() {
 		Music:    handlers.NewMusicHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		Likes:    handlers.NewLikesHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		Follows:  handlers.NewFollowsHandler(a.logger, a.config, a.returns, a.db),
-		Tags:     handlers.NewTagsHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
+		Tags:     handlers.NewTagsHandler(a.logger, a.config, a.jwtHandler, a.returns, a.db, a.fileStorage),
 		Playlist: handlers.NewPlaylistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		History:  handlers.NewHistoryHandler(a.logger, a.config, a.returns, a.db),
 		Search:   handlers.NewSearchHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),

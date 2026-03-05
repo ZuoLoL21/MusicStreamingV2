@@ -245,6 +245,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
       MINIO_USE_SSL: ${MINIO_USE_SSL}
+      EVENT_INGESTION_SERVICE_URL: ${EVENT_INGESTION_SERVICE_URL}
       ENVIRONMENT: ${ENVIRONMENT:-development}
     depends_on:
       database-postgres-user:
@@ -253,6 +254,8 @@ services:
         condition: service_completed_successfully
       database-minio:
         condition: service_healthy
+      service-event-ingestion:
+        condition: service_started
       logging-fluentd:
         condition: service_started
     networks:

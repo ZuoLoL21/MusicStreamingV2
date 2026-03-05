@@ -4,9 +4,13 @@ import (
 	"backend/internal/di"
 	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
+	"bytes"
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	libsdi "libs/di"
 	libshelpers "libs/helpers"
@@ -14,6 +18,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
@@ -24,6 +29,7 @@ type UserHandler struct {
 	returns     *libsdi.ReturnManager
 	db          DB
 	fileStorage storage.FileStorageClient
+	httpClient  *http.Client
 }
 
 func NewUserHandler(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *UserHandler {
@@ -34,6 +40,7 @@ func NewUserHandler(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JW
 		returns:     returns,
 		db:          db,
 		fileStorage: fileStorage,
+		httpClient:  &http.Client{Timeout: 5 * time.Second},
 	}
 }
 
@@ -84,6 +91,12 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	country := r.FormValue("country")
+	if country == "" || len(country) != 2 {
+		h.returns.ReturnError(w, "country required (ISO 3166-1 alpha-2 code)", http.StatusBadRequest)
+		return
+	}
+
 	var bio *string
 	if bioVal := r.FormValue("bio"); bioVal != "" {
 		bio = &bioVal
@@ -98,6 +111,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Email:          email,
 		HashedPassword: hashedPassword,
 		Bio:            bioText,
+		Country:        country,
 	})
 	if err != nil {
 		h.logger.Warn("failed to create user", zap.Error(err))
@@ -143,6 +157,8 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 			zap.String("userID", userID),
 			zap.Error(err))
 	}
+
+	go h.syncUserDimToClickHouse(createdUUID, country, time.Now())
 
 	uuidStr := uuid.UUID(createdUUID.Bytes).String()
 	h.returns.ReturnJSON(w, h.issueTokenPair(uuidStr), http.StatusCreated)
@@ -241,6 +257,7 @@ func (h *UserHandler) GetPublicUser(w http.ResponseWriter, r *http.Request) {
 type updateProfileRequest struct {
 	Username string  `json:"username" validate:"required,min=5"`
 	Bio      *string `json:"bio"`
+	Country  string  `json:"country" validate:"required,len=2"`
 }
 
 func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
@@ -260,11 +277,14 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		Uuid:     userUUID,
 		Username: body.Username,
 		Bio:      bio,
+		Country:  body.Country,
 	}); err != nil {
 		h.logger.Error("failed to update profile", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update profile", http.StatusInternalServerError)
 		return
 	}
+
+	go h.syncUserDimToClickHouse(userUUID, body.Country, time.Now())
 
 	h.returns.ReturnText(w, "profile updated", http.StatusOK)
 }
@@ -404,4 +424,54 @@ func (h *UserHandler) GetArtistForUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.returns.ReturnJSON(w, artists, http.StatusOK)
+}
+
+// syncUserDimToClickHouse sends user dimension data to the event ingestion service
+func (h *UserHandler) syncUserDimToClickHouse(userUUID pgtype.UUID, country string, createdAt time.Time) {
+	userUUIDStr := uuid.UUID(userUUID.Bytes).String()
+	if h.config.EventIngestionServiceURL == "" {
+		return
+	}
+
+	payload := map[string]interface{}{
+		"user_uuid":  userUUIDStr,
+		"created_at": createdAt.Format(time.RFC3339),
+		"country":    country,
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		h.logger.Error("failed to marshal user dim payload", zap.Error(err))
+		return
+	}
+
+	req, err := http.NewRequest("POST", h.config.EventIngestionServiceURL+"/api/v1/events/user", bytes.NewBuffer(jsonData))
+	if err != nil {
+		h.logger.Error("failed to create user dim request", zap.Error(err))
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	serviceJWT := h.jwtHandler.GenerateJwt(
+		libsdi.JWTSubjectService,
+		userUUIDStr,
+		2*time.Minute,
+	)
+	req.Header.Set("Authorization", "Bearer "+serviceJWT)
+
+	resp, err := h.httpClient.Do(req)
+	if err != nil {
+		h.logger.Warn("failed to sync user dim to ClickHouse", zap.Error(err))
+		return
+	}
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		h.logger.Warn("user dim sync failed", zap.Int("status", resp.StatusCode))
+	} else {
+		h.logger.Debug("user dim synced to ClickHouse", zap.String("user_uuid", userUUIDStr))
+	}
 }
