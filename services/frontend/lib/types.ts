@@ -4,6 +4,7 @@ export interface User {
   email: string;
   bio?: string;
   profile_image_path?: string;
+  country: string;
   created_at: string;
 }
 

@@ -14,14 +14,25 @@ export function Player() {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isLiked, setIsLiked] = useState(false);
+  const startTimeRef = useRef<number>(0);
+  const trackStartRef = useRef<number>(0);
 
   const { currentTrack, queue, currentIndex, playNext, playPrevious } = usePlayerStore();
 
   useEffect(() => {
     if (audioRef.current && currentTrack) {
+      // Send listen event for previous track if it was playing
+      if (startTimeRef.current > 0) {
+        sendListenEvent();
+      }
+
       audioRef.current.src = currentTrack.path_in_file_storage;
       audioRef.current.play();
       setIsPlaying(true);
+
+      // Track start time for listen event
+      startTimeRef.current = Date.now();
+      trackStartRef.current = 0;
 
       // Check if song is liked
       checkLiked();
@@ -30,6 +41,25 @@ export function Player() {
       api.incrementPlayCount(currentTrack.uuid).catch(() => {});
     }
   }, [currentTrack]);
+
+  const sendListenEvent = () => {
+    if (!currentTrack || startTimeRef.current === 0) return;
+
+    const listenDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
+    const trackDuration = currentTrack.duration_seconds;
+
+    if (listenDuration > 0) {
+      api.sendListenEvent(
+        currentTrack.uuid,
+        currentTrack.from_artist,
+        currentTrack.in_album || null,
+        listenDuration,
+        trackDuration
+      );
+    }
+
+    startTimeRef.current = 0;
+  };
 
   const checkLiked = async () => {
     if (!currentTrack) return;
@@ -52,6 +82,9 @@ export function Player() {
         await api.likeMusic(currentTrack.uuid);
         setIsLiked(true);
         toast.success('Added to liked songs');
+
+        // Track like event
+        api.sendLikeEvent(currentTrack.uuid, currentTrack.from_artist);
       }
     } catch (error: any) {
       toast.error('Failed to update like status');
@@ -63,8 +96,13 @@ export function Player() {
 
     if (isPlaying) {
       audioRef.current.pause();
+      // Send listen event when manually pausing
+      sendListenEvent();
+      startTimeRef.current = 0;
     } else {
       audioRef.current.play();
+      // Resume tracking
+      startTimeRef.current = Date.now();
     }
     setIsPlaying(!isPlaying);
   };
@@ -114,7 +152,10 @@ export function Player() {
         ref={audioRef}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
-        onEnded={playNext}
+        onEnded={() => {
+          sendListenEvent();
+          playNext();
+        }}
       />
       <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-black to-gray-900 border-t border-gray-800 p-4">
         <div className="flex items-center justify-between max-w-screen-2xl mx-auto">

@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [country, setCountry] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { setAuth } = useAuthStore();
@@ -27,7 +28,7 @@ export default function LoginPage() {
         response = await api.login(email, password);
         toast.success('Logged in successfully!');
       } else {
-        response = await api.register(email, password, username, displayName);
+        response = await api.register(email, password, username, displayName, country);
         toast.success('Account created successfully!');
       }
 
@@ -104,6 +105,41 @@ export default function LoginPage() {
                     className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                     placeholder="Your Name"
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="country" className="block text-sm font-medium mb-2">
+                    Country
+                  </label>
+                  <select
+                    id="country"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">Select Country</option>
+                    <option value="US">United States</option>
+                    <option value="GB">United Kingdom</option>
+                    <option value="CA">Canada</option>
+                    <option value="AU">Australia</option>
+                    <option value="DE">Germany</option>
+                    <option value="FR">France</option>
+                    <option value="ES">Spain</option>
+                    <option value="IT">Italy</option>
+                    <option value="JP">Japan</option>
+                    <option value="KR">South Korea</option>
+                    <option value="BR">Brazil</option>
+                    <option value="MX">Mexico</option>
+                    <option value="IN">India</option>
+                    <option value="CN">China</option>
+                    <option value="RU">Russia</option>
+                    <option value="NL">Netherlands</option>
+                    <option value="SE">Sweden</option>
+                    <option value="NO">Norway</option>
+                    <option value="DK">Denmark</option>
+                    <option value="FI">Finland</option>
+                  </select>
                 </div>
               </>
             )}

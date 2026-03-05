@@ -57,12 +57,13 @@ class ApiClient {
     return response.data;
   }
 
-  async register(email: string, password: string, username: string, displayName: string): Promise<AuthResponse> {
+  async register(email: string, password: string, username: string, displayName: string, country: string): Promise<AuthResponse> {
     const formData = new FormData();
     formData.append('email', email);
     formData.append('password', password);
     formData.append('username', username);
     formData.append('display_name', displayName);
+    formData.append('country', country);
 
     // Don't set Content-Type manually - axios will set it with the correct boundary
     const response = await this.client.put('/login', formData);
@@ -568,6 +569,43 @@ class ApiClient {
   async getTopMusicForUser(limit = 20): Promise<TopMusic[]> {
     const response = await this.client.get(`/history/top?limit=${limit}`);
     return response.data;
+  }
+
+  // Event Tracking
+  async sendListenEvent(
+    musicUuid: string,
+    artistUuid: string,
+    albumUuid: string | null,
+    listenDurationSeconds: number,
+    trackDurationSeconds: number
+  ): Promise<void> {
+    try {
+      const completionRatio = trackDurationSeconds > 0 ? listenDurationSeconds / trackDurationSeconds : 0;
+
+      await this.client.post('/events/listen', {
+        music_uuid: musicUuid,
+        artist_uuid: artistUuid,
+        album_uuid: albumUuid,
+        listen_duration_seconds: listenDurationSeconds,
+        track_duration_seconds: trackDurationSeconds,
+        completion_ratio: completionRatio,
+      });
+    } catch (error) {
+      // Don't block user experience if event tracking fails
+      console.warn('Failed to send listen event:', error);
+    }
+  }
+
+  async sendLikeEvent(musicUuid: string, artistUuid: string): Promise<void> {
+    try {
+      await this.client.post('/events/like', {
+        music_uuid: musicUuid,
+        artist_uuid: artistUuid,
+      });
+    } catch (error) {
+      // Don't block user experience if event tracking fails
+      console.warn('Failed to send like event:', error);
+    }
   }
 }
 
