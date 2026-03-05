@@ -267,18 +267,20 @@ func convertPathToFileURL(storagePath string) string {
 
 // convertDefaultToFileURL returns /files/ URL for default images
 func convertDefaultToFileURL(entityType string) string {
+	var path string
 	switch entityType {
 	case "user":
-		return "/files/defaults/profile.jpg"
+		path = DefaultProfileImagePath
 	case "artist":
-		return "/files/defaults/artist.jpg"
+		path = DefaultArtistImagePath
 	case "album":
-		return "/files/defaults/album.jpg"
+		path = DefaultAlbumImagePath
 	case "playlist":
-		return "/files/defaults/playlist.jpg"
+		path = DefaultPlaylistImagePath
 	case "music":
-		return "/files/defaults/music.jpg"
+		path = DefaultMusicImagePath
 	default:
-		return "/files/defaults/music.jpg"
+		path = DefaultMusicImagePath
 	}
+	return "/files/" + path
 }
