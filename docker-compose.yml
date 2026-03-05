@@ -335,6 +335,36 @@ services:
         fluentd-async: "true"
         fluentd-max-retries: "10"
 
+  service-event-ingestion:
+    build:
+      context: .
+      dockerfile: services/service_event_ingestion/Dockerfile
+    container_name: service-event-ingestion
+    environment:
+      CLICKHOUSE_CONNECTION_STRING: ${CLICKHOUSE_CONNECTION_STRING}
+      JWT_STORE_PATH: ${JWT_STORE_PATH}
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: ${VAULT_TOKEN}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    depends_on:
+      database-clickhouse:
+        condition: service_started
+      init-vault:
+        condition: service_completed_successfully
+      logging-fluentd:
+        condition: service_started
+    networks:
+      - clickhouse-net
+      - general
+      - vault-net
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:24224
+        tag: service.event_ingestion
+        fluentd-async: "true"
+        fluentd-max-retries: "10"
+
   # Gateways
   gateway-recommendation:
     build:
@@ -381,6 +411,7 @@ services:
       GATEWAY_API_PORT: "8080"
       USER_DATABASE_SERVICE_URL: ${USER_DATABASE_SERVICE_URL}
       RECOMMENDATION_SERVICE_URL: ${RECOMMENDATION_SERVICE_URL}
+      EVENT_INGESTION_SERVICE_URL: ${EVENT_INGESTION_SERVICE_URL}
       JWT_STORE_PATH: ${JWT_STORE_PATH}
       JWT_TIME_IN_M_SERVICE: ${JWT_TIME_IN_M_SERVICE}
       VAULT_ADDR: http://vault:8200
@@ -390,6 +421,8 @@ services:
       service-user-database:
         condition: service_started
       gateway-recommendation:
+        condition: service_started
+      service-event-ingestion:
         condition: service_started
       init-vault:
         condition: service_completed_successfully
