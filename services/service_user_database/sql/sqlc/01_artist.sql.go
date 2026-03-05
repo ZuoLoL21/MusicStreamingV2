@@ -192,7 +192,7 @@ func (q *Queries) GetArtistsAlphabetically(ctx context.Context, arg GetArtistsAl
 
 const getUsersRepresentingArtist = `-- name: GetUsersRepresentingArtist :many
 
-SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at, am.role, am.joined_at
+SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.country, pu.created_at, pu.updated_at, am.role, am.joined_at
 FROM artist_member am
          JOIN public_user pu
               ON am.user_uuid = pu.uuid
@@ -205,6 +205,7 @@ type GetUsersRepresentingArtistRow struct {
 	Email            string           `json:"email"`
 	Bio              pgtype.Text      `json:"bio"`
 	ProfileImagePath pgtype.Text      `json:"profile_image_path"`
+	Country          string           `json:"country"`
 	CreatedAt        pgtype.Timestamp `json:"created_at"`
 	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
 	Role             ArtistMemberRole `json:"role"`
@@ -230,6 +231,7 @@ func (q *Queries) GetUsersRepresentingArtist(ctx context.Context, artistUuid pgt
 			&i.Email,
 			&i.Bio,
 			&i.ProfileImagePath,
+			&i.Country,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Role,

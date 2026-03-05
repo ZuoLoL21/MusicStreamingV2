@@ -151,6 +151,7 @@ type PublicUser struct {
 	Email            string           `json:"email"`
 	Bio              pgtype.Text      `json:"bio"`
 	ProfileImagePath pgtype.Text      `json:"profile_image_path"`
+	Country          string           `json:"country"`
 	CreatedAt        pgtype.Timestamp `json:"created_at"`
 	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
 }
@@ -169,6 +170,7 @@ type User struct {
 	HashedPassword   string           `json:"hashed_password"`
 	Bio              pgtype.Text      `json:"bio"`
 	ProfileImagePath pgtype.Text      `json:"profile_image_path"`
+	Country          string           `json:"country"`
 	CreatedAt        pgtype.Timestamp `json:"created_at"`
 	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
 }

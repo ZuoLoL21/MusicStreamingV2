@@ -12,8 +12,8 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (username, email, hashed_password, bio, profile_image_path)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO users (username, email, hashed_password, bio, profile_image_path, country)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING uuid
 `
 
@@ -23,6 +23,7 @@ type CreateUserParams struct {
 	HashedPassword   string      `json:"hashed_password"`
 	Bio              pgtype.Text `json:"bio"`
 	ProfileImagePath pgtype.Text `json:"profile_image_path"`
+	Country          string      `json:"country"`
 }
 
 // ---- PUT
@@ -33,6 +34,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (pgtype.
 		arg.HashedPassword,
 		arg.Bio,
 		arg.ProfileImagePath,
+		arg.Country,
 	)
 	var uuid pgtype.UUID
 	err := row.Scan(&uuid)
@@ -52,7 +54,7 @@ func (q *Queries) GetHashPassword(ctx context.Context, uuid pgtype.UUID) (string
 }
 
 const getPublicUser = `-- name: GetPublicUser :one
-SELECT uuid, username, email, bio, profile_image_path, created_at, updated_at FROM public_user
+SELECT uuid, username, email, bio, profile_image_path, country, created_at, updated_at FROM public_user
 WHERE uuid = $1 LIMIT 1
 `
 
@@ -67,6 +69,7 @@ func (q *Queries) GetPublicUser(ctx context.Context, uuid pgtype.UUID) (PublicUs
 		&i.Email,
 		&i.Bio,
 		&i.ProfileImagePath,
+		&i.Country,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -74,7 +77,7 @@ func (q *Queries) GetPublicUser(ctx context.Context, uuid pgtype.UUID) (PublicUs
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT uuid, username, email, hashed_password, bio, profile_image_path, created_at, updated_at
+SELECT uuid, username, email, hashed_password, bio, profile_image_path, country, created_at, updated_at
 FROM users WHERE email = $1 LIMIT 1
 `
 
@@ -88,6 +91,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.HashedPassword,
 		&i.Bio,
 		&i.ProfileImagePath,
+		&i.Country,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -96,7 +100,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 
 const searchForUser = `-- name: SearchForUser :many
 SELECT
-    pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at,
+    pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.country, pu.created_at, pu.updated_at,
     similarity(pu.username, $1)::float AS similarity_score
 FROM public_user pu
 WHERE pu.username % $1
@@ -124,6 +128,7 @@ type SearchForUserRow struct {
 	Email            string           `json:"email"`
 	Bio              pgtype.Text      `json:"bio"`
 	ProfileImagePath pgtype.Text      `json:"profile_image_path"`
+	Country          string           `json:"country"`
 	CreatedAt        pgtype.Timestamp `json:"created_at"`
 	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
 	SimilarityScore  float64          `json:"similarity_score"`
@@ -149,6 +154,7 @@ func (q *Queries) SearchForUser(ctx context.Context, arg SearchForUserParams) ([
 			&i.Email,
 			&i.Bio,
 			&i.ProfileImagePath,
+			&i.Country,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.SimilarityScore,
@@ -215,7 +221,8 @@ func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) 
 const updateProfile = `-- name: UpdateProfile :exec
 UPDATE users
 SET username = $2,
-    bio = $3
+    bio = $3,
+    country = $4
 WHERE uuid = $1
 `
 
@@ -223,9 +230,15 @@ type UpdateProfileParams struct {
 	Uuid     pgtype.UUID `json:"uuid"`
 	Username string      `json:"username"`
 	Bio      pgtype.Text `json:"bio"`
+	Country  string      `json:"country"`
 }
 
 func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) error {
-	_, err := q.db.Exec(ctx, updateProfile, arg.Uuid, arg.Username, arg.Bio)
+	_, err := q.db.Exec(ctx, updateProfile,
+		arg.Uuid,
+		arg.Username,
+		arg.Bio,
+		arg.Country,
+	)
 	return err
 }

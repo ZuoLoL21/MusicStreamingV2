@@ -6,13 +6,14 @@ CREATE TABLE users (
     hashed_password VARCHAR(255) NOT NULL,
     bio TEXT,
     profile_image_path VARCHAR(500),
+    country VARCHAR(2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(email)
 );
 
 CREATE VIEW public_user
-AS SELECT uuid, username, email, bio, profile_image_path, created_at, updated_at
+AS SELECT uuid, username, email, bio, profile_image_path, country, created_at, updated_at
 FROM users;
 
 -- Artist Table

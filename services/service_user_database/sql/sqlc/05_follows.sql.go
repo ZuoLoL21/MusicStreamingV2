@@ -56,7 +56,7 @@ func (q *Queries) GetFollowCount(ctx context.Context, fromUser pgtype.UUID) (int
 }
 
 const getFollowedArtistsForUser = `-- name: GetFollowedArtistsForUser :many
-SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at
+SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.country, pu.created_at, pu.updated_at
 FROM follows f
          JOIN public_user pu
               ON f.to_artist = pu.uuid
@@ -99,6 +99,7 @@ func (q *Queries) GetFollowedArtistsForUser(ctx context.Context, arg GetFollowed
 			&i.Email,
 			&i.Bio,
 			&i.ProfileImagePath,
+			&i.Country,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -113,7 +114,7 @@ func (q *Queries) GetFollowedArtistsForUser(ctx context.Context, arg GetFollowed
 }
 
 const getFollowedUsersForUser = `-- name: GetFollowedUsersForUser :many
-SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at
+SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.country, pu.created_at, pu.updated_at
 FROM follows f
 JOIN public_user pu
     ON f.to_user = pu.uuid
@@ -156,6 +157,7 @@ func (q *Queries) GetFollowedUsersForUser(ctx context.Context, arg GetFollowedUs
 			&i.Email,
 			&i.Bio,
 			&i.ProfileImagePath,
+			&i.Country,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -183,7 +185,7 @@ func (q *Queries) GetFollowerCountForUser(ctx context.Context, toUser pgtype.UUI
 }
 
 const getFollowersForArtist = `-- name: GetFollowersForArtist :many
-SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at
+SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.country, pu.created_at, pu.updated_at
 FROM follows f
 JOIN public_user pu
     ON f.from_user = pu.uuid
@@ -226,6 +228,7 @@ func (q *Queries) GetFollowersForArtist(ctx context.Context, arg GetFollowersFor
 			&i.Email,
 			&i.Bio,
 			&i.ProfileImagePath,
+			&i.Country,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -240,7 +243,7 @@ func (q *Queries) GetFollowersForArtist(ctx context.Context, arg GetFollowersFor
 }
 
 const getFollowersForUser = `-- name: GetFollowersForUser :many
-SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.created_at, pu.updated_at
+SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.country, pu.created_at, pu.updated_at
 FROM follows f
 JOIN public_user pu
     ON f.from_user = pu.uuid
@@ -285,6 +288,7 @@ func (q *Queries) GetFollowersForUser(ctx context.Context, arg GetFollowersForUs
 			&i.Email,
 			&i.Bio,
 			&i.ProfileImagePath,
+			&i.Country,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

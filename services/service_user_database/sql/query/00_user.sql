@@ -9,7 +9,7 @@ SELECT hashed_password FROM users
 WHERE uuid = $1;
 
 -- name: GetUserByEmail :one
-SELECT uuid, username, email, hashed_password, bio, profile_image_path, created_at, updated_at
+SELECT uuid, username, email, hashed_password, bio, profile_image_path, country, created_at, updated_at
 FROM users WHERE email = $1 LIMIT 1;
 
 -- name: SearchForUser :many
@@ -37,7 +37,8 @@ WHERE uuid = $1;
 -- name: UpdateProfile :exec
 UPDATE users
 SET username = $2,
-    bio = $3
+    bio = $3,
+    country = $4
 WHERE uuid = $1;
 
 -- name: UpdateEmail :exec
@@ -52,8 +53,8 @@ WHERE uuid = $1;
 
 ------ PUT
 -- name: CreateUser :one
-INSERT INTO users (username, email, hashed_password, bio, profile_image_path)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO users (username, email, hashed_password, bio, profile_image_path, country)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING uuid;
 
 ------ DELETE
