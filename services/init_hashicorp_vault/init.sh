@@ -33,7 +33,7 @@ else
 fi
 
 # List of Transit keys to create
-KEYS="gateway_api service_user_database gateway_recommendation service_popularity_system"
+KEYS="gateway_api service_user_database gateway_recommendation service_popularity_system service_event_ingestion"
 
 # Create each Transit key if it doesn't exist (idempotent)
 for KEY in $KEYS; do
