@@ -81,7 +81,9 @@ func (h *FileHandler) ServeFile(w http.ResponseWriter, r *http.Request) {
 		h.returns.ReturnError(w, "file not found", http.StatusNotFound)
 		return
 	}
-	defer object.Close()
+	defer func(object io.ReadCloser) {
+		_ = object.Close()
+	}(object)
 
 	// Set headers
 	w.Header().Set("Content-Type", contentType)

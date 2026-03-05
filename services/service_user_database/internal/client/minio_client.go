@@ -154,7 +154,7 @@ func (m *MinIOFileStorageClient) GetObject(ctx context.Context, objectPath strin
 
 	stat, err := object.Stat()
 	if err != nil {
-		object.Close()
+		_ = object.Close()
 		m.logger.Error("failed to stat object",
 			zap.String("objectPath", objectPath),
 			zap.Error(err))

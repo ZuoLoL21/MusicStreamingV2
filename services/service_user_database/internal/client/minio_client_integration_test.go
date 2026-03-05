@@ -78,7 +78,9 @@ func TestIntegration_SaveAudio_Success(t *testing.T) {
 	// Verify the file exists by retrieving it
 	reader, contentType, size, err := client.GetObject(ctx, objectPath)
 	require.NoError(t, err)
-	defer reader.Close()
+	defer func(reader io.ReadCloser) {
+		_ = reader.Close()
+	}(reader)
 
 	assert.Equal(t, "audio/mpeg", contentType)
 	assert.Equal(t, int64(len(audioContent)), size)
@@ -114,7 +116,9 @@ func TestIntegration_UpdateAudio_Success(t *testing.T) {
 	// Verify updated content
 	reader, _, size, err := client.GetObject(ctx, objectPath)
 	require.NoError(t, err)
-	defer reader.Close()
+	defer func(reader io.ReadCloser) {
+		_ = reader.Close()
+	}(reader)
 
 	assert.Equal(t, int64(len(updatedContent)), size)
 
@@ -186,7 +190,9 @@ func TestIntegration_SaveImage_Success(t *testing.T) {
 			// Verify the file exists
 			reader, contentType, size, err := client.GetObject(ctx, objectPath)
 			require.NoError(t, err)
-			defer reader.Close()
+			defer func(reader io.ReadCloser) {
+				_ = reader.Close()
+			}(reader)
 
 			assert.Equal(t, "image/jpeg", contentType)
 			assert.Equal(t, int64(len(imageContent)), size)
@@ -260,7 +266,7 @@ func TestIntegration_FullWorkflow_Audio(t *testing.T) {
 	assert.Equal(t, "audio/mpeg", contentType)
 	assert.Equal(t, int64(len(originalContent)), size)
 	data, _ := io.ReadAll(reader)
-	reader.Close()
+	_ = reader.Close()
 	assert.Equal(t, originalContent, data)
 
 	// Step 3: Update audio
@@ -272,7 +278,7 @@ func TestIntegration_FullWorkflow_Audio(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(len(updatedContent)), size)
 	data, _ = io.ReadAll(reader)
-	reader.Close()
+	_ = reader.Close()
 	assert.Equal(t, updatedContent, data)
 
 	// Step 5: Delete audio
@@ -303,7 +309,7 @@ func TestIntegration_FullWorkflow_Image(t *testing.T) {
 	assert.Equal(t, "image/jpeg", contentType)
 	assert.Equal(t, int64(len(imageContent)), size)
 	data, _ := io.ReadAll(reader)
-	reader.Close()
+	_ = reader.Close()
 	assert.Equal(t, imageContent, data)
 
 	// Step 3: Delete image
@@ -336,13 +342,13 @@ func TestIntegration_ConcurrentOperations(t *testing.T) {
 	// Verify both exist
 	reader1, _, _, err := client.GetObject(ctx, "audio/"+musicID1+".mp3")
 	require.NoError(t, err)
-	reader1.Close()
+	_ = reader1.Close()
 
 	reader2, _, _, err := client.GetObject(ctx, "audio/"+musicID2+".mp3")
 	require.NoError(t, err)
-	reader2.Close()
+	_ = reader2.Close()
 
 	// Cleanup
-	client.DeleteAudio(ctx, musicID1)
-	client.DeleteAudio(ctx, musicID2)
+	_ = client.DeleteAudio(ctx, musicID1)
+	_ = client.DeleteAudio(ctx, musicID2)
 }
