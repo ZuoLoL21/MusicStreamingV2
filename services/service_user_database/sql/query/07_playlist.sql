@@ -22,10 +22,7 @@ LIMIT $2;
 
 -- name: GetPlaylists :many
 SELECT * FROM playlist
-WHERE (
-    from_user = $1
-    OR is_public = TRUE
-)
+WHERE is_user_allowed_playlist_view($1, uuid)
 AND (
     $3::timestamptz IS NULL
     OR (
@@ -42,7 +39,7 @@ SELECT
     similarity(p.original_name, $1)::float AS similarity_score
 FROM playlist p
 WHERE p.original_name % $1
-AND (p.is_public = TRUE OR p.from_user = $3)
+AND is_user_allowed_playlist_view($3, p.uuid)
 AND (
     $4 < 0
     OR (

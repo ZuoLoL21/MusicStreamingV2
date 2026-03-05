@@ -145,10 +145,7 @@ func (q *Queries) GetPlaylistTracks(ctx context.Context, arg GetPlaylistTracksPa
 
 const getPlaylists = `-- name: GetPlaylists :many
 SELECT uuid, from_user, original_name, description, is_public, image_path, created_at, updated_at FROM playlist
-WHERE (
-    from_user = $1
-    OR is_public = TRUE
-)
+WHERE is_user_allowed_playlist_view($1, uuid)
 AND (
     $3::timestamptz IS NULL
     OR (
@@ -161,7 +158,7 @@ ORDER BY updated_at DESC, uuid DESC
 `
 
 type GetPlaylistsParams struct {
-	FromUser pgtype.UUID        `json:"from_user"`
+	UserUuid pgtype.UUID        `json:"user_uuid"`
 	Limit    int32              `json:"limit"`
 	Column3  pgtype.Timestamptz `json:"column_3"`
 	Uuid     pgtype.UUID        `json:"uuid"`
@@ -169,7 +166,7 @@ type GetPlaylistsParams struct {
 
 func (q *Queries) GetPlaylists(ctx context.Context, arg GetPlaylistsParams) ([]Playlist, error) {
 	rows, err := q.db.Query(ctx, getPlaylists,
-		arg.FromUser,
+		arg.UserUuid,
 		arg.Limit,
 		arg.Column3,
 		arg.Uuid,
@@ -296,7 +293,7 @@ SELECT
     similarity(p.original_name, $1)::float AS similarity_score
 FROM playlist p
 WHERE p.original_name % $1
-AND (p.is_public = TRUE OR p.from_user = $3)
+AND is_user_allowed_playlist_view($3, p.uuid)
 AND (
     $4 < 0
     OR (
@@ -311,7 +308,7 @@ LIMIT $2
 type SearchForPlaylistParams struct {
 	Similarity interface{}      `json:"similarity"`
 	Limit      int32            `json:"limit"`
-	FromUser   pgtype.UUID      `json:"from_user"`
+	UserUuid   pgtype.UUID      `json:"user_uuid"`
 	Column4    interface{}      `json:"column_4"`
 	CreatedAt  pgtype.Timestamp `json:"created_at"`
 }
@@ -332,7 +329,7 @@ func (q *Queries) SearchForPlaylist(ctx context.Context, arg SearchForPlaylistPa
 	rows, err := q.db.Query(ctx, searchForPlaylist,
 		arg.Similarity,
 		arg.Limit,
-		arg.FromUser,
+		arg.UserUuid,
 		arg.Column4,
 		arg.CreatedAt,
 	)
