@@ -129,7 +129,7 @@ def upsert_music(conn, music_uuid, song_name, artist_uuid, album_uuid, audio_url
             UPDATE music
             SET in_album = %s,
                 path_in_file_storage = %s,
-                duration_seconds = %s,
+                duration_seconds = %s
             WHERE uuid = %s
             RETURNING uuid
         """
