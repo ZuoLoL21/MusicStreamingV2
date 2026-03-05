@@ -6,4 +6,5 @@ use (
 	./services/gateway_recommendation
 	./services/service_popularity_system
 	./services/service_user_database
+	./services/service_event_ingestion
 )

@@ -7,4 +7,5 @@ const (
 	VaultAppUserDatabase          = "service_user_database"
 	VaultAppGatewayRecommendation = "gateway_recommendation"
 	VaultAppPopularitySystem      = "service_popularity_system"
+	VaultAppEventIngestion        = "service_event_ingestion"
 )
