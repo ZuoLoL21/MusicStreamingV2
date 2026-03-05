@@ -16,6 +16,7 @@ type Config struct {
 	Provider             string
 	DatabaseURL          string
 	MinIOEndpoint        string
+	MinIOPublicEndpoint  string
 	MinIOAccessKey       string
 	MinIOSecretKey       string
 	MinIOBucketName      string
@@ -45,6 +46,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 	provider := os.Getenv("USER_CRUD_JWT_PROVIDER_NAME")
 	databaseURL := os.Getenv("USER_CRUD_CONNECTION_STRING")
 	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
+	minioPublicEndpoint := os.Getenv("MINIO_PUBLIC_ENDPOINT")
 	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
 	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
 	minioBucketName := os.Getenv("MINIO_BUCKET_NAME")
@@ -120,16 +122,20 @@ func LoadConfig(logger *zap.Logger) *Config {
 		}
 	}
 
-	// Set default application name if not provided
+	// Set defaults if not provided
 	if applicationName == "" {
 		applicationName = consts.VaultAppUserDatabase
 		slogger.Warnf("VAULT_APPLICATION_NAME environment variable is not set, using default: %s", applicationName)
+	}
+	if minioPublicEndpoint == "" {
+		minioPublicEndpoint = "localhost:9000"
 	}
 
 	return &Config{
 		Provider:             provider,
 		DatabaseURL:          databaseURL,
 		MinIOEndpoint:        minioEndpoint,
+		MinIOPublicEndpoint:  minioPublicEndpoint,
 		MinIOAccessKey:       minioAccessKey,
 		MinIOSecretKey:       minioSecretKey,
 		MinIOBucketName:      minioBucketName,

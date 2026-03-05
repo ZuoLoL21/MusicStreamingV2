@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"backend/internal/di"
+	"backend/internal/storage"
 
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
@@ -12,18 +13,20 @@ import (
 )
 
 type LikesHandler struct {
-	logger  *zap.Logger
-	config  *di.Config
-	returns *libsdi.ReturnManager
-	db      DB
+	logger      *zap.Logger
+	config      *di.Config
+	returns     *libsdi.ReturnManager
+	db          DB
+	fileStorage storage.FileStorageClient
 }
 
-func NewLikesHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB) *LikesHandler {
+func NewLikesHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *LikesHandler {
 	return &LikesHandler{
-		logger:  logger,
-		config:  config,
-		returns: returns,
-		db:      db,
+		logger:      logger,
+		config:      config,
+		returns:     returns,
+		db:          db,
+		fileStorage: fileStorage,
 	}
 }
 
@@ -45,6 +48,11 @@ func (h *LikesHandler) GetLikesForUser(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("failed to get likes for user", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get likes", http.StatusInternalServerError)
 		return
+	}
+
+	for i := range likes {
+		likes[i].PathInFileStorage = h.fileStorage.BuildPublicURL(likes[i].PathInFileStorage)
+		applyDefaultImageIfEmpty(&likes[i].ImagePath, h.fileStorage, "music")
 	}
 
 	h.returns.ReturnJSON(w, likes, http.StatusOK)

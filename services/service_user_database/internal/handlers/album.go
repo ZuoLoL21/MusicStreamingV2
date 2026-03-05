@@ -98,6 +98,10 @@ func (h *AlbumHandler) GetAlbumsForArtist(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	for i := range albums {
+		applyDefaultImageIfEmpty(&albums[i].ImagePath, h.fileStorage, "album")
+	}
+
 	h.returns.ReturnJSON(w, albums, http.StatusOK)
 }
 
@@ -135,11 +139,6 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 		"pictures-album", albumID, "image", h.logger, h.returns)
 	if !ok {
 		return
-	}
-
-	if !imagePath.Valid {
-		imagePath.String = h.fileStorage.GetDefaultAlbumImageURL()
-		imagePath.Valid = true
 	}
 
 	artistUUID, err := uuidToPgtype(artistUUIDStr)

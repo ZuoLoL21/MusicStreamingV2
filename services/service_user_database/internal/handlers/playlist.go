@@ -99,6 +99,10 @@ func (h *PlaylistHandler) GetPlaylistsForUser(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	for i := range playlists {
+		applyDefaultImageIfEmpty(&playlists[i].ImagePath, h.fileStorage, "playlist")
+	}
+
 	h.returns.ReturnJSON(w, playlists, http.StatusOK)
 }
 
@@ -119,6 +123,11 @@ func (h *PlaylistHandler) GetPlaylistTracks(w http.ResponseWriter, r *http.Reque
 		h.logger.Error("failed to get playlist tracks", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get playlist tracks", http.StatusInternalServerError)
 		return
+	}
+
+	for i := range tracks {
+		tracks[i].PathInFileStorage = h.fileStorage.BuildPublicURL(tracks[i].PathInFileStorage)
+		applyDefaultImageIfEmpty(&tracks[i].ImagePath, h.fileStorage, "music")
 	}
 
 	h.returns.ReturnJSON(w, tracks, http.StatusOK)
@@ -164,12 +173,6 @@ func (h *PlaylistHandler) CreatePlaylist(w http.ResponseWriter, r *http.Request)
 		"pictures-playlist", playlistID, "image", h.logger, h.returns)
 	if !ok {
 		return
-	}
-
-	// If no image provided, use default
-	if !imagePath.Valid {
-		imagePath.String = h.fileStorage.GetDefaultPlaylistImageURL()
-		imagePath.Valid = true
 	}
 
 	descText := optionalStringToPgtype(description)

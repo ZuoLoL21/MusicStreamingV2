@@ -164,6 +164,7 @@ func cleanupAudio(ctx context.Context, fileStorage storage.FileStorageClient, mu
 
 // applyDefaultImageIfEmpty sets default image URL if field is empty based on entity type
 // entityType should be one of: "user", "artist", "album", "playlist", "music"
+// Also transforms existing paths (folder/name.ext) to public URLs
 func applyDefaultImageIfEmpty(imagePath *pgtype.Text, fileStorage storage.FileStorageClient, entityType string) {
 	if imagePath == nil {
 		return
@@ -186,6 +187,8 @@ func applyDefaultImageIfEmpty(imagePath *pgtype.Text, fileStorage storage.FileSt
 			panic("invalid entity type")
 		}
 		*imagePath = pgtype.Text{String: defaultURL, Valid: true}
+	} else {
+		*imagePath = pgtype.Text{String: fileStorage.BuildPublicURL(imagePath.String), Valid: true}
 	}
 }
 

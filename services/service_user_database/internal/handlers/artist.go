@@ -101,6 +101,11 @@ func (h *ArtistHandler) GetArtistsAlphabetically(w http.ResponseWriter, r *http.
 		h.returns.ReturnError(w, "unable to list artists", http.StatusInternalServerError)
 		return
 	}
+
+	for i := range artists {
+		applyDefaultImageIfEmpty(&artists[i].ProfileImagePath, h.fileStorage, "artist")
+	}
+
 	logger.Debug("retrieved artists alphabetically",
 		zap.Int("count", len(artists)))
 	h.returns.ReturnJSON(w, artists, http.StatusOK)
@@ -151,11 +156,6 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 		"pictures-artist", artistID, "image", h.logger, h.returns)
 	if !ok {
 		return
-	}
-
-	if !profileImagePath.Valid {
-		profileImagePath.String = h.fileStorage.GetDefaultArtistImageURL()
-		profileImagePath.Valid = true
 	}
 
 	bioText := optionalStringToPgtype(bio)

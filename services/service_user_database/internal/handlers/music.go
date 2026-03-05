@@ -82,6 +82,9 @@ func (h *MusicHandler) GetMusic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	music.PathInFileStorage = h.fileStorage.BuildPublicURL(music.PathInFileStorage)
+	applyDefaultImageIfEmpty(&music.ImagePath, h.fileStorage, "music")
+
 	logger.Debug("music retrieved successfully",
 		zap.String("music_uuid", uuidToString(musicUUID)))
 	h.returns.ReturnJSON(w, music, http.StatusOK)
@@ -112,6 +115,11 @@ func (h *MusicHandler) GetMusicForArtist(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	for i := range music {
+		music[i].PathInFileStorage = h.fileStorage.BuildPublicURL(music[i].PathInFileStorage)
+		applyDefaultImageIfEmpty(&music[i].ImagePath, h.fileStorage, "music")
+	}
+
 	logger.Debug("retrieved music for artist",
 		zap.String("artist_uuid", uuidToString(artistUUID)),
 		zap.Int("count", len(music)))
@@ -136,6 +144,11 @@ func (h *MusicHandler) GetMusicForAlbum(w http.ResponseWriter, r *http.Request) 
 		h.logger.Error("failed to get music for album", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get music", http.StatusInternalServerError)
 		return
+	}
+
+	for i := range music {
+		music[i].PathInFileStorage = h.fileStorage.BuildPublicURL(music[i].PathInFileStorage)
+		applyDefaultImageIfEmpty(&music[i].ImagePath, h.fileStorage, "music")
 	}
 
 	h.returns.ReturnJSON(w, music, http.StatusOK)
@@ -164,6 +177,11 @@ func (h *MusicHandler) GetMusicForUser(w http.ResponseWriter, r *http.Request) {
 			zap.Error(err))
 		h.returns.ReturnError(w, "unable to retrieve music catalog", http.StatusInternalServerError)
 		return
+	}
+
+	for i := range music {
+		music[i].PathInFileStorage = h.fileStorage.BuildPublicURL(music[i].PathInFileStorage)
+		applyDefaultImageIfEmpty(&music[i].ImagePath, h.fileStorage, "music")
 	}
 
 	logger.Debug("retrieved music for user",

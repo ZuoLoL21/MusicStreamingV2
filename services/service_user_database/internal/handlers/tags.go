@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"backend/internal/di"
+	"backend/internal/storage"
 
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
@@ -14,18 +15,20 @@ import (
 )
 
 type TagsHandler struct {
-	logger  *zap.Logger
-	config  *di.Config
-	returns *libsdi.ReturnManager
-	db      DB
+	logger      *zap.Logger
+	config      *di.Config
+	returns     *libsdi.ReturnManager
+	db          DB
+	fileStorage storage.FileStorageClient
 }
 
-func NewTagsHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB) *TagsHandler {
+func NewTagsHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *TagsHandler {
 	return &TagsHandler{
-		logger:  logger,
-		config:  config,
-		returns: returns,
-		db:      db,
+		logger:      logger,
+		config:      config,
+		returns:     returns,
+		db:          db,
+		fileStorage: fileStorage,
 	}
 }
 
@@ -70,6 +73,11 @@ func (h *TagsHandler) GetMusicForTag(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("failed to get music for tag", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get music for tag", http.StatusInternalServerError)
 		return
+	}
+
+	for i := range music {
+		music[i].PathInFileStorage = h.fileStorage.BuildPublicURL(music[i].PathInFileStorage)
+		applyDefaultImageIfEmpty(&music[i].ImagePath, h.fileStorage, "music")
 	}
 
 	h.returns.ReturnJSON(w, music, http.StatusOK)

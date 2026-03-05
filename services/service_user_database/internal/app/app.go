@@ -35,6 +35,7 @@ type HandlerRegistry struct {
 	Playlist *handlers.PlaylistHandler
 	History  *handlers.HistoryHandler
 	Search   *handlers.SearchHandler
+	File     *handlers.FileHandler
 }
 
 func New(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db *sqlhandler.Queries, fileStorage storage.FileStorageClient) *App {
@@ -60,6 +61,7 @@ func (a *App) Router() *mux.Router {
 	// Register all routes
 	a.registerHealthRoutes(publicRouter)
 	a.registerAuthRoutes(publicRouter, protectedRouter)
+	a.registerFileRoutes(publicRouter)
 	a.registerUserRoutes(protectedRouter)
 	a.registerArtistRoutes(protectedRouter)
 	a.registerAlbumRoutes(protectedRouter)
@@ -78,9 +80,9 @@ func (a *App) initHandlers() {
 		Artist:   handlers.NewArtistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		Album:    handlers.NewAlbumHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		Music:    handlers.NewMusicHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
-		Likes:    handlers.NewLikesHandler(a.logger, a.config, a.returns, a.db),
+		Likes:    handlers.NewLikesHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		Follows:  handlers.NewFollowsHandler(a.logger, a.config, a.returns, a.db),
-		Tags:     handlers.NewTagsHandler(a.logger, a.config, a.returns, a.db),
+		Tags:     handlers.NewTagsHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		Playlist: handlers.NewPlaylistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		History:  handlers.NewHistoryHandler(a.logger, a.config, a.returns, a.db),
 		Search:   handlers.NewSearchHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
@@ -122,6 +124,10 @@ func (a *App) setupMiddleware(r *mux.Router) (*mux.Router, *mux.Router) {
 
 func (a *App) registerHealthRoutes(r *mux.Router) {
 	r.HandleFunc("/health", libshandlers.NewHealthCheckHandler("service-user-database")).Methods("GET")
+}
+
+func (a *App) registerFileRoutes(r *mux.Router) {
+	r.PathPrefix("/files/").HandlerFunc(a.handlers.File.ServeFile).Methods("GET")
 }
 
 func (a *App) registerAuthRoutes(r, protected *mux.Router) {

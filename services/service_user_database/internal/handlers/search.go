@@ -301,7 +301,7 @@ func (h *SearchHandler) formatMusicResults(music []sqlhandler.SearchForMusicRow)
 			UploadedBy:        uuidToString(m.UploadedBy),
 			InAlbum:           inAlbum,
 			SongName:          m.SongName,
-			PathInFileStorage: m.PathInFileStorage,
+			PathInFileStorage: h.fileStorage.BuildPublicURL(m.PathInFileStorage),
 			ImagePath:         h.formatImagePath(m.ImagePath, "music"),
 			PlayCount:         m.PlayCount.Int32,
 			DurationSeconds:   m.DurationSeconds,
@@ -332,7 +332,9 @@ func (h *SearchHandler) formatImagePath(path pgtype.Text, entityType string) *st
 		defaultURL := h.fileStorage.GetDefaultImageURL(entityType)
 		return &defaultURL
 	}
-	return &path.String
+
+	publicURL := h.fileStorage.BuildPublicURL(path.String)
+	return &publicURL
 }
 
 func uuidToString(uuid pgtype.UUID) string {

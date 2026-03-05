@@ -13,15 +13,16 @@ import (
 
 // MinIOFileStorageClient implements FileStorageClient using MinIO
 type MinIOFileStorageClient struct {
-	client     *minio.Client
-	bucketName string
-	endpoint   string
-	useSSL     bool
-	logger     *zap.Logger
+	client         *minio.Client
+	bucketName     string
+	endpoint       string
+	publicEndpoint string // Public-facing MinIO endpoint (e.g., localhost:9000)
+	useSSL         bool
+	logger         *zap.Logger
 }
 
 // NewMinIOFileStorageClient creates a new MinIO file storage client
-func NewMinIOFileStorageClient(endpoint, accessKey, secretKey, bucketName string, useSSL bool, logger *zap.Logger) (*MinIOFileStorageClient, error) {
+func NewMinIOFileStorageClient(endpoint, accessKey, secretKey, bucketName, publicEndpoint string, useSSL bool, logger *zap.Logger) (*MinIOFileStorageClient, error) {
 	minioClient, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: useSSL,
@@ -32,20 +33,22 @@ func NewMinIOFileStorageClient(endpoint, accessKey, secretKey, bucketName string
 
 	logger.Info("MinIO client created successfully",
 		zap.String("endpoint", endpoint),
+		zap.String("publicEndpoint", publicEndpoint),
 		zap.String("bucket", bucketName),
 		zap.Bool("useSSL", useSSL),
 	)
 
 	return &MinIOFileStorageClient{
-		client:     minioClient,
-		bucketName: bucketName,
-		endpoint:   endpoint,
-		useSSL:     useSSL,
-		logger:     logger,
+		client:         minioClient,
+		bucketName:     bucketName,
+		endpoint:       endpoint,
+		publicEndpoint: publicEndpoint,
+		useSSL:         useSSL,
+		logger:         logger,
 	}, nil
 }
 
-// SaveAudio uploads audio file and returns the public URL for streaming
+// SaveAudio uploads audio file and returns the object path (not full URL)
 func (m *MinIOFileStorageClient) SaveAudio(ctx context.Context, musicID string, audioData io.Reader) (string, error) {
 	objectName := fmt.Sprintf("audio/%s.mp3", musicID)
 
@@ -60,16 +63,15 @@ func (m *MinIOFileStorageClient) SaveAudio(ctx context.Context, musicID string, 
 		return "", fmt.Errorf("failed to upload audio: %w", err)
 	}
 
-	url := m.buildPublicURL(objectName)
 	m.logger.Info("audio uploaded successfully",
 		zap.String("musicID", musicID),
-		zap.String("url", url),
+		zap.String("objectPath", objectName),
 	)
 
-	return url, nil
+	return objectName, nil
 }
 
-// UpdateAudio updates existing audio file and returns the public URL
+// UpdateAudio updates existing audio file and returns the object path
 func (m *MinIOFileStorageClient) UpdateAudio(ctx context.Context, musicID string, audioData io.Reader) (string, error) {
 	return m.SaveAudio(ctx, musicID, audioData)
 }
@@ -94,7 +96,7 @@ func (m *MinIOFileStorageClient) DeleteAudio(ctx context.Context, musicID string
 	return nil
 }
 
-// SaveImage uploads image to specified folder and returns the public URL
+// SaveImage uploads image to specified folder and returns the object path (not full URL)
 func (m *MinIOFileStorageClient) SaveImage(ctx context.Context, folder, imageID string, imageData io.Reader) (string, error) {
 	objectName := fmt.Sprintf("%s/%s.jpg", folder, imageID)
 
@@ -110,14 +112,13 @@ func (m *MinIOFileStorageClient) SaveImage(ctx context.Context, folder, imageID 
 		return "", fmt.Errorf("failed to upload image: %w", err)
 	}
 
-	url := m.buildPublicURL(objectName)
 	m.logger.Info("image uploaded successfully",
 		zap.String("folder", folder),
 		zap.String("imageID", imageID),
-		zap.String("url", url),
+		zap.String("objectPath", objectName),
 	)
 
-	return url, nil
+	return objectName, nil
 }
 
 // DeleteImage removes image from storage (tries multiple extensions)
@@ -148,38 +149,43 @@ func (m *MinIOFileStorageClient) DeleteImage(ctx context.Context, folder, imageI
 	return nil
 }
 
-// buildPublicURL constructs the public URL for accessing a file
+// buildPublicURL constructs a public URL for accessing a file from MinIO (internal helper)
 func (m *MinIOFileStorageClient) buildPublicURL(objectName string) string {
 	protocol := "http"
 	if m.useSSL {
 		protocol = "https"
 	}
-	return fmt.Sprintf("%s://%s/%s/%s", protocol, m.endpoint, m.bucketName, objectName)
+	return fmt.Sprintf("%s://%s/%s/%s", protocol, m.publicEndpoint, m.bucketName, objectName)
+}
+
+// BuildPublicURL converts a storage path to a full public URL (implements FileStorageClient interface)
+func (m *MinIOFileStorageClient) BuildPublicURL(objectPath string) string {
+	return m.buildPublicURL(objectPath)
 }
 
 // GetDefaultProfileImageURL returns the full URL for the default user profile image
 func (m *MinIOFileStorageClient) GetDefaultProfileImageURL() string {
-	return storage.GetDefaultProfileImageURL(m.endpoint, m.bucketName, m.useSSL)
+	return storage.GetDefaultProfileImageURL(m.publicEndpoint, m.bucketName, m.useSSL)
 }
 
 // GetDefaultArtistImageURL returns the full URL for the default artist profile image
 func (m *MinIOFileStorageClient) GetDefaultArtistImageURL() string {
-	return storage.GetDefaultArtistImageURL(m.endpoint, m.bucketName, m.useSSL)
+	return storage.GetDefaultArtistImageURL(m.publicEndpoint, m.bucketName, m.useSSL)
 }
 
 // GetDefaultAlbumImageURL returns the full URL for the default album image
 func (m *MinIOFileStorageClient) GetDefaultAlbumImageURL() string {
-	return storage.GetDefaultAlbumImageURL(m.endpoint, m.bucketName, m.useSSL)
+	return storage.GetDefaultAlbumImageURL(m.publicEndpoint, m.bucketName, m.useSSL)
 }
 
 // GetDefaultPlaylistImageURL returns the full URL for the default playlist image
 func (m *MinIOFileStorageClient) GetDefaultPlaylistImageURL() string {
-	return storage.GetDefaultPlaylistImageURL(m.endpoint, m.bucketName, m.useSSL)
+	return storage.GetDefaultPlaylistImageURL(m.publicEndpoint, m.bucketName, m.useSSL)
 }
 
 // GetDefaultMusicImageURL returns the full URL for the default music track image
 func (m *MinIOFileStorageClient) GetDefaultMusicImageURL() string {
-	return storage.GetDefaultMusicImageURL(m.endpoint, m.bucketName, m.useSSL)
+	return storage.GetDefaultMusicImageURL(m.publicEndpoint, m.bucketName, m.useSSL)
 }
 
 // GetDefaultImageURL returns the default image URL based on entity type (user, artist, album, playlist, music)
@@ -198,4 +204,26 @@ func (m *MinIOFileStorageClient) GetDefaultImageURL(entityType string) string {
 	default:
 		return m.GetDefaultMusicImageURL()
 	}
+}
+
+// GetObject retrieves an object from storage by its full path
+func (m *MinIOFileStorageClient) GetObject(ctx context.Context, objectPath string) (io.ReadCloser, string, int64, error) {
+	object, err := m.client.GetObject(ctx, m.bucketName, objectPath, minio.GetObjectOptions{})
+	if err != nil {
+		m.logger.Error("failed to get object from MinIO",
+			zap.String("objectPath", objectPath),
+			zap.Error(err))
+		return nil, "", 0, fmt.Errorf("failed to get object: %w", err)
+	}
+
+	stat, err := object.Stat()
+	if err != nil {
+		object.Close()
+		m.logger.Error("failed to stat object",
+			zap.String("objectPath", objectPath),
+			zap.Error(err))
+		return nil, "", 0, fmt.Errorf("failed to stat object: %w", err)
+	}
+
+	return object, stat.ContentType, stat.Size, nil
 }

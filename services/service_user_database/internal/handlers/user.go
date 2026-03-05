@@ -133,11 +133,6 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !profileImagePath.Valid {
-		profileImagePath.String = h.fileStorage.GetDefaultProfileImageURL()
-		profileImagePath.Valid = true
-	}
-
 	// Update
 	if err := h.db.UpdateImage(r.Context(), sqlhandler.UpdateImageParams{
 		Uuid:             createdUUID,
@@ -402,6 +397,10 @@ func (h *UserHandler) GetArtistForUser(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("failed to get artists for user", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get artists", http.StatusInternalServerError)
 		return
+	}
+
+	for i := range artists {
+		applyDefaultImageIfEmpty(&artists[i].ProfileImagePath, h.fileStorage, "artist")
 	}
 
 	h.returns.ReturnJSON(w, artists, http.StatusOK)
