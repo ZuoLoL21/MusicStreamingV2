@@ -1,0 +1,12 @@
+Some elements are fully AI generated (and may be outdated)
+
+Examples
+- Documentation
+- Tools (mp3_injection)
+- Seed data
+
+AI Generation is used elsewhere for repetitive tasks but always human validated (eg I read the code)
+
+Examples
+- Test generation
+- Refactors

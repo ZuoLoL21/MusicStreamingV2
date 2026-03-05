@@ -1,12 +1,2 @@
-# Todo:
-
-### General
-- Add event tracking for clickhouse
-
-### Features Big
-- Add https
-- Add database migration
-- Add metrics and monitoring
-- Dynamic Secrets
-
-### Disclaimer, some elements are AI generated (and may be outdated)
+# How to run
+Run the docker compose
