@@ -36,7 +36,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 	}
 
 	// Load environment variables
-	port := os.Getenv("GATEWAY_API_PORT")
+	port := os.Getenv("GATEWAY_RECOMMENDATION_PORT")
 	popularityServiceURL := os.Getenv("POPULARITY_SERVICE_URL")
 	banditServiceURL := os.Getenv("BANDIT_SERVICE_URL")
 	jwtStorePath := os.Getenv("JWT_STORE_PATH")
