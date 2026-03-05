@@ -7,3 +7,13 @@ SELECT EXISTS (
       AND from_user = user_uuid
 )
            $$ language sql;
+
+CREATE FUNCTION is_user_allowed_playlist_view(user_uuid UUID, playlist_uuid UUID)
+    RETURNS boolean
+AS $$
+SELECT EXISTS (
+    SELECT * FROM playlist
+    WHERE uuid = playlist_uuid
+      AND (is_public = TRUE OR from_user = user_uuid)
+)
+           $$ language sql;

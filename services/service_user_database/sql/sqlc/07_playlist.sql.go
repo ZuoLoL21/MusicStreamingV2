@@ -256,6 +256,22 @@ func (q *Queries) GetPlaylistsForUser(ctx context.Context, arg GetPlaylistsForUs
 	return items, nil
 }
 
+const isPlaylistPublicOrOwnedByUser = `-- name: IsPlaylistPublicOrOwnedByUser :one
+SELECT is_user_allowed_playlist_view($2, $1) AS is_accessible
+`
+
+type IsPlaylistPublicOrOwnedByUserParams struct {
+	PlaylistUuid pgtype.UUID `json:"playlist_uuid"`
+	UserUuid     pgtype.UUID `json:"user_uuid"`
+}
+
+func (q *Queries) IsPlaylistPublicOrOwnedByUser(ctx context.Context, arg IsPlaylistPublicOrOwnedByUserParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isPlaylistPublicOrOwnedByUser, arg.PlaylistUuid, arg.UserUuid)
+	var is_accessible bool
+	err := row.Scan(&is_accessible)
+	return is_accessible, err
+}
+
 const removeTrackFromPlaylist = `-- name: RemoveTrackFromPlaylist :exec
 DELETE FROM playlist_track
 WHERE music_uuid = $3 AND playlist_uuid = $2

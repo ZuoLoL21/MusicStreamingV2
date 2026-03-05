@@ -4,6 +4,9 @@
 SELECT * FROM playlist
 WHERE uuid = $1;
 
+-- name: IsPlaylistPublicOrOwnedByUser :one
+SELECT is_user_allowed_playlist_view($2, $1) AS is_accessible;
+
 -- name: GetPlaylistsForUser :many
 SELECT * FROM playlist
 WHERE from_user = $1
