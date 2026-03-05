@@ -223,7 +223,7 @@ func (h *SearchHandler) SearchPlaylists(w http.ResponseWriter, r *http.Request) 
 	playlists, err := h.db.SearchForPlaylist(ctx, sqlhandler.SearchForPlaylistParams{
 		Similarity: query,
 		Limit:      limit,
-		FromUser:   userUUID,
+		UserUuid:   userUUID,
 		Column4:    cursorScore.Float64,
 		CreatedAt:  pgtype.Timestamp{Time: cursorTS.Time, Valid: cursorTS.Valid},
 	})
@@ -301,7 +301,7 @@ func (h *SearchHandler) formatMusicResults(music []sqlhandler.SearchForMusicRow)
 			UploadedBy:        uuidToString(m.UploadedBy),
 			InAlbum:           inAlbum,
 			SongName:          m.SongName,
-			PathInFileStorage: h.fileStorage.BuildPublicURL(m.PathInFileStorage),
+			PathInFileStorage: convertPathToFileURL(m.PathInFileStorage),
 			ImagePath:         h.formatImagePath(m.ImagePath, "music"),
 			PlayCount:         m.PlayCount.Int32,
 			DurationSeconds:   m.DurationSeconds,
@@ -329,12 +329,11 @@ func (h *SearchHandler) formatPlaylistResults(playlists []sqlhandler.SearchForPl
 
 func (h *SearchHandler) formatImagePath(path pgtype.Text, entityType string) *string {
 	if !path.Valid || path.String == "" {
-		defaultURL := h.fileStorage.GetDefaultImageURL(entityType)
+		defaultURL := convertDefaultToFileURL(entityType)
 		return &defaultURL
 	}
-
-	publicURL := h.fileStorage.BuildPublicURL(path.String)
-	return &publicURL
+	fileURL := convertPathToFileURL(path.String)
+	return &fileURL
 }
 
 func uuidToString(uuid pgtype.UUID) string {

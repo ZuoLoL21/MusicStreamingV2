@@ -217,7 +217,7 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applyDefaultImageIfEmpty(&user.ProfileImagePath, h.fileStorage, "user")
+	applyDefaultImageIfEmpty(&user.ProfileImagePath, "user")
 	h.returns.ReturnJSON(w, user, http.StatusOK)
 }
 
@@ -234,7 +234,7 @@ func (h *UserHandler) GetPublicUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applyDefaultImageIfEmpty(&user.ProfileImagePath, h.fileStorage, "user")
+	applyDefaultImageIfEmpty(&user.ProfileImagePath, "user")
 	h.returns.ReturnJSON(w, user, http.StatusOK)
 }
 
@@ -400,7 +400,7 @@ func (h *UserHandler) GetArtistForUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := range artists {
-		applyDefaultImageIfEmpty(&artists[i].ProfileImagePath, h.fileStorage, "artist")
+		applyDefaultImageIfEmpty(&artists[i].ProfileImagePath, "artist")
 	}
 
 	h.returns.ReturnJSON(w, artists, http.StatusOK)

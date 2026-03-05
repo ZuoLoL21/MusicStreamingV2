@@ -86,7 +86,7 @@ func (a *App) initHandlers() {
 		Playlist: handlers.NewPlaylistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		History:  handlers.NewHistoryHandler(a.logger, a.config, a.returns, a.db),
 		Search:   handlers.NewSearchHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
-		File:     handlers.NewFileHandler(a.fileStorage, a.logger, a.returns),
+		File:     handlers.NewFileHandler(a.fileStorage, a.logger, a.returns, a.config, a.db),
 	}
 }
 

@@ -76,8 +76,8 @@ func (h *TagsHandler) GetMusicForTag(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := range music {
-		music[i].PathInFileStorage = h.fileStorage.BuildPublicURL(music[i].PathInFileStorage)
-		applyDefaultImageIfEmpty(&music[i].ImagePath, h.fileStorage, "music")
+		music[i].PathInFileStorage = convertPathToFileURL(music[i].PathInFileStorage)
+		applyDefaultImageIfEmpty(&music[i].ImagePath, "music")
 	}
 
 	h.returns.ReturnJSON(w, music, http.StatusOK)

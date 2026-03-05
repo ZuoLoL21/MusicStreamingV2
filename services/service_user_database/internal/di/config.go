@@ -16,11 +16,9 @@ type Config struct {
 	Provider             string
 	DatabaseURL          string
 	MinIOEndpoint        string
-	MinIOPublicEndpoint  string
 	MinIOAccessKey       string
 	MinIOSecretKey       string
 	MinIOBucketName      string
-	MinIOUseSSL          bool
 	JWTStorePath         string
 	JWTExpirationNormal  time.Duration
 	JWTExpirationRefresh time.Duration
@@ -46,11 +44,9 @@ func LoadConfig(logger *zap.Logger) *Config {
 	provider := os.Getenv("USER_CRUD_JWT_PROVIDER_NAME")
 	databaseURL := os.Getenv("USER_CRUD_CONNECTION_STRING")
 	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
-	minioPublicEndpoint := os.Getenv("MINIO_PUBLIC_ENDPOINT")
 	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
 	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
 	minioBucketName := os.Getenv("MINIO_BUCKET_NAME")
-	minioUseSSLStr := os.Getenv("MINIO_USE_SSL")
 	jwtStorePath := os.Getenv("JWT_STORE_PATH")
 	jwtTimeNormalStr := os.Getenv("JWT_TIME_IN_M_NORMAL")
 	jwtTimeRefreshStr := os.Getenv("JWT_TIME_IN_D_REFRESH")
@@ -103,12 +99,6 @@ func LoadConfig(logger *zap.Logger) *Config {
 		}
 	}
 
-	// Parse MinIO SSL setting
-	useSSL := false
-	if minioUseSSLStr == "true" {
-		useSSL = true
-	}
-
 	// Parse JWT timeout for Vault operations
 	jwtTimeout := 30 * time.Second
 	if jwtTimeoutStr == "" {
@@ -127,19 +117,14 @@ func LoadConfig(logger *zap.Logger) *Config {
 		applicationName = consts.VaultAppUserDatabase
 		slogger.Warnf("VAULT_APPLICATION_NAME environment variable is not set, using default: %s", applicationName)
 	}
-	if minioPublicEndpoint == "" {
-		minioPublicEndpoint = "localhost:9000"
-	}
 
 	return &Config{
 		Provider:             provider,
 		DatabaseURL:          databaseURL,
 		MinIOEndpoint:        minioEndpoint,
-		MinIOPublicEndpoint:  minioPublicEndpoint,
 		MinIOAccessKey:       minioAccessKey,
 		MinIOSecretKey:       minioSecretKey,
 		MinIOBucketName:      minioBucketName,
-		MinIOUseSSL:          useSSL,
 		JWTStorePath:         jwtStorePath,
 		JWTExpirationNormal:  time.Minute * time.Duration(normalTime),
 		JWTExpirationRefresh: time.Hour * 24 * time.Duration(refreshTime),

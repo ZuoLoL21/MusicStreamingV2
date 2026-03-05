@@ -74,6 +74,7 @@ type DB interface {
 	GetPlaylist(ctx context.Context, uuid pgtype.UUID) (sqlhandler.Playlist, error)
 	GetPlaylists(ctx context.Context, arg sqlhandler.GetPlaylistsParams) ([]sqlhandler.Playlist, error)
 	GetPlaylistsForUser(ctx context.Context, arg sqlhandler.GetPlaylistsForUserParams) ([]sqlhandler.Playlist, error)
+	IsPlaylistPublicOrOwnedByUser(ctx context.Context, arg sqlhandler.IsPlaylistPublicOrOwnedByUserParams) (bool, error)
 	GetPlaylistTracks(ctx context.Context, arg sqlhandler.GetPlaylistTracksParams) ([]sqlhandler.Music, error)
 	CreatePlaylist(ctx context.Context, arg sqlhandler.CreatePlaylistParams) error
 	UpdatePlaylist(ctx context.Context, arg sqlhandler.UpdatePlaylistParams) error

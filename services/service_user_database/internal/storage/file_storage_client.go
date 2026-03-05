@@ -24,25 +24,4 @@ type FileStorageClient interface {
 
 	// GetObject retrieves an object from storage by its full path
 	GetObject(ctx context.Context, objectPath string) (data io.ReadCloser, contentType string, size int64, err error)
-
-	// BuildPublicURL converts a storage path (e.g., "audio/123.mp3") to a full public URL
-	BuildPublicURL(objectPath string) string
-
-	// GetDefaultProfileImageURL returns the full URL for default user profile images
-	GetDefaultProfileImageURL() string
-
-	// GetDefaultArtistImageURL returns the full URL for default artist profile images
-	GetDefaultArtistImageURL() string
-
-	// GetDefaultAlbumImageURL returns the full URL for default album images
-	GetDefaultAlbumImageURL() string
-
-	// GetDefaultPlaylistImageURL returns the full URL for default playlist images
-	GetDefaultPlaylistImageURL() string
-
-	// GetDefaultMusicImageURL returns the full URL for default music track images
-	GetDefaultMusicImageURL() string
-
-	// GetDefaultImageURL returns the default image URL based on entity type (user, artist, album, playlist, music)
-	GetDefaultImageURL(entityType string) string
 }

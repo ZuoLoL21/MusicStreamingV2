@@ -103,7 +103,7 @@ func (h *ArtistHandler) GetArtistsAlphabetically(w http.ResponseWriter, r *http.
 	}
 
 	for i := range artists {
-		applyDefaultImageIfEmpty(&artists[i].ProfileImagePath, h.fileStorage, "artist")
+		applyDefaultImageIfEmpty(&artists[i].ProfileImagePath, "artist")
 	}
 
 	logger.Debug("retrieved artists alphabetically",
@@ -124,7 +124,7 @@ func (h *ArtistHandler) GetArtist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applyDefaultImageIfEmpty(&artist.ProfileImagePath, h.fileStorage, "artist")
+	applyDefaultImageIfEmpty(&artist.ProfileImagePath, "artist")
 	h.returns.ReturnJSON(w, artist, http.StatusOK)
 }
 

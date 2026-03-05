@@ -2,9 +2,13 @@ package handlers
 
 import (
 	"backend/internal/storage"
+	sqlhandler "backend/sql/sqlc"
 	"context"
+	"errors"
 	"fmt"
+	"mime/multipart"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	libsdi "libs/di"
@@ -67,13 +71,15 @@ func uploadImageFromForm(
 	imageFile, _, err := r.FormFile(formFieldName)
 	if err != nil {
 		// Image is optional
-		if err == http.ErrMissingFile {
+		if errors.Is(err, http.ErrMissingFile) {
 			return pgtype.Text{}, true
 		}
 		returns.ReturnError(w, "failed to read image file", http.StatusBadRequest)
 		return pgtype.Text{}, false
 	}
-	defer imageFile.Close()
+	defer func(imageFile multipart.File) {
+		_ = imageFile.Close()
+	}(imageFile)
 
 	// Validate and process image
 	var config storage.ImageValidationConfig
@@ -132,7 +138,9 @@ func uploadAudioFromForm(
 		returns.ReturnError(w, "audio file is required", http.StatusBadRequest)
 		return "", false
 	}
-	defer audioFile.Close()
+	defer func(audioFile multipart.File) {
+		_ = audioFile.Close()
+	}(audioFile)
 
 	audioURL, err := fileStorage.SaveAudio(ctx, musicID, audioFile)
 	if err != nil {
@@ -163,32 +171,17 @@ func cleanupAudio(ctx context.Context, fileStorage storage.FileStorageClient, mu
 }
 
 // applyDefaultImageIfEmpty sets default image URL if field is empty based on entity type
+// also transforms existing paths (folder/name.ext) to /files/ URLs (by using convertPathToFileURL)
 // entityType should be one of: "user", "artist", "album", "playlist", "music"
-// Also transforms existing paths (folder/name.ext) to public URLs
-func applyDefaultImageIfEmpty(imagePath *pgtype.Text, fileStorage storage.FileStorageClient, entityType string) {
+func applyDefaultImageIfEmpty(imagePath *pgtype.Text, entityType string) {
 	if imagePath == nil {
 		return
 	}
 
 	if !imagePath.Valid || imagePath.String == "" {
-		var defaultURL string
-		switch entityType {
-		case "user":
-			defaultURL = fileStorage.GetDefaultProfileImageURL()
-		case "artist":
-			defaultURL = fileStorage.GetDefaultArtistImageURL()
-		case "album":
-			defaultURL = fileStorage.GetDefaultAlbumImageURL()
-		case "playlist":
-			defaultURL = fileStorage.GetDefaultPlaylistImageURL()
-		case "music":
-			defaultURL = fileStorage.GetDefaultMusicImageURL()
-		default:
-			panic("invalid entity type")
-		}
-		*imagePath = pgtype.Text{String: defaultURL, Valid: true}
+		*imagePath = pgtype.Text{String: convertDefaultToFileURL(entityType), Valid: true}
 	} else {
-		*imagePath = pgtype.Text{String: fileStorage.BuildPublicURL(imagePath.String), Valid: true}
+		*imagePath = pgtype.Text{String: convertPathToFileURL(imagePath.String), Valid: true}
 	}
 }
 
@@ -198,4 +191,94 @@ func optionalStringToPgtype(s *string) pgtype.Text {
 		return pgtype.Text{String: *s, Valid: true}
 	}
 	return pgtype.Text{}
+}
+
+// ResourceInfo contains parsed information about a file resource
+type ResourceInfo struct {
+	ResourceType string // "audio", "pictures-playlist", etc.
+	ResourceID   string // UUID of the resource
+	IsDefault    bool   // true if "defaults/*"
+}
+
+// parseResourceFromPath extracts resource information from a storage path
+func parseResourceFromPath(objectPath string) (*ResourceInfo, error) {
+	parts := strings.SplitN(objectPath, "/", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid object path format")
+	}
+
+	resourceType := parts[0]
+	fileName := parts[1]
+
+	info := &ResourceInfo{
+		ResourceType: resourceType,
+		IsDefault:    resourceType == "defaults",
+	}
+
+	if info.IsDefault {
+		info.ResourceID = fileName
+		return info, nil
+	}
+
+	uuidStr := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	info.ResourceID = uuidStr
+
+	return info, nil
+}
+
+// checkFileAccess verifies if a user has permission to access a file
+func checkFileAccess(
+	ctx context.Context,
+	db DB,
+	resourceInfo *ResourceInfo,
+	userUUID pgtype.UUID, // May be invalid if not authenticated
+) (bool, error) {
+	if resourceInfo.IsDefault {
+		return true, nil
+	}
+
+	if resourceInfo.ResourceType != "pictures-playlist" {
+		return true, nil
+	}
+
+	// For playlist images, check if playlist is public OR user is owner
+	playlistUUID, err := uuidToPgtype(resourceInfo.ResourceID)
+	if err != nil {
+		return false, fmt.Errorf("invalid playlist UUID: %w", err)
+	}
+	allowed, err := db.IsPlaylistPublicOrOwnedByUser(ctx, sqlhandler.IsPlaylistPublicOrOwnedByUserParams{
+		PlaylistUuid: playlistUUID,
+		UserUuid:     userUUID,
+	})
+	if err != nil {
+		return false, fmt.Errorf("failed to check playlist access: %w", err)
+	}
+
+	return allowed, nil
+}
+
+// convertPathToFileURL converts storage path to /files/ URL
+func convertPathToFileURL(storagePath string) string {
+	if storagePath == "" {
+		return ""
+	}
+	return "/files/" + storagePath
+}
+
+// convertDefaultToFileURL returns /files/ URL for default images
+func convertDefaultToFileURL(entityType string) string {
+	switch entityType {
+	case "user":
+		return "/files/defaults/profile.jpg"
+	case "artist":
+		return "/files/defaults/artist.jpg"
+	case "album":
+		return "/files/defaults/album.jpg"
+	case "playlist":
+		return "/files/defaults/playlist.jpg"
+	case "music":
+		return "/files/defaults/music.jpg"
+	default:
+		return "/files/defaults/music.jpg"
+	}
 }

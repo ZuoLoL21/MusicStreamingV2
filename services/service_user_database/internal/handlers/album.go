@@ -74,7 +74,7 @@ func (h *AlbumHandler) GetAlbum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applyDefaultImageIfEmpty(&album.ImagePath, h.fileStorage, "album")
+	applyDefaultImageIfEmpty(&album.ImagePath, "album")
 	h.returns.ReturnJSON(w, album, http.StatusOK)
 }
 
@@ -99,7 +99,7 @@ func (h *AlbumHandler) GetAlbumsForArtist(w http.ResponseWriter, r *http.Request
 	}
 
 	for i := range albums {
-		applyDefaultImageIfEmpty(&albums[i].ImagePath, h.fileStorage, "album")
+		applyDefaultImageIfEmpty(&albums[i].ImagePath, "album")
 	}
 
 	h.returns.ReturnJSON(w, albums, http.StatusOK)

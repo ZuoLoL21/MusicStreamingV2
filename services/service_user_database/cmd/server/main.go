@@ -63,8 +63,6 @@ func main() {
 		config.MinIOAccessKey,
 		config.MinIOSecretKey,
 		config.MinIOBucketName,
-		config.MinIOPublicEndpoint,
-		config.MinIOUseSSL,
 		logger,
 	)
 	if err != nil {

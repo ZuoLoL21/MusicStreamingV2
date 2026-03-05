@@ -51,8 +51,8 @@ func (h *LikesHandler) GetLikesForUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := range likes {
-		likes[i].PathInFileStorage = h.fileStorage.BuildPublicURL(likes[i].PathInFileStorage)
-		applyDefaultImageIfEmpty(&likes[i].ImagePath, h.fileStorage, "music")
+		likes[i].PathInFileStorage = convertPathToFileURL(likes[i].PathInFileStorage)
+		applyDefaultImageIfEmpty(&likes[i].ImagePath, "music")
 	}
 
 	h.returns.ReturnJSON(w, likes, http.StatusOK)

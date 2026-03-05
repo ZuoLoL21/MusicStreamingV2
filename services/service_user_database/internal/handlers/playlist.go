@@ -75,7 +75,7 @@ func (h *PlaylistHandler) GetPlaylist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applyDefaultImageIfEmpty(&playlist.ImagePath, h.fileStorage, "playlist")
+	applyDefaultImageIfEmpty(&playlist.ImagePath, "playlist")
 	h.returns.ReturnJSON(w, playlist, http.StatusOK)
 }
 
@@ -100,7 +100,7 @@ func (h *PlaylistHandler) GetPlaylistsForUser(w http.ResponseWriter, r *http.Req
 	}
 
 	for i := range playlists {
-		applyDefaultImageIfEmpty(&playlists[i].ImagePath, h.fileStorage, "playlist")
+		applyDefaultImageIfEmpty(&playlists[i].ImagePath, "playlist")
 	}
 
 	h.returns.ReturnJSON(w, playlists, http.StatusOK)
@@ -126,8 +126,8 @@ func (h *PlaylistHandler) GetPlaylistTracks(w http.ResponseWriter, r *http.Reque
 	}
 
 	for i := range tracks {
-		tracks[i].PathInFileStorage = h.fileStorage.BuildPublicURL(tracks[i].PathInFileStorage)
-		applyDefaultImageIfEmpty(&tracks[i].ImagePath, h.fileStorage, "music")
+		tracks[i].PathInFileStorage = convertPathToFileURL(tracks[i].PathInFileStorage)
+		applyDefaultImageIfEmpty(&tracks[i].ImagePath, "music")
 	}
 
 	h.returns.ReturnJSON(w, tracks, http.StatusOK)
