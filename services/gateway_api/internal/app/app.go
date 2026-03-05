@@ -93,6 +93,7 @@ func (a *App) Router() *mux.Router {
 	// Public
 	publicRouter.HandleFunc("/health", libshandlers.NewHealthCheckHandler("gateway-api")).Methods("GET")
 	publicRouter.HandleFunc("/login", proxyHandler.ProxyLogin).Methods("POST", "PUT", "OPTIONS")
+	publicRouter.PathPrefix("/files/").HandlerFunc(proxyHandler.ProxyUserDatabase).Methods("GET")
 
 	// Renewal
 	refreshRouter.HandleFunc("/renew", proxyHandler.ProxyRenew).Methods("POST")
