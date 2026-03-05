@@ -16,6 +16,7 @@ type Config struct {
 	Port                     string
 	UserDatabaseServiceURL   string
 	RecommendationServiceURL string
+	EventIngestionServiceURL string
 	JWTStorePath             string
 	JWTExpirationService     time.Duration
 	ApplicationName          string
@@ -41,6 +42,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 	port := os.Getenv("GATEWAY_API_PORT")
 	userDatabaseServiceURL := os.Getenv("USER_DATABASE_SERVICE_URL")
 	recommendationServiceURL := os.Getenv("RECOMMENDATION_SERVICE_URL")
+	eventIngestionServiceURL := os.Getenv("EVENT_INGESTION_SERVICE_URL")
 	jwtStorePath := os.Getenv("JWT_STORE_PATH")
 	jwtTimeServiceStr := os.Getenv("JWT_TIME_IN_M_SERVICE")
 	applicationName := os.Getenv("VAULT_APPLICATION_NAME")
@@ -57,6 +59,9 @@ func LoadConfig(logger *zap.Logger) *Config {
 	}
 	if recommendationServiceURL == "" {
 		slogger.Warn("RECOMMENDATION_SERVICE_URL environment variable is not set")
+	}
+	if eventIngestionServiceURL == "" {
+		slogger.Warn("EVENT_INGESTION_SERVICE_URL environment variable is not set")
 	}
 	if jwtStorePath == "" {
 		slogger.Warn("JWT_STORE_PATH environment variable is not set")
@@ -97,6 +102,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 		Port:                     port,
 		UserDatabaseServiceURL:   userDatabaseServiceURL,
 		RecommendationServiceURL: recommendationServiceURL,
+		EventIngestionServiceURL: eventIngestionServiceURL,
 		JWTStorePath:             jwtStorePath,
 		JWTExpirationService:     time.Minute * time.Duration(serviceTime),
 		ApplicationName:          applicationName,

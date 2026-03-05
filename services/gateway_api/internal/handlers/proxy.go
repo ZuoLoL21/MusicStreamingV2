@@ -11,27 +11,30 @@ import (
 
 // ProxyHandler handles proxying requests to backend services
 type ProxyHandler struct {
-	userDBClient    *clients.UserDatabaseClient
-	recommendClient *clients.RecommendationClient
-	logger          *zap.Logger
-	requestIDKey    any
-	serviceJWTKey   any
+	userDBClient         *clients.UserDatabaseClient
+	recommendClient      *clients.RecommendationClient
+	eventIngestionClient *clients.EventIngestionClient
+	logger               *zap.Logger
+	requestIDKey         any
+	serviceJWTKey        any
 }
 
 // NewProxyHandler creates a new proxy handler
 func NewProxyHandler(
 	userDBClient *clients.UserDatabaseClient,
 	recommendClient *clients.RecommendationClient,
+	eventIngestionClient *clients.EventIngestionClient,
 	logger *zap.Logger,
 	requestIDKey any,
 	serviceJWTKey any,
 ) *ProxyHandler {
 	return &ProxyHandler{
-		userDBClient:    userDBClient,
-		recommendClient: recommendClient,
-		logger:          logger,
-		requestIDKey:    requestIDKey,
-		serviceJWTKey:   serviceJWTKey,
+		userDBClient:         userDBClient,
+		recommendClient:      recommendClient,
+		eventIngestionClient: eventIngestionClient,
+		logger:               logger,
+		requestIDKey:         requestIDKey,
+		serviceJWTKey:        serviceJWTKey,
 	}
 }
 
@@ -221,6 +224,58 @@ func (h *ProxyHandler) ProxyRecommendation(w http.ResponseWriter, r *http.Reques
 
 	if err != nil {
 		h.logger.Error("failed to forward recommendation request to backend",
+			zap.Error(err),
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method))
+		http.Error(w, "bad gateway", http.StatusBadGateway)
+		return
+	}
+
+	h.writeResponse(w, respBody, statusCode, respHeaders)
+}
+
+// ProxyEventIngestion handles all event ingestion service routes
+// Requires normal JWT validation (handled by middleware)
+func (h *ProxyHandler) ProxyEventIngestion(w http.ResponseWriter, r *http.Request) {
+	requestID := h.extractRequestID(r)
+	serviceJWT := h.extractServiceJWT(r)
+
+	if serviceJWT == "" {
+		h.logger.Error("service JWT not found in context for event ingestion request",
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.logger.Error("failed to read event ingestion request body",
+			zap.Error(err),
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	_ = r.Body.Close()
+
+	headers := h.copyHeaders(r.Header, true)
+
+	respBody, statusCode, respHeaders, err := h.eventIngestionClient.ProxyRequest(
+		r.Context(),
+		r.Method,
+		r.URL.Path,
+		r.URL.RawQuery,
+		bytes.NewReader(bodyBytes),
+		headers,
+		serviceJWT,
+		requestID,
+	)
+
+	if err != nil {
+		h.logger.Error("failed to forward event ingestion request to backend",
 			zap.Error(err),
 			zap.String("request_id", requestID),
 			zap.String("method", r.Method))

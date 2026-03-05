@@ -15,12 +15,13 @@ import (
 )
 
 type App struct {
-	Config          *di.Config
-	Logger          *zap.Logger
-	JWTHandler      *libsdi.JWTHandler
-	Returns         *libsdi.ReturnManager
-	UserDBClient    *clients.UserDatabaseClient
-	RecommendClient *clients.RecommendationClient
+	Config               *di.Config
+	Logger               *zap.Logger
+	JWTHandler           *libsdi.JWTHandler
+	Returns              *libsdi.ReturnManager
+	UserDBClient         *clients.UserDatabaseClient
+	RecommendClient      *clients.RecommendationClient
+	EventIngestionClient *clients.EventIngestionClient
 }
 
 func (a *App) Router() *mux.Router {
@@ -31,6 +32,7 @@ func (a *App) Router() *mux.Router {
 	proxyHandler := handlers.NewProxyHandler(
 		a.UserDBClient,
 		a.RecommendClient,
+		a.EventIngestionClient,
 		a.Logger,
 		a.Config.RequestIDKey,
 		a.Config.ServiceJWTKey,
@@ -112,6 +114,9 @@ func (a *App) Router() *mux.Router {
 	// Recommendation Service routes
 	protectedRouter.PathPrefix("/recommendation").HandlerFunc(proxyHandler.ProxyRecommendation)
 
+	// Event Ingestion Service routes
+	protectedRouter.PathPrefix("/events").HandlerFunc(proxyHandler.ProxyEventIngestion)
+
 	return r
 }
 
@@ -123,13 +128,15 @@ func NewApp(
 ) *App {
 	userDBClient := clients.NewUserDatabaseClient(config.UserDatabaseServiceURL, logger)
 	recommendClient := clients.NewRecommendationClient(config.RecommendationServiceURL, logger)
+	eventIngestionClient := clients.NewEventIngestionClient(config.EventIngestionServiceURL, logger)
 
 	return &App{
-		Config:          config,
-		Logger:          logger,
-		JWTHandler:      jwtHandler,
-		Returns:         returns,
-		UserDBClient:    userDBClient,
-		RecommendClient: recommendClient,
+		Config:               config,
+		Logger:               logger,
+		JWTHandler:           jwtHandler,
+		Returns:              returns,
+		UserDBClient:         userDBClient,
+		RecommendClient:      recommendClient,
+		EventIngestionClient: eventIngestionClient,
 	}
 }
