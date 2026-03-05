@@ -106,6 +106,7 @@ func (a *App) Router() *mux.Router {
 	protectedRouter.PathPrefix("/tags").HandlerFunc(proxyHandler.ProxyUserDatabase)
 	protectedRouter.PathPrefix("/playlists").HandlerFunc(proxyHandler.ProxyUserDatabase)
 	protectedRouter.PathPrefix("/history").HandlerFunc(proxyHandler.ProxyUserDatabase)
+	protectedRouter.PathPrefix("/search").HandlerFunc(proxyHandler.ProxyUserDatabase)
 
 	// Recommendation Service routes
 	protectedRouter.PathPrefix("/recommendation").HandlerFunc(proxyHandler.ProxyRecommendation)
