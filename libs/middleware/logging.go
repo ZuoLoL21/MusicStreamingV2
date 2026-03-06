@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"libs/di"
+	"libs/consts"
 	"net/http"
 	"strings"
 	"time"
@@ -35,12 +35,12 @@ func getIP(r *http.Request) string {
 }
 
 func requestID(ctx context.Context) string {
-	id, _ := ctx.Value(di.RequestIDKey).(string)
+	id, _ := ctx.Value(consts.RequestIDKey).(string)
 	return id
 }
 
 func userUUID(ctx context.Context) string {
-	id, _ := ctx.Value(di.UserUUIDKey).(string)
+	id, _ := ctx.Value(consts.UserUUIDKey).(string)
 	return id
 }
 

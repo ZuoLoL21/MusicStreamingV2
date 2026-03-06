@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"libs/consts"
 	"libs/di"
 	"net/http"
 	"time"
@@ -40,7 +41,7 @@ func NewServiceJWTHandler(
 func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			uuid, ok := r.Context().Value(di.UserUUIDKey).(string)
+			uuid, ok := r.Context().Value(consts.UserUUIDKey).(string)
 			if !ok || uuid == "" {
 				h.logger.Error("user UUID not found in context")
 				h.returns.ReturnError(w, "internal server error: missing user context", http.StatusInternalServerError)
@@ -48,7 +49,7 @@ func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 			}
 
 			// Generate service JWT using Vault Transit
-			serviceJWT := h.jwtHandler.GenerateJwt(di.JWTSubjectService, uuid, h.duration)
+			serviceJWT := h.jwtHandler.GenerateJwt(consts.JWTSubjectService, uuid, h.duration)
 			if serviceJWT == "" {
 				h.logger.Error("failed to generate service JWT",
 					zap.String("user_uuid", uuid))
@@ -61,7 +62,7 @@ func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 				zap.Duration("ttl", h.duration))
 
 			// Add service JWT to context
-			ctx := context.WithValue(r.Context(), di.ServiceJWTKey, serviceJWT)
+			ctx := context.WithValue(r.Context(), consts.ServiceJWTKey, serviceJWT)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

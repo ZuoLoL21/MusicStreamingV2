@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"libs/di"
+	"libs/consts"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -21,7 +21,7 @@ func RequestIDMiddleware() mux.MiddlewareFunc {
 				requestID = generateRequestID()
 			}
 
-			ctx := context.WithValue(r.Context(), di.RequestIDKey, requestID)
+			ctx := context.WithValue(r.Context(), consts.RequestIDKey, requestID)
 			w.Header().Set("X-Request-ID", requestID)
 
 			next.ServeHTTP(w, r.WithContext(ctx))

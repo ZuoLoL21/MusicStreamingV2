@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"libs/consts"
 	"libs/di"
 	"net/http"
 	"strings"
@@ -49,7 +50,7 @@ func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), di.UserUUIDKey, uuid)
+			ctx := context.WithValue(r.Context(), consts.UserUUIDKey, uuid)
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		})

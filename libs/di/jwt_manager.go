@@ -10,12 +10,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	JWTSubjectNormal  = "normal"
-	JWTSubjectRefresh = "refresh"
-	JWTSubjectService = "service"
-)
-
 type MyCustomClaims struct {
 	Uuid string `json:"uuid"`
 	jwt.RegisteredClaims
