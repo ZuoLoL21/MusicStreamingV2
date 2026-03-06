@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend/internal/consts"
 	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
 	"context"
@@ -83,7 +84,7 @@ func uploadImageFromForm(
 
 	// Validate and process image
 	var config storage.ImageValidationConfig
-	if folder == "pictures-profile" || folder == "pictures-artist" {
+	if folder == consts.PicturesProfileFolder || folder == consts.PicturesArtistFolder {
 		config = storage.DefaultProfileImageConfig()
 	} else {
 		config = storage.DefaultMusicImageConfig()
@@ -212,7 +213,7 @@ func parseResourceFromPath(objectPath string) (*ResourceInfo, error) {
 
 	info := &ResourceInfo{
 		ResourceType: resourceType,
-		IsDefault:    resourceType == "defaults",
+		IsDefault:    resourceType == consts.DefaultsFolder,
 	}
 
 	if info.IsDefault {
@@ -229,7 +230,7 @@ func parseResourceFromPath(objectPath string) (*ResourceInfo, error) {
 // checkFileAccess verifies if a user has permission to access a file
 func checkFileAccess(
 	ctx context.Context,
-	db DB,
+	db consts.DB,
 	resourceInfo *ResourceInfo,
 	userUUID pgtype.UUID, // May be invalid if not authenticated
 ) (bool, error) {
@@ -237,7 +238,7 @@ func checkFileAccess(
 		return true, nil
 	}
 
-	if resourceInfo.ResourceType != "pictures-playlist" {
+	if resourceInfo.ResourceType != consts.PicturesPlaylistFolder {
 		return true, nil
 	}
 
@@ -257,30 +258,34 @@ func checkFileAccess(
 	return allowed, nil
 }
 
-// convertPathToFileURL converts storage path to /files/ URL
+// convertPathToFileURL converts storage path to /files/public/ URL
 func convertPathToFileURL(storagePath string) string {
 	if storagePath == "" {
 		return ""
 	}
-	return "/files/" + storagePath
+
+	if strings.HasPrefix(storagePath, consts.ProfilePath) {
+		return consts.PrivatePathStart + storagePath
+	}
+	return consts.PublicPathStart + storagePath
 }
 
-// convertDefaultToFileURL returns /files/ URL for default images
+// convertDefaultToFileURL returns /files/public/ URL for default images
 func convertDefaultToFileURL(entityType string) string {
 	var path string
 	switch entityType {
 	case "user":
-		path = DefaultProfileImagePath
+		path = consts.DefaultProfileImagePath
 	case "artist":
-		path = DefaultArtistImagePath
+		path = consts.DefaultArtistImagePath
 	case "album":
-		path = DefaultAlbumImagePath
+		path = consts.DefaultAlbumImagePath
 	case "playlist":
-		path = DefaultPlaylistImagePath
+		path = consts.DefaultPlaylistImagePath
 	case "music":
-		path = DefaultMusicImagePath
+		path = consts.DefaultMusicImagePath
 	default:
-		path = DefaultMusicImagePath
+		path = consts.DefaultMusicImagePath
 	}
-	return "/files/" + path
+	return consts.PublicPathStart + path
 }

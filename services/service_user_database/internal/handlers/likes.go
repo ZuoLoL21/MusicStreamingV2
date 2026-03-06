@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend/internal/consts"
 	"net/http"
 
 	"backend/internal/di"
@@ -16,11 +17,11 @@ type LikesHandler struct {
 	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
-	db          DB
+	db          consts.DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewLikesHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *LikesHandler {
+func NewLikesHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *LikesHandler {
 	return &LikesHandler{
 		logger:      logger,
 		config:      config,

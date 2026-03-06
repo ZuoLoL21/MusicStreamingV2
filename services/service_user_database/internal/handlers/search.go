@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend/internal/consts"
 	"backend/internal/di"
 	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
@@ -17,11 +18,11 @@ type SearchHandler struct {
 	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
-	db          DB
+	db          consts.DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewSearchHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *SearchHandler {
+func NewSearchHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *SearchHandler {
 	return &SearchHandler{
 		logger:      logger,
 		config:      config,

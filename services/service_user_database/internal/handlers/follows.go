@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend/internal/consts"
 	"net/http"
 
 	"backend/internal/di"
@@ -15,10 +16,10 @@ type FollowsHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	returns *libsdi.ReturnManager
-	db      DB
+	db      consts.DB
 }
 
-func NewFollowsHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB) *FollowsHandler {
+func NewFollowsHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB) *FollowsHandler {
 	return &FollowsHandler{
 		logger:  logger,
 		config:  config,

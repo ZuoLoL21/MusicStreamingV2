@@ -1,6 +1,7 @@
 package client
 
 import (
+	"backend/internal/consts"
 	"context"
 	"fmt"
 	"io"
@@ -43,7 +44,7 @@ func NewMinIOFileStorageClient(endpoint, accessKey, secretKey, bucketName string
 
 // SaveAudio uploads audio file and returns the object path (not full URL)
 func (m *MinIOFileStorageClient) SaveAudio(ctx context.Context, musicID string, audioData io.Reader) (string, error) {
-	objectName := fmt.Sprintf("audio/%s.mp3", musicID)
+	objectName := fmt.Sprintf("%s/%s.mp3", consts.AudioFolder, musicID)
 
 	_, err := m.client.PutObject(ctx, m.bucketName, objectName, audioData, -1, minio.PutObjectOptions{
 		ContentType: "audio/mpeg",
@@ -71,7 +72,7 @@ func (m *MinIOFileStorageClient) UpdateAudio(ctx context.Context, musicID string
 
 // DeleteAudio removes audio file from storage
 func (m *MinIOFileStorageClient) DeleteAudio(ctx context.Context, musicID string) error {
-	objectName := fmt.Sprintf("audio/%s.mp3", musicID)
+	objectName := fmt.Sprintf("%s/%s.mp3", consts.AudioFolder, musicID)
 
 	err := m.client.RemoveObject(ctx, m.bucketName, objectName, minio.RemoveObjectOptions{})
 	if err != nil {

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend/internal/consts"
 	"backend/internal/di"
 	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
@@ -27,12 +28,12 @@ type UserHandler struct {
 	config      *di.Config
 	jwtHandler  *libsdi.JWTHandler
 	returns     *libsdi.ReturnManager
-	db          DB
+	db          consts.DB
 	fileStorage storage.FileStorageClient
 	httpClient  *http.Client
 }
 
-func NewUserHandler(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *UserHandler {
+func NewUserHandler(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *UserHandler {
 	return &UserHandler{
 		logger:      logger,
 		config:      config,
@@ -142,7 +143,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Upload
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"pictures-profile", userID, "image", h.logger, h.returns)
+		consts.PicturesProfileFolder, userID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
@@ -382,7 +383,7 @@ func (h *UserHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 	imageID := uuid.UUID(userUUID.Bytes).String()
 
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"pictures-profile", imageID, "image", h.logger, h.returns)
+		consts.PicturesProfileFolder, imageID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}

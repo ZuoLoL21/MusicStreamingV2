@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend/internal/consts"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -24,12 +25,12 @@ type TagsHandler struct {
 	config      *di.Config
 	jwtHandler  *libsdi.JWTHandler
 	returns     *libsdi.ReturnManager
-	db          DB
+	db          consts.DB
 	fileStorage storage.FileStorageClient
 	httpClient  *http.Client
 }
 
-func NewTagsHandler(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *TagsHandler {
+func NewTagsHandler(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *TagsHandler {
 	return &TagsHandler{
 		logger:      logger,
 		config:      config,

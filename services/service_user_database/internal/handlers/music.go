@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend/internal/consts"
 	"net/http"
 	"strconv"
 
@@ -20,11 +21,11 @@ type MusicHandler struct {
 	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
-	db          DB
+	db          consts.DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewMusicHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *MusicHandler {
+func NewMusicHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *MusicHandler {
 	return &MusicHandler{
 		logger:      logger,
 		config:      config,

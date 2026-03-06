@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend/internal/consts"
 	"net/http"
 	"strconv"
 
@@ -19,11 +20,11 @@ type PlaylistHandler struct {
 	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
-	db          DB
+	db          consts.DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewPlaylistHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *PlaylistHandler {
+func NewPlaylistHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *PlaylistHandler {
 	return &PlaylistHandler{
 		logger:      logger,
 		config:      config,
@@ -170,7 +171,7 @@ func (h *PlaylistHandler) CreatePlaylist(w http.ResponseWriter, r *http.Request)
 
 	// Optional image upload
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"pictures-playlist", playlistID, "image", h.logger, h.returns)
+		consts.PicturesPlaylistFolder, playlistID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
@@ -192,7 +193,7 @@ func (h *PlaylistHandler) CreatePlaylist(w http.ResponseWriter, r *http.Request)
 		h.logger.Error("failed to create playlist", zap.Error(err))
 		// If playlist creation fails and image was uploaded, try to clean up
 		if imagePath.Valid {
-			cleanupImage(r.Context(), h.fileStorage, "pictures-playlist", playlistID, h.logger)
+			cleanupImage(r.Context(), h.fileStorage, consts.PicturesPlaylistFolder, playlistID, h.logger)
 		}
 		h.returns.ReturnError(w, "failed to create playlist", http.StatusInternalServerError)
 		return
@@ -332,7 +333,7 @@ func (h *PlaylistHandler) UpdatePlaylistImage(w http.ResponseWriter, r *http.Req
 	imageID := uuid.UUID(playlistUUID.Bytes).String()
 
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"pictures-playlist", imageID, "image", h.logger, h.returns)
+		consts.PicturesPlaylistFolder, imageID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend/internal/consts"
 	"backend/internal/di"
 	"backend/internal/storage"
 	sqlhandler "backend/sql/sqlc"
@@ -18,11 +19,11 @@ type ArtistHandler struct {
 	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
-	db          DB
+	db          consts.DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewArtistHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *ArtistHandler {
+func NewArtistHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *ArtistHandler {
 	return &ArtistHandler{
 		logger:      logger,
 		config:      config,
@@ -153,7 +154,7 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 	artistID := uuid.New().String()
 
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"pictures-artist", artistID, "image", h.logger, h.returns)
+		consts.PicturesArtistFolder, artistID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
@@ -175,7 +176,7 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 			zap.String("artist_name", artistName))
 
 		if profileImagePath.Valid {
-			cleanupImage(r.Context(), h.fileStorage, "pictures-artist", artistID, h.logger)
+			cleanupImage(r.Context(), h.fileStorage, "consts.PicturesArtistFolder", artistID, h.logger)
 		}
 		h.returns.ReturnError(w, "unable to create artist profile", http.StatusInternalServerError)
 		return
@@ -233,7 +234,7 @@ func (h *ArtistHandler) UpdateArtistPicture(w http.ResponseWriter, r *http.Reque
 	imageID := uuid.UUID(artistUUID.Bytes).String()
 
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"pictures-artist", imageID, "image", h.logger, h.returns)
+		"consts.PicturesArtistFolder", imageID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}

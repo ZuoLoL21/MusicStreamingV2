@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend/internal/consts"
 	"net/http"
 	"strconv"
 
@@ -16,10 +17,10 @@ type HistoryHandler struct {
 	logger  *zap.Logger
 	config  *di.Config
 	returns *libsdi.ReturnManager
-	db      DB
+	db      consts.DB
 }
 
-func NewHistoryHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB) *HistoryHandler {
+func NewHistoryHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB) *HistoryHandler {
 	return &HistoryHandler{
 		logger:  logger,
 		config:  config,

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"backend/internal/consts"
 	"bytes"
 	"context"
 	"io"
@@ -168,11 +169,11 @@ func TestIntegration_SaveImage_Success(t *testing.T) {
 		folder  string
 		imageID string
 	}{
-		{"pictures-album", "album-001"},
-		{"pictures-artist", "artist-001"},
-		{"pictures-playlist", "playlist-001"},
-		{"pictures-music", "music-001"},
-		{"pictures-profile", "user-001"},
+		{consts.PicturesAlbumFolder, "album-001"},
+		{consts.PicturesArtistFolder, "artist-001"},
+		{consts.PicturesPlaylistFolder, "playlist-001"},
+		{consts.PicturesMusicFolder, "music-001"},
+		{consts.PicturesProfileFolder, "user-001"},
 	}
 
 	for _, tc := range testCases {
@@ -213,7 +214,7 @@ func TestIntegration_DeleteImage_Success(t *testing.T) {
 	client := setupTestClient(t)
 	ctx := context.Background()
 
-	folder := "pictures-album"
+	folder := consts.PicturesAlbumFolder
 	imageID := "album-delete-001"
 
 	// Create image
@@ -235,7 +236,7 @@ func TestIntegration_DeleteImage_NonExistent(t *testing.T) {
 	ctx := context.Background()
 
 	// Try to delete non-existent image (should not error)
-	err := client.DeleteImage(ctx, "pictures-album", "non-existent-image")
+	err := client.DeleteImage(ctx, consts.PicturesAlbumFolder, "non-existent-image")
 	assert.NoError(t, err, "deleting non-existent image should not error")
 }
 
@@ -294,7 +295,7 @@ func TestIntegration_FullWorkflow_Image(t *testing.T) {
 	client := setupTestClient(t)
 	ctx := context.Background()
 
-	folder := "pictures-album"
+	folder := consts.PicturesAlbumFolder
 	imageID := "full-workflow-image"
 	imageContent := []byte("Fake image data")
 

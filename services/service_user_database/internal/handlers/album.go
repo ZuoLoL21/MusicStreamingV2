@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend/internal/consts"
 	"net/http"
 
 	"backend/internal/di"
@@ -18,11 +19,11 @@ type AlbumHandler struct {
 	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
-	db          DB
+	db          consts.DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewAlbumHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db DB, fileStorage storage.FileStorageClient) *AlbumHandler {
+func NewAlbumHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *AlbumHandler {
 	return &AlbumHandler{
 		logger:      logger,
 		config:      config,
@@ -136,7 +137,7 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 
 	// Optional image upload
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"pictures-album", albumID, "image", h.logger, h.returns)
+		consts.PicturesAlbumFolder, albumID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
@@ -163,7 +164,7 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("failed to create album", zap.Error(err))
 
 		if imagePath.Valid {
-			cleanupImage(r.Context(), h.fileStorage, "pictures-album", albumID, h.logger)
+			cleanupImage(r.Context(), h.fileStorage, consts.PicturesAlbumFolder, albumID, h.logger)
 		}
 		h.returns.ReturnError(w, "failed to create album", http.StatusInternalServerError)
 		return
@@ -222,7 +223,7 @@ func (h *AlbumHandler) UpdateAlbumImage(w http.ResponseWriter, r *http.Request) 
 
 	// Update
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"pictures-album", imageID, "image", h.logger, h.returns)
+		consts.PicturesAlbumFolder, imageID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
