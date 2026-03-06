@@ -249,8 +249,15 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 	// Generate music ID
 	musicID := uuid.New().String()
 
-	// Update
+	// Upload audio
 	audioURL, ok := uploadAudioFromForm(r.Context(), w, r, h.fileStorage, musicID, "audio", h.logger, h.returns)
+	if !ok {
+		return
+	}
+
+	// Optional image upload
+	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
+		consts.PicturesMusicFolder, musicID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
@@ -264,6 +271,7 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 		SongName:          songName,
 		PathInFileStorage: audioURL,
 		DurationSeconds:   int32(durationSeconds),
+		ImagePath:         imagePath,
 	}); err != nil {
 		logger.Error("database operation failed",
 			zap.String("operation", "CreateMusic"),
@@ -273,6 +281,9 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 			zap.String("song_name", songName))
 
 		cleanupAudio(r.Context(), h.fileStorage, musicID, h.logger)
+		if imagePath.Valid {
+			cleanupImage(r.Context(), h.fileStorage, consts.PicturesMusicFolder, musicID, h.logger)
+		}
 
 		h.returns.ReturnError(w, "unable to create music", http.StatusInternalServerError)
 		return
@@ -380,6 +391,44 @@ func (h *MusicHandler) DeleteMusic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.returns.ReturnText(w, "music deleted", http.StatusOK)
+}
+
+func (h *MusicHandler) UpdateMusicImage(w http.ResponseWriter, r *http.Request) {
+	musicUUID, ok := h.checkMusicAccess(w, r, sqlhandler.ArtistMemberRoleManager)
+	if !ok {
+		return
+	}
+
+	// Ensure is multipart form
+	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
+		return
+	}
+
+	imageID := uuid.UUID(musicUUID.Bytes).String()
+
+	// Upload image
+	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
+		consts.PicturesMusicFolder, imageID, "image", h.logger, h.returns)
+	if !ok {
+		return
+	}
+
+	if !imagePath.Valid {
+		h.returns.ReturnError(w, "image file required", http.StatusBadRequest)
+		return
+	}
+
+	// Update database
+	if err := h.db.UpdateMusicImage(r.Context(), sqlhandler.UpdateMusicImageParams{
+		Uuid:      musicUUID,
+		ImagePath: imagePath,
+	}); err != nil {
+		h.logger.Error("failed to update music image", zap.Error(err))
+		h.returns.ReturnError(w, "failed to update music image", http.StatusInternalServerError)
+		return
+	}
+
+	h.returns.ReturnText(w, "music image updated", http.StatusOK)
 }
 
 func (h *MusicHandler) IncrementPlayCount(w http.ResponseWriter, r *http.Request) {

@@ -190,6 +190,7 @@ func (a *App) registerMusicRoutes(r *mux.Router) {
 	r.HandleFunc("/music/{uuid}", a.handlers.Music.GetMusic).Methods("GET")
 	r.HandleFunc("/music/{uuid}", a.handlers.Music.UpdateMusicDetails).Methods("POST")
 	r.HandleFunc("/music/{uuid}/storage", a.handlers.Music.UpdateMusicStorage).Methods("POST")
+	r.HandleFunc("/music/{uuid}/image", a.handlers.Music.UpdateMusicImage).Methods("POST")
 	r.HandleFunc("/music/{uuid}", a.handlers.Music.DeleteMusic).Methods("DELETE")
 	r.HandleFunc("/music/{uuid}/play", a.handlers.Music.IncrementPlayCount).Methods("POST")
 	r.HandleFunc("/music/{uuid}/listen", a.handlers.Music.AddListeningHistoryEntry).Methods("POST")

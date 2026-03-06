@@ -66,6 +66,11 @@ SET song_name = $2,
     in_album = $3
 WHERE uuid = $1;
 
+-- name: UpdateMusicImage :exec
+UPDATE music
+SET image_path = $2
+WHERE uuid = $1;
+
 -- name: IncrementPlayCount :exec
 UPDATE music
 SET play_count = play_count + 1
@@ -79,8 +84,8 @@ WHERE uuid = $1;
 
 ------ PUT
 -- name: CreateMusic :exec
-INSERT INTO music (from_artist, uploaded_by, in_album, song_name, path_in_file_storage, duration_seconds)
-VALUES ($1, $2, $3, $4, $5, $6);
+INSERT INTO music (from_artist, uploaded_by, in_album, song_name, path_in_file_storage, duration_seconds, image_path)
+VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 ------ DELETE
 -- name: DeleteMusic :exec

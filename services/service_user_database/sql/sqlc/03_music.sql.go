@@ -12,8 +12,8 @@ import (
 )
 
 const createMusic = `-- name: CreateMusic :exec
-INSERT INTO music (from_artist, uploaded_by, in_album, song_name, path_in_file_storage, duration_seconds)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO music (from_artist, uploaded_by, in_album, song_name, path_in_file_storage, duration_seconds, image_path)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type CreateMusicParams struct {
@@ -23,6 +23,7 @@ type CreateMusicParams struct {
 	SongName          string      `json:"song_name"`
 	PathInFileStorage string      `json:"path_in_file_storage"`
 	DurationSeconds   int32       `json:"duration_seconds"`
+	ImagePath         pgtype.Text `json:"image_path"`
 }
 
 // ---- PUT
@@ -34,6 +35,7 @@ func (q *Queries) CreateMusic(ctx context.Context, arg CreateMusicParams) error 
 		arg.SongName,
 		arg.PathInFileStorage,
 		arg.DurationSeconds,
+		arg.ImagePath,
 	)
 	return err
 }
@@ -364,6 +366,22 @@ type UpdateMusicDetailsParams struct {
 // ---- POST
 func (q *Queries) UpdateMusicDetails(ctx context.Context, arg UpdateMusicDetailsParams) error {
 	_, err := q.db.Exec(ctx, updateMusicDetails, arg.Uuid, arg.SongName, arg.InAlbum)
+	return err
+}
+
+const updateMusicImage = `-- name: UpdateMusicImage :exec
+UPDATE music
+SET image_path = $2
+WHERE uuid = $1
+`
+
+type UpdateMusicImageParams struct {
+	Uuid      pgtype.UUID `json:"uuid"`
+	ImagePath pgtype.Text `json:"image_path"`
+}
+
+func (q *Queries) UpdateMusicImage(ctx context.Context, arg UpdateMusicImageParams) error {
+	_, err := q.db.Exec(ctx, updateMusicImage, arg.Uuid, arg.ImagePath)
 	return err
 }
 

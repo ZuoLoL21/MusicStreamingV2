@@ -44,6 +44,7 @@ type DB interface {
 	GetMusicForUser(ctx context.Context, arg sqlhandler.GetMusicForUserParams) ([]sqlhandler.Music, error)
 	CreateMusic(ctx context.Context, arg sqlhandler.CreateMusicParams) error
 	UpdateMusicDetails(ctx context.Context, arg sqlhandler.UpdateMusicDetailsParams) error
+	UpdateMusicImage(ctx context.Context, arg sqlhandler.UpdateMusicImageParams) error
 	UpdateMusicStorage(ctx context.Context, arg sqlhandler.UpdateMusicStorageParams) error
 	DeleteMusic(ctx context.Context, uuid pgtype.UUID) error
 	IncrementPlayCount(ctx context.Context, uuid pgtype.UUID) error
