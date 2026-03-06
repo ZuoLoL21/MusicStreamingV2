@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"libs/consts"
-	libsdi "libs/di"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -27,8 +26,6 @@ type Config struct {
 	JWTTimeout               time.Duration
 	VaultAddr                string
 	VaultToken               string
-	UserUUIDKey              libsdi.ContextKey
-	RequestIDKey             libsdi.ContextKey
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -135,19 +132,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 		JWTTimeout:               jwtTimeout,
 		VaultAddr:                vaultAddr,
 		VaultToken:               vaultToken,
-		UserUUIDKey:              libsdi.UserUUIDKey,
-		RequestIDKey:             libsdi.RequestIDKey,
 	}
-}
-
-// GetRequestIDKey implements middleware.RequestIDConfig
-func (c *Config) GetRequestIDKey() any {
-	return c.RequestIDKey
-}
-
-// GetUserUUIDKey implements middleware.LoggingConfig
-func (c *Config) GetUserUUIDKey() (any, bool) {
-	return c.UserUUIDKey, true
 }
 
 // GetJWTTimeout implements HashicorpConfig

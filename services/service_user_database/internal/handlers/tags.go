@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	libsconsts "libs/consts"
 	"net/http"
 	"time"
 
@@ -240,7 +241,7 @@ func (h *TagsHandler) syncThemeToClickHouse(musicUUID pgtype.UUID, theme string)
 	req.Header.Set("Content-Type", "application/json")
 
 	serviceJWT := h.jwtHandler.GenerateJwt(
-		libsdi.JWTSubjectService,
+		libsconsts.JWTSubjectService,
 		"system",
 		2*time.Minute,
 	)

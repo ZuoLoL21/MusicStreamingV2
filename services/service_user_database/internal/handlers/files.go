@@ -6,6 +6,7 @@ import (
 	"backend/internal/storage"
 	"fmt"
 	"io"
+	libsconsts "libs/consts"
 	"net/http"
 	"strings"
 
@@ -68,7 +69,7 @@ func (h *FileHandler) ServeFile(w http.ResponseWriter, r *http.Request) {
 
 	// For private files, require authentication and check permissions
 	if isPrivate {
-		userUUIDStr, ok := r.Context().Value(h.config.UserUUIDKey).(string)
+		userUUIDStr, ok := r.Context().Value(libsconsts.UserUUIDKey).(string)
 		if !ok || userUUIDStr == "" {
 			h.logger.Warn("unauthenticated access to private file",
 				zap.String("path", objectPath))

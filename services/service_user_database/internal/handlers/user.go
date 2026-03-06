@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	libsconsts "libs/consts"
 	"net/http"
 	"strings"
 	"time"
@@ -53,12 +54,12 @@ type tokenPair struct {
 
 func (h *UserHandler) issueTokenPair(uuidStr string) tokenPair {
 	access := h.jwtHandler.GenerateJwt(
-		libsdi.JWTSubjectNormal,
+		libsconsts.JWTSubjectNormal,
 		uuidStr,
 		h.config.JWTExpirationNormal,
 	)
 	refresh := h.jwtHandler.GenerateJwt(
-		libsdi.JWTSubjectRefresh,
+		libsconsts.JWTSubjectRefresh,
 		uuidStr,
 		h.config.JWTExpirationRefresh,
 	)
@@ -204,14 +205,14 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) Renew(w http.ResponseWriter, r *http.Request) {
-	uuidStr, ok := r.Context().Value(h.config.UserUUIDKey).(string)
+	uuidStr, ok := r.Context().Value(libsconsts.UserUUIDKey).(string)
 	if !ok || uuidStr == "" {
 		h.returns.ReturnError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	access := h.jwtHandler.GenerateJwt(
-		libsdi.JWTSubjectNormal,
+		libsconsts.JWTSubjectNormal,
 		uuidStr,
 		h.config.JWTExpirationNormal,
 	)
@@ -455,7 +456,7 @@ func (h *UserHandler) syncUserDimToClickHouse(userUUID pgtype.UUID, country stri
 	req.Header.Set("Content-Type", "application/json")
 
 	serviceJWT := h.jwtHandler.GenerateJwt(
-		libsdi.JWTSubjectService,
+		libsconsts.JWTSubjectService,
 		userUUIDStr,
 		2*time.Minute,
 	)
