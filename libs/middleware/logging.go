@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"libs/consts"
+	"libs/helpers"
 	"net/http"
 	"strings"
 	"time"
@@ -35,13 +35,11 @@ func getIP(r *http.Request) string {
 }
 
 func requestID(ctx context.Context) string {
-	id, _ := ctx.Value(consts.RequestIDKey).(string)
-	return id
+	return helpers.GetRequestIDFromContext(ctx)
 }
 
 func userUUID(ctx context.Context) string {
-	id, _ := ctx.Value(consts.UserUUIDKey).(string)
-	return id
+	return helpers.GetUserUUIDFromContext(ctx)
 }
 
 func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {

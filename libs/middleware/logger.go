@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"libs/consts"
+	"libs/helpers"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -18,10 +18,10 @@ func Logger(baseLogger *zap.Logger) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger := baseLogger
 
-			if requestID, ok := r.Context().Value(consts.RequestIDKey).(string); ok && requestID != "" {
+			if requestID := helpers.GetRequestIDFromContext(r.Context()); requestID != "" {
 				logger = logger.With(zap.String("request_id", requestID))
 			}
-			if userUUID, ok := r.Context().Value(consts.UserUUIDKey).(string); ok && userUUID != "" {
+			if userUUID := helpers.GetUserUUIDFromContext(r.Context()); userUUID != "" {
 				logger = logger.With(zap.String("user_uuid", userUUID))
 			}
 

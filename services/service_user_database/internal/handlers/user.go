@@ -205,8 +205,8 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) Renew(w http.ResponseWriter, r *http.Request) {
-	uuidStr, ok := r.Context().Value(libsconsts.UserUUIDKey).(string)
-	if !ok || uuidStr == "" {
+	uuidStr := libshelpers.GetUserUUIDFromContext(r.Context())
+	if uuidStr == "" {
 		h.returns.ReturnError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}

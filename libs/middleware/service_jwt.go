@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"libs/consts"
 	"libs/di"
+	"libs/helpers"
 	"net/http"
 	"time"
 
@@ -41,8 +42,8 @@ func NewServiceJWTHandler(
 func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			uuid, ok := r.Context().Value(consts.UserUUIDKey).(string)
-			if !ok || uuid == "" {
+			uuid := helpers.GetUserUUIDFromContext(r.Context())
+			if uuid == "" {
 				h.logger.Error("user UUID not found in context")
 				h.returns.ReturnError(w, "internal server error: missing user context", http.StatusInternalServerError)
 				return

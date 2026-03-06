@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"libs/helpers"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -42,8 +43,8 @@ func ProxyWithServiceJWT(
 	logger *zap.Logger,
 	forwardFunc func(ctx context.Context, method, path, query string, body io.Reader, headers http.Header, serviceJWT, requestID string) ([]byte, int, http.Header, error),
 ) {
-	requestID := GetRequestIDFromContext(r.Context())
-	serviceJWT := GetServiceJWTFromContext(r.Context())
+	requestID := helpers.GetRequestIDFromContext(r.Context())
+	serviceJWT := helpers.GetServiceJWTFromContext(r.Context())
 
 	if serviceJWT == "" {
 		logger.Error("service JWT not found in context",
@@ -99,7 +100,7 @@ func ProxyPublic(
 	logger *zap.Logger,
 	forwardFunc func(ctx context.Context, method, path, query string, body io.Reader, headers http.Header, requestID string) ([]byte, int, http.Header, error),
 ) {
-	requestID := GetRequestIDFromContext(r.Context())
+	requestID := helpers.GetRequestIDFromContext(r.Context())
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {

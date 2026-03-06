@@ -3,7 +3,7 @@ package handlers
 import (
 	"backend/internal/consts"
 	"backend/internal/di"
-	libsconsts "libs/consts"
+	"libs/helpers"
 
 	sqlhandler "backend/sql/sqlc"
 	"context"
@@ -81,8 +81,8 @@ func uuidToPgtype(uuidStr string) (pgtype.UUID, error) {
 }
 
 func userUUIDFromCtx(w http.ResponseWriter, r *http.Request, config *di.Config, returns *libsdi.ReturnManager) (pgtype.UUID, bool) {
-	uuidStr, ok := r.Context().Value(libsconsts.UserUUIDKey).(string)
-	if !ok || uuidStr == "" {
+	uuidStr := helpers.GetUserUUIDFromContext(r.Context())
+	if uuidStr == "" {
 		returns.ReturnError(w, "unauthorized", http.StatusUnauthorized)
 		return pgtype.UUID{}, false
 	}
