@@ -4,8 +4,8 @@ services:
     image: postgres:16
     container_name: postgres-user
     environment:
-      POSTGRES_DB: ${USER_CRUD_DB}
-      POSTGRES_USER: ${USER_CRUD_USER}
+      POSTGRES_DB: music_streaming
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${USER_CRUD_PASSWORD}
     volumes:
       - user_data:/var/lib/postgresql/data
@@ -33,8 +33,8 @@ services:
     image: postgres:16
     container_name: postgres-bandit
     environment:
-      POSTGRES_DB: ${BANDIT_DB}
-      POSTGRES_USER: ${BANDIT_USER}
+      POSTGRES_DB: bandit
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${BANDIT_PASSWORD}
     volumes:
       - bandit_data:/var/lib/postgresql/data
@@ -62,8 +62,8 @@ services:
     image: clickhouse/clickhouse-server:latest
     container_name: clickhouse
     environment:
-      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
-      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
     volumes:
       - clickhouse_data:/var/lib/clickhouse/
@@ -194,15 +194,14 @@ services:
     container_name: init-music-data
     environment:
       POSTGRES_HOST: database-postgres-user
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: ${USER_CRUD_USER}
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${USER_CRUD_PASSWORD}
-      POSTGRES_DB: ${USER_CRUD_DB}
+      POSTGRES_DB: music_streaming
       MINIO_ENDPOINT: database-minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
-      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
-      MINIO_USE_SSL: "false"
+      MINIO_BUCKET_NAME: music-streaming
     volumes:
       - ./services/init_music_data/seed_music:/seed_music:ro
     depends_on:
@@ -233,19 +232,15 @@ services:
       dockerfile: services/service_user_database/Dockerfile
     container_name: service-user-database
     environment:
-      USER_CRUD_CONNECTION_STRING: ${USER_CRUD_CONNECTION_STRING}
-      USER_CRUD_JWT_PROVIDER_NAME: ${USER_CRUD_JWT_PROVIDER_NAME}
-      JWT_STORE_PATH: ${JWT_STORE_PATH}
-      JWT_TIME_IN_M_NORMAL: ${JWT_TIME_IN_M_NORMAL}
-      JWT_TIME_IN_D_REFRESH: ${JWT_TIME_IN_D_REFRESH}
+      USER_CRUD_CONNECTION_STRING: "postgresql://postgres:${USER_CRUD_PASSWORD}@database-postgres-user:5432/music_streaming"
+      JWT_STORE_PATH: jwt/backend
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_TOKEN}
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
-      MINIO_USE_SSL: ${MINIO_USE_SSL}
-      EVENT_INGESTION_SERVICE_URL: ${EVENT_INGESTION_SERVICE_URL}
+      MINIO_ENDPOINT: database-minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_NAME: music-streaming
+      EVENT_INGESTION_SERVICE_URL: http://service-event-ingestion:8080
       ENVIRONMENT: ${ENVIRONMENT:-development}
     depends_on:
       database-postgres-user:
@@ -278,14 +273,14 @@ services:
       dockerfile: Dockerfile
     container_name: service-bandit
     environment:
-      DB_CONNECTION_STRING_WAREHOUSE: ${CLICKHOUSE_CONNECTION_STRING}
-      WAREHOUSE_BANDIT_DATA_TABLE: ${WAREHOUSE_BANDIT_DATA_TABLE}
-      DB_CONNECTION_STRING_PARAMS: ${BANDIT_CONNECTION_STRING}
-      BANDIT_DATA_TABLE: ${BANDIT_DATA_TABLE}
-      BANDIT_ALPHA: ${BANDIT_ALPHA}
-      BANDIT_RIDGE_LAMBDA: ${BANDIT_RIDGE_LAMBDA}
-      SHERMAN_MORRISON_RECOMPUTE_INTERVAL: ${SHERMAN_MORRISON_RECOMPUTE_INTERVAL}
-      SHERMAN_MORRISON_DIVERGENCE_THRESHOLD: ${SHERMAN_MORRISON_DIVERGENCE_THRESHOLD}
+      DB_CONNECTION_STRING_WAREHOUSE: "clickhouse://clickhouse:${CLICKHOUSE_PASSWORD}@database-clickhouse:9000/default"
+      WAREHOUSE_BANDIT_DATA_TABLE: bandit_input_per_theme
+      DB_CONNECTION_STRING_PARAMS: "postgresql://postgres:${BANDIT_PASSWORD}@database-postgres-bandit:5432/bandit"
+      BANDIT_DATA_TABLE: bandit_data
+      BANDIT_ALPHA: "0.5"
+      BANDIT_RIDGE_LAMBDA: "1.0"
+      SHERMAN_MORRISON_RECOMPUTE_INTERVAL: "100"
+      SHERMAN_MORRISON_DIVERGENCE_THRESHOLD: "1e-6"
       ENVIRONMENT: ${ENVIRONMENT:-development}
     depends_on:
       database-postgres-bandit:
@@ -313,9 +308,9 @@ services:
       dockerfile: services/service_popularity_system/Dockerfile
     container_name: service-popularity
     environment:
-      WAREHOUSE_URL: ${CLICKHOUSE_CONNECTION_STRING}
+      WAREHOUSE_URL: "clickhouse://clickhouse:${CLICKHOUSE_PASSWORD}@database-clickhouse:9000/default"
       TABLE_NAME: popularity_data
-      JWT_STORE_PATH: ${JWT_STORE_PATH}
+      JWT_STORE_PATH: jwt/popularity
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_TOKEN}
       ENVIRONMENT: ${ENVIRONMENT:-development}
@@ -344,8 +339,8 @@ services:
       dockerfile: services/service_event_ingestion/Dockerfile
     container_name: service-event-ingestion
     environment:
-      CLICKHOUSE_CONNECTION_STRING: ${CLICKHOUSE_CONNECTION_STRING}
-      JWT_STORE_PATH: ${JWT_STORE_PATH}
+      CLICKHOUSE_CONNECTION_STRING: "clickhouse://clickhouse:${CLICKHOUSE_PASSWORD}@database-clickhouse:9000/default"
+      JWT_STORE_PATH: jwt/event-ingestion
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_TOKEN}
       ENVIRONMENT: ${ENVIRONMENT:-development}
@@ -375,10 +370,10 @@ services:
       dockerfile: services/gateway_recommendation/Dockerfile
     container_name: gateway-recommendation
     environment:
-      GATEWAY_RECOMMENDATION_PORT: ${GATEWAY_RECOMMENDATION_PORT}
-      POPULARITY_SERVICE_URL: ${POPULARITY_SERVICE_URL}
-      BANDIT_SERVICE_URL: ${BANDIT_SERVICE_URL}
-      JWT_STORE_PATH: ${JWT_STORE_PATH}
+      GATEWAY_RECOMMENDATION_PORT: "8002"
+      POPULARITY_SERVICE_URL: http://service-popularity:8080
+      BANDIT_SERVICE_URL: http://service-bandit:8001
+      JWT_STORE_PATH: jwt/gateway-recommendation
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_TOKEN}
       ENVIRONMENT: ${ENVIRONMENT:-development}
@@ -409,14 +404,13 @@ services:
       dockerfile: services/gateway_api/Dockerfile
     container_name: gateway-api
     ports:
-      - "${GATEWAY_API_PORT}:8080"
+      - "${GATEWAY_API_PORT:-8080}:8080"
     environment:
       GATEWAY_API_PORT: "8080"
-      USER_DATABASE_SERVICE_URL: ${USER_DATABASE_SERVICE_URL}
-      RECOMMENDATION_SERVICE_URL: ${RECOMMENDATION_SERVICE_URL}
-      EVENT_INGESTION_SERVICE_URL: ${EVENT_INGESTION_SERVICE_URL}
-      JWT_STORE_PATH: ${JWT_STORE_PATH}
-      JWT_TIME_IN_M_SERVICE: ${JWT_TIME_IN_M_SERVICE}
+      USER_DATABASE_SERVICE_URL: http://service-user-database:8080
+      RECOMMENDATION_SERVICE_URL: http://gateway-recommendation:8002
+      EVENT_INGESTION_SERVICE_URL: http://service-event-ingestion:8080
+      JWT_STORE_PATH: jwt/gateway-api
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: ${VAULT_TOKEN}
       ENVIRONMENT: ${ENVIRONMENT:-development}

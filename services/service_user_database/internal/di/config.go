@@ -12,7 +12,6 @@ import (
 )
 
 type Config struct {
-	Provider                 string
 	DatabaseURL              string
 	MinIOEndpoint            string
 	MinIOAccessKey           string
@@ -40,7 +39,6 @@ func LoadConfig(logger *zap.Logger) *Config {
 	}
 
 	// Load environment variables
-	provider := os.Getenv("USER_CRUD_JWT_PROVIDER_NAME")
 	databaseURL := os.Getenv("USER_CRUD_CONNECTION_STRING")
 	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
 	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
@@ -57,9 +55,6 @@ func LoadConfig(logger *zap.Logger) *Config {
 	vaultToken := os.Getenv("VAULT_TOKEN")
 
 	// Validate required environment variables
-	if provider == "" {
-		slogger.Warn("USER_CRUD_JWT_PROVIDER_NAME environment variable is not set")
-	}
 	if databaseURL == "" {
 		slogger.Warn("USER_CRUD_CONNECTION_STRING environment variable is not set")
 	}
@@ -108,12 +103,12 @@ func LoadConfig(logger *zap.Logger) *Config {
 	if jwtTimeServiceStr != "" {
 		serviceTime, err := strconv.Atoi(jwtTimeServiceStr)
 		if err != nil {
-			slogger.Errorf("Error parsing JWT_TIME_IN_D_REFRESH: %v, using default", err)
+			slogger.Errorf("Error parsing JWT_TIME_IN_M_SERVICE: %v, using default", err)
 		} else {
-			jwtExpirationService = time.Hour * 24 * time.Duration(serviceTime)
+			jwtExpirationService = time.Minute * time.Duration(serviceTime)
 		}
 	} else {
-		slogger.Warnf("JWT_TIME_IN_D_REFRESH environment variable is not set, using default: %v", consts.JWTExpirationRefresh)
+		slogger.Warnf("JWT_TIME_IN_M_SERVICE environment variable is not set, using default: %v", consts.JWTExpirationService)
 	}
 
 	// Parse JWT timeout for Vault operations
@@ -136,7 +131,6 @@ func LoadConfig(logger *zap.Logger) *Config {
 	}
 
 	return &Config{
-		Provider:                 provider,
 		DatabaseURL:              databaseURL,
 		MinIOEndpoint:            minioEndpoint,
 		MinIOAccessKey:           minioAccessKey,
