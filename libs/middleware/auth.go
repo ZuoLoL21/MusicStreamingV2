@@ -11,35 +11,24 @@ import (
 	"go.uber.org/zap"
 )
 
-type AuthConfig interface {
-	GetUserUUIDKey() (any, bool) // Returns (key, hasUserUUID)
-}
-
 type AuthHandler struct {
 	logger     *zap.Logger
 	jwtHandler *di.JWTHandler
 	returns    *di.ReturnManager
 	subject    string
-	uuidKey    di.ContextKey
 }
 
 func NewAuthHandler(
 	logger *zap.Logger,
-	config AuthConfig,
 	jwtHandler *di.JWTHandler,
 	returns *di.ReturnManager,
 	subject string,
 ) *AuthHandler {
-	uuidKey, ok := config.GetUserUUIDKey()
-	if !ok {
-		logger.Error("not able to initialize AuthHandler: no user uuid key")
-	}
 	return &AuthHandler{
 		logger:     logger,
 		jwtHandler: jwtHandler,
 		returns:    returns,
 		subject:    subject,
-		uuidKey:    uuidKey.(di.ContextKey),
 	}
 }
 
@@ -60,7 +49,7 @@ func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), h.uuidKey, uuid)
+			ctx := context.WithValue(r.Context(), di.UserUUIDKey, uuid)
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		})

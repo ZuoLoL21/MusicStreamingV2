@@ -11,47 +11,26 @@ import (
 	"go.uber.org/zap"
 )
 
-// ServiceJWTConfig provides configuration for service JWT middleware
-type ServiceJWTConfig interface {
-	GetUserUUIDKey() (any, bool)
-	GetServiceJWTKey() (any, bool)
-}
-
 // ServiceJWTHandler generates service JWTs for authenticated requests
 type ServiceJWTHandler struct {
-	logger        *zap.Logger
-	jwtHandler    *di.JWTHandler
-	returns       *di.ReturnManager
-	duration      time.Duration
-	uuidKey       di.ContextKey
-	serviceJWTKey di.ContextKey
+	logger     *zap.Logger
+	jwtHandler *di.JWTHandler
+	returns    *di.ReturnManager
+	duration   time.Duration
 }
 
 // NewServiceJWTHandler creates a new service JWT middleware handler
 func NewServiceJWTHandler(
 	logger *zap.Logger,
-	config ServiceJWTConfig,
 	jwtHandler *di.JWTHandler,
 	returns *di.ReturnManager,
 	duration time.Duration,
 ) *ServiceJWTHandler {
-	uuidKey, uuidOk := config.GetUserUUIDKey()
-	if !uuidOk {
-		logger.Error("not able to initialize ServiceJWTHandler: no user uuid key")
-	}
-
-	serviceJWTKey, serviceOk := config.GetServiceJWTKey()
-	if !serviceOk {
-		logger.Error("not able to initialize ServiceJWTHandler: no service jwt key")
-	}
-
 	return &ServiceJWTHandler{
-		logger:        logger,
-		jwtHandler:    jwtHandler,
-		returns:       returns,
-		duration:      duration,
-		uuidKey:       uuidKey.(di.ContextKey),
-		serviceJWTKey: serviceJWTKey.(di.ContextKey),
+		logger:     logger,
+		jwtHandler: jwtHandler,
+		returns:    returns,
+		duration:   duration,
 	}
 }
 
@@ -61,7 +40,7 @@ func NewServiceJWTHandler(
 func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			uuid, ok := r.Context().Value(h.uuidKey).(string)
+			uuid, ok := r.Context().Value(di.UserUUIDKey).(string)
 			if !ok || uuid == "" {
 				h.logger.Error("user UUID not found in context")
 				h.returns.ReturnError(w, "internal server error: missing user context", http.StatusInternalServerError)
@@ -82,7 +61,7 @@ func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 				zap.Duration("ttl", h.duration))
 
 			// Add service JWT to context
-			ctx := context.WithValue(r.Context(), h.serviceJWTKey, serviceJWT)
+			ctx := context.WithValue(r.Context(), di.ServiceJWTKey, serviceJWT)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
