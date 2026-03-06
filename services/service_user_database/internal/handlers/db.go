@@ -58,6 +58,7 @@ type DB interface {
 	GetFollowedUsersForUser(ctx context.Context, arg sqlhandler.GetFollowedUsersForUserParams) ([]sqlhandler.PublicUser, error)
 	GetFollowedArtistsForUser(ctx context.Context, arg sqlhandler.GetFollowedArtistsForUserParams) ([]sqlhandler.PublicUser, error)
 	GetFollowersForArtist(ctx context.Context, arg sqlhandler.GetFollowersForArtistParams) ([]sqlhandler.PublicUser, error)
+	IsFollowingUser(ctx context.Context, arg sqlhandler.IsFollowingUserParams) (bool, error)
 	FollowUser(ctx context.Context, arg sqlhandler.FollowUserParams) error
 	UnfollowUser(ctx context.Context, arg sqlhandler.UnfollowUserParams) error
 	FollowArtist(ctx context.Context, arg sqlhandler.FollowArtistParams) error

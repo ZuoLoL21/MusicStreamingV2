@@ -214,3 +214,28 @@ func (h *FollowsHandler) UnfollowArtist(w http.ResponseWriter, r *http.Request) 
 
 	h.returns.ReturnText(w, "artist unfollowed", http.StatusOK)
 }
+
+func (h *FollowsHandler) CheckIfFollowingUser(w http.ResponseWriter, r *http.Request) {
+	fromUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
+	if !ok {
+		return
+	}
+
+	targetUUID, ok := parseUUID(r, "uuid")
+	if !ok {
+		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
+		return
+	}
+
+	isFollowing, err := h.db.IsFollowingUser(r.Context(), sqlhandler.IsFollowingUserParams{
+		FromUser: fromUUID,
+		ToUser:   targetUUID,
+	})
+	if err != nil {
+		h.logger.Error("failed to check if following user", zap.Error(err))
+		h.returns.ReturnError(w, "failed to check follow status", http.StatusInternalServerError)
+		return
+	}
+
+	h.returns.ReturnJSON(w, map[string]bool{"is_following": isFollowing}, http.StatusOK)
+}

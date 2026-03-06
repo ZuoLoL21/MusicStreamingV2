@@ -152,6 +152,7 @@ func (a *App) registerUserRoutes(r *mux.Router) {
 	r.HandleFunc("/users/{uuid}/followers", a.handlers.Follows.GetFollowersForUser).Methods("GET")
 	r.HandleFunc("/users/{uuid}/following/users", a.handlers.Follows.GetFollowingUsersForUser).Methods("GET")
 	r.HandleFunc("/users/{uuid}/following/artists", a.handlers.Follows.GetFollowedArtistsForUser).Methods("GET")
+	r.HandleFunc("/users/{uuid}/following/check", a.handlers.Follows.CheckIfFollowingUser).Methods("GET")
 	r.HandleFunc("/users/{uuid}/follow", a.handlers.Follows.FollowUser).Methods("POST")
 	r.HandleFunc("/users/{uuid}/follow", a.handlers.Follows.UnfollowUser).Methods("DELETE")
 	r.HandleFunc("/users/{uuid}/music", a.handlers.Music.GetMusicForUser).Methods("GET")
