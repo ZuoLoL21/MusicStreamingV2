@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, Heart } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
-import { api } from '@/lib/api';
+import { api, getFileUrl } from '@/lib/api';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
@@ -26,7 +26,7 @@ export function Player() {
         sendListenEvent();
       }
 
-      audioRef.current.src = currentTrack.path_in_file_storage;
+      audioRef.current.src = getFileUrl(currentTrack.path_in_file_storage);
       audioRef.current.play();
       setIsPlaying(true);
 
@@ -163,15 +163,15 @@ export function Player() {
           <div className="flex items-center space-x-4 w-1/4">
             {currentTrack.image_path && (
               <img
-                src={currentTrack.image_path}
+                src={getFileUrl(currentTrack.image_path)}
                 alt={currentTrack.song_name}
                 className="w-14 h-14 rounded"
               />
             )}
             <div className="flex-1 min-w-0">
-              <Link href={`/music/${currentTrack.uuid}`} className="text-sm font-semibold truncate hover:underline block">
+              <p className="text-sm font-semibold truncate">
                 {currentTrack.song_name}
-              </Link>
+              </p>
               <Link href={`/artists/${currentTrack.from_artist}`} className="text-xs text-gray-400 truncate hover:underline block">
                 Artist
               </Link>

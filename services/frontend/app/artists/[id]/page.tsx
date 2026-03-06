@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, getFileUrl } from '@/lib/api';
 import { Artist, Music, Album } from '@/lib/types';
 import { Play } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
@@ -89,7 +89,7 @@ export default function ArtistPage() {
           <div className="w-48 h-48 bg-gray-800 rounded-full overflow-hidden flex-shrink-0">
             {artist.profile_image_path ? (
               <img
-                src={artist.profile_image_path}
+                src={getFileUrl(artist.profile_image_path)}
                 alt={artist.artist_name}
                 className="w-full h-full object-cover"
               />
@@ -183,7 +183,7 @@ export default function ArtistPage() {
                   <div className="w-12 h-12 bg-gray-800 rounded overflow-hidden flex-shrink-0">
                     {track.image_path ? (
                       <img
-                        src={track.image_path}
+                        src={getFileUrl(track.image_path)}
                         alt={track.song_name}
                         className="w-full h-full object-cover"
                       />
@@ -223,7 +223,7 @@ export default function ArtistPage() {
                   <div className="aspect-square bg-gray-800 rounded mb-4 overflow-hidden">
                     {album.image_path ? (
                       <img
-                        src={album.image_path}
+                        src={getFileUrl(album.image_path)}
                         alt={album.original_name}
                         className="w-full h-full object-cover"
                       />

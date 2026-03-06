@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { api, getFileUrl } from '@/lib/api';
 import { User, Artist } from '@/lib/types';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -43,8 +43,16 @@ export default function PublicProfilePage() {
         // Artists might not be public
       }
 
-      // TODO: Check if following (would need an endpoint)
-      setIsFollowing(false);
+      // Check if following this user
+      if (!isOwnProfile) {
+        try {
+          const followStatus = await api.checkIfFollowingUser(userId);
+          setIsFollowing(followStatus.is_following);
+        } catch (e) {
+          // Not logged in or error checking follow status
+          setIsFollowing(false);
+        }
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to load profile');
     } finally {
@@ -68,7 +76,7 @@ export default function PublicProfilePage() {
     );
   }
 
-  const profileImage = user.profile_image_path || '/default-avatar.png';
+  const profileImage = user.profile_image_path ? getFileUrl(user.profile_image_path) : '/default-avatar.png';
 
   return (
     <div className="max-w-4xl mx-auto p-6">

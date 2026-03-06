@@ -26,6 +26,15 @@ const API_BASE_URL = typeof window === 'undefined'
   ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080')
   : (process.env.NEXT_PUBLIC_API_URL_BROWSER || 'http://localhost:8080');
 
+// Helper to convert relative file paths to full URLs
+export const getFileUrl = (path: string): string => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  // Direct URL to backend - browser loads files from gateway API
+  const baseUrl = 'http://localhost:8080';
+  return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
 class ApiClient {
   private client: AxiosInstance;
 
@@ -108,6 +117,11 @@ class ApiClient {
 
   async unfollowUser(uuid: string): Promise<void> {
     await this.client.delete(`/users/${uuid}/follow`);
+  }
+
+  async checkIfFollowingUser(uuid: string): Promise<{ is_following: boolean }> {
+    const response = await this.client.get(`/users/${uuid}/following/check`);
+    return response.data;
   }
 
   async followArtist(uuid: string): Promise<void> {
@@ -361,8 +375,8 @@ class ApiClient {
 
   // Playlists
   async getPlaylists(limit = 20): Promise<Playlist[]> {
-    const response = await this.client.get(`/playlists?limit=${limit}`);
-    return response.data;
+    const user = await this.getCurrentUser();
+    return this.getUserPlaylists(user.uuid, limit);
   }
 
   async getPlaylist(uuid: string): Promise<Playlist> {
