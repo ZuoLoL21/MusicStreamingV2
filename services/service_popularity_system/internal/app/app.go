@@ -1,6 +1,7 @@
 package app
 
 import (
+	"libs/consts"
 	"popularity/internal/di"
 	"popularity/internal/handlers"
 
@@ -24,31 +25,24 @@ func (a *App) Router() *mux.Router {
 	popularityHandler := handlers.NewPopularityHandler(a.Logger, a.Config, a.Returns)
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.Logger,
-		a.Config,
 		a.JWTHandler,
 		a.Returns,
-		libsdi.JWTSubjectService,
+		consts.JWTSubjectService,
 	)
 
 	publicRouter := r.PathPrefix("").Subrouter()
 	protectedRouter := r.PathPrefix("").Subrouter()
 
 	publicRouter.Use(
-		libsmiddleware.RequestIDMiddleware(a.Config),
-		libsmiddleware.LoggingMiddleware(a.Logger, a.Config),
-		libsmiddleware.Logger(a.Logger, libsmiddleware.LoggerConfig{
-			RequestIDKey: a.Config.RequestIDKey,
-			UserUUIDKey:  a.Config.UserUUIDKey,
-		}),
+		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.LoggingMiddleware(a.Logger),
+		libsmiddleware.Logger(a.Logger),
 	)
 	protectedRouter.Use(
-		libsmiddleware.RequestIDMiddleware(a.Config),
-		libsmiddleware.LoggingMiddleware(a.Logger, a.Config),
+		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.LoggingMiddleware(a.Logger),
 		serviceAuthHandler.GetAuthMiddleware(),
-		libsmiddleware.Logger(a.Logger, libsmiddleware.LoggerConfig{
-			RequestIDKey: a.Config.RequestIDKey,
-			UserUUIDKey:  a.Config.UserUUIDKey,
-		}),
+		libsmiddleware.Logger(a.Logger),
 	)
 
 	// All-time popularity endpoints
