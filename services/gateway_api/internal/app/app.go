@@ -5,6 +5,7 @@ import (
 	"gateway_api/internal/di"
 	"gateway_api/internal/handlers"
 	"gateway_api/internal/middleware"
+	"libs/consts"
 
 	libsdi "libs/di"
 	libshandlers "libs/handlers"
@@ -37,21 +38,18 @@ func (a *App) Router() *mux.Router {
 	)
 	normalAuthHandler := libsmiddleware.NewAuthHandler(
 		a.Logger,
-		a.Config,
 		a.JWTHandler,
 		a.Returns,
-		libsdi.JWTSubjectNormal,
+		consts.JWTSubjectNormal,
 	)
 	refreshAuthHandler := libsmiddleware.NewAuthHandler(
 		a.Logger,
-		a.Config,
 		a.JWTHandler,
 		a.Returns,
-		libsdi.JWTSubjectRefresh,
+		consts.JWTSubjectRefresh,
 	)
 	serviceJWTHandler := libsmiddleware.NewServiceJWTHandler(
 		a.Logger,
-		a.Config,
 		a.JWTHandler,
 		a.Returns,
 		a.Config.JWTExpirationService,
@@ -62,31 +60,22 @@ func (a *App) Router() *mux.Router {
 	protectedRouter := r.PathPrefix("").Subrouter()
 
 	publicRouter.Use(
-		libsmiddleware.RequestIDMiddleware(a.Config),
-		libsmiddleware.LoggingMiddleware(a.Logger, a.Config),
-		libsmiddleware.Logger(a.Logger, libsmiddleware.LoggerConfig{
-			RequestIDKey: libsdi.RequestIDKey,
-			UserUUIDKey:  libsdi.UserUUIDKey,
-		}),
+		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.LoggingMiddleware(a.Logger),
+		libsmiddleware.Logger(a.Logger),
 	)
 	refreshRouter.Use(
-		libsmiddleware.RequestIDMiddleware(a.Config),
-		libsmiddleware.LoggingMiddleware(a.Logger, a.Config),
+		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.LoggingMiddleware(a.Logger),
 		refreshAuthHandler.GetAuthMiddleware(),
-		libsmiddleware.Logger(a.Logger, libsmiddleware.LoggerConfig{
-			RequestIDKey: libsdi.RequestIDKey,
-			UserUUIDKey:  libsdi.UserUUIDKey,
-		}),
+		libsmiddleware.Logger(a.Logger),
 		serviceJWTHandler.GetServiceJWTMiddleware(),
 	)
 	protectedRouter.Use(
-		libsmiddleware.RequestIDMiddleware(a.Config),
-		libsmiddleware.LoggingMiddleware(a.Logger, a.Config),
+		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.LoggingMiddleware(a.Logger),
 		normalAuthHandler.GetAuthMiddleware(),
-		libsmiddleware.Logger(a.Logger, libsmiddleware.LoggerConfig{
-			RequestIDKey: libsdi.RequestIDKey,
-			UserUUIDKey:  libsdi.UserUUIDKey,
-		}),
+		libsmiddleware.Logger(a.Logger),
 		serviceJWTHandler.GetServiceJWTMiddleware(),
 	)
 
