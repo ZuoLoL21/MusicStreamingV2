@@ -264,7 +264,7 @@ func convertPathToFileURL(storagePath string) string {
 		return ""
 	}
 
-	if strings.HasPrefix(storagePath, consts.ProfilePath) {
+	if strings.HasPrefix(storagePath, consts.PicturesPlaylistFolder) {
 		return consts.PrivatePathStart + storagePath
 	}
 	return consts.PublicPathStart + storagePath

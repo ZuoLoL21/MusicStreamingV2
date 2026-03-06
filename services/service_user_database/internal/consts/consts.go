@@ -13,14 +13,6 @@ const (
 	PublicPathStart  = "/files/public/"
 )
 
-const (
-	ProfilePath  = "profile"
-	ArtistPath   = "artist"
-	MusicPath    = "music"
-	AlbumPath    = "album"
-	PlaylistPath = "playlist"
-)
-
 // Folder paths for storage
 const (
 	PicturesProfileFolder  = "pictures-profile"
