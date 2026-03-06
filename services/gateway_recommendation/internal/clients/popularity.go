@@ -2,9 +2,9 @@ package clients
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	libsclients "libs/clients"
 
@@ -12,8 +12,7 @@ import (
 )
 
 type PopularityClient struct {
-	libsclients.BaseClient
-	baseURL string
+	*libsclients.ProxyClient
 }
 
 type ThemePopularity struct {
@@ -24,27 +23,45 @@ type ThemePopularity struct {
 
 func NewPopularityClient(baseURL string, logger *zap.Logger) *PopularityClient {
 	return &PopularityClient{
-		BaseClient: libsclients.BaseClient{
-			HttpClient: &http.Client{Timeout: 15 * time.Second},
-			Logger:     logger,
-		},
-		baseURL: baseURL,
+		ProxyClient: libsclients.NewProxyClient(baseURL, logger),
 	}
 }
 
-func (c *PopularityClient) GetThemePopularity(ctx context.Context, requestID string, limit int) ([]ThemePopularity, error) {
+func (c *PopularityClient) GetThemePopularity(ctx context.Context, requestID string, serviceJWT string, limit int) ([]ThemePopularity, error) {
 	c.Logger.Info("Fetching theme popularity",
 		zap.String("request_id", requestID),
 		zap.Int("limit", limit))
 
 	var themes []ThemePopularity
-	url := fmt.Sprintf("%s/popular/themes/all-time?limit=%d", c.baseURL, limit)
+	url := fmt.Sprintf("/popular/themes/all-time?limit=%d", limit)
 
-	if err := c.DoJSON(ctx, "GET", url, nil, &themes, requestID); err != nil {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	req.Header.Set("X-Request-ID", requestID)
+	req.Header.Set("Authorization", "Bearer "+serviceJWT)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.HttpClient.Do(req)
+	if err != nil {
 		c.Logger.Error("Theme popularity fetch failed",
 			zap.String("request_id", requestID),
 			zap.Error(err))
 		return nil, fmt.Errorf("fetch theme popularity: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.Logger.Error("Theme popularity fetch failed with non-200 status",
+			zap.String("request_id", requestID),
+			zap.Int("status_code", resp.StatusCode))
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&themes); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
 	c.Logger.Info("Theme popularity fetched",
@@ -52,30 +69,4 @@ func (c *PopularityClient) GetThemePopularity(ctx context.Context, requestID str
 		zap.Int("count", len(themes)))
 
 	return themes, nil
-}
-
-func (c *PopularityClient) ProxyRequest(ctx context.Context, method string, path string, queryParams string, requestID string) ([]byte, int, error) {
-	url := fmt.Sprintf("%s%s", c.baseURL, path)
-	if queryParams != "" {
-		url = fmt.Sprintf("%s?%s", url, queryParams)
-	}
-
-	c.Logger.Info("Proxying request",
-		zap.String("request_id", requestID),
-		zap.String("method", method),
-		zap.String("path", path))
-
-	body, statusCode, err := c.DoRaw(ctx, method, url, requestID)
-	if err != nil {
-		c.Logger.Error("Proxy request failed",
-			zap.String("request_id", requestID),
-			zap.Error(err))
-		return body, statusCode, fmt.Errorf("proxy request: %w", err)
-	}
-
-	c.Logger.Info("Proxy request completed",
-		zap.String("request_id", requestID),
-		zap.Int("status_code", statusCode))
-
-	return body, statusCode, nil
 }

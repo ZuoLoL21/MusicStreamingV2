@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"libs/consts"
-	libsdi "libs/di"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -19,10 +18,9 @@ type Config struct {
 	JWTStorePath         string
 	ApplicationName      string
 	JWTTimeout           time.Duration
+	JWTExpirationService time.Duration
 	VaultAddr            string
 	VaultToken           string
-	UserUUIDKey          libsdi.ContextKey
-	RequestIDKey         libsdi.ContextKey
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -42,6 +40,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 	jwtStorePath := os.Getenv("JWT_STORE_PATH")
 	applicationName := os.Getenv("VAULT_APPLICATION_NAME")
 	jwtTimeoutStr := os.Getenv("VAULT_JWT_TIMEOUT_SECONDS")
+	jwtTimeServiceStr := os.Getenv("JWT_TIME_IN_M_SERVICE")
 	vaultAddr := os.Getenv("VAULT_ADDR")
 	vaultToken := os.Getenv("VAULT_TOKEN")
 
@@ -57,6 +56,19 @@ func LoadConfig(logger *zap.Logger) *Config {
 	}
 	if jwtStorePath == "" {
 		slogger.Warn("JWT_STORE_PATH environment variable is not set")
+	}
+
+	// Parse JWT expiration time for service JWT
+	jwtExpirationService := consts.JWTExpirationService
+	if jwtTimeServiceStr != "" {
+		serviceTime, err := strconv.Atoi(jwtTimeServiceStr)
+		if err != nil {
+			slogger.Errorf("Error parsing JWT_TIME_IN_M_SERVICE: %v, using default", err)
+		} else {
+			jwtExpirationService = time.Minute * time.Duration(serviceTime)
+		}
+	} else {
+		slogger.Warnf("JWT_TIME_IN_M_SERVICE environment variable is not set, using default: %v", consts.JWTExpirationService)
 	}
 
 	// Parse JWT timeout for Vault operations
@@ -85,21 +97,10 @@ func LoadConfig(logger *zap.Logger) *Config {
 		JWTStorePath:         jwtStorePath,
 		ApplicationName:      applicationName,
 		JWTTimeout:           jwtTimeout,
+		JWTExpirationService: jwtExpirationService,
 		VaultAddr:            vaultAddr,
 		VaultToken:           vaultToken,
-		UserUUIDKey:          libsdi.UserUUIDKey,
-		RequestIDKey:         libsdi.RequestIDKey,
 	}
-}
-
-// GetRequestIDKey implements middleware.RequestIDConfig
-func (c *Config) GetRequestIDKey() any {
-	return c.RequestIDKey
-}
-
-// GetUserUUIDKey implements middleware.LoggingConfig and middleware.AuthConfig
-func (c *Config) GetUserUUIDKey() (any, bool) {
-	return c.UserUUIDKey, true
 }
 
 // GetJWTTimeout implements HashicorpConfig

@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"gateway_recommendation/internal/clients"
+	libshandlers "libs/helpers"
 	"net/http"
 
 	libsdi "libs/di"
@@ -16,7 +16,6 @@ type RecommendHandler struct {
 	popularityClient *clients.PopularityClient
 	returnManager    *libsdi.ReturnManager
 	logger           *zap.Logger
-	requestIDKey     any
 }
 
 type RecommendThemeRequest struct {
@@ -34,26 +33,17 @@ func NewRecommendHandler(
 	popularityClient *clients.PopularityClient,
 	returnManager *libsdi.ReturnManager,
 	logger *zap.Logger,
-	requestIDKey any,
 ) *RecommendHandler {
 	return &RecommendHandler{
 		banditClient:     banditClient,
 		popularityClient: popularityClient,
 		returnManager:    returnManager,
 		logger:           logger,
-		requestIDKey:     requestIDKey,
 	}
-}
-
-func (h *RecommendHandler) getRequestID(ctx context.Context) string {
-	if reqID, ok := ctx.Value(h.requestIDKey).(string); ok {
-		return reqID
-	}
-	return "unknown"
 }
 
 func (h *RecommendHandler) RecommendTheme(w http.ResponseWriter, r *http.Request) {
-	requestID := h.getRequestID(r.Context())
+	requestID := libshandlers.GetRequestIDFromContext(r.Context())
 
 	// Parse request body
 	var req RecommendThemeRequest
@@ -83,8 +73,16 @@ func (h *RecommendHandler) RecommendTheme(w http.ResponseWriter, r *http.Request
 
 	h.logger.Info("Bandit prediction completed", zap.String("request_id", requestID), zap.String("recommended_theme", predictResp.Theme))
 
+	// Extract service JWT
+	serviceJWT := libshandlers.GetServiceJWTFromContext(r.Context())
+	if serviceJWT == "" {
+		h.logger.Error("Service JWT not found in Authorization header", zap.String("request_id", requestID))
+		h.returnManager.ReturnError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	// Fetch popularity data for themes
-	popularityData, err := h.popularityClient.GetThemePopularity(r.Context(), requestID, 10)
+	popularityData, err := h.popularityClient.GetThemePopularity(r.Context(), requestID, serviceJWT, 10)
 	if err != nil {
 		h.logger.Warn("Failed to fetch popularity data", zap.String("request_id", requestID), zap.Error(err))
 		h.returnManager.ReturnError(w, "Failed to fetch popularity data", http.StatusInternalServerError)

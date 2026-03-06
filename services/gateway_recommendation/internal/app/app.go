@@ -4,6 +4,7 @@ import (
 	"gateway_recommendation/internal/clients"
 	"gateway_recommendation/internal/di"
 	"gateway_recommendation/internal/handlers"
+	"libs/consts"
 
 	libsdi "libs/di"
 	libshandlers "libs/handlers"
@@ -31,40 +32,38 @@ func (a *App) Router() *mux.Router {
 		a.popularityClient,
 		a.returnManager,
 		a.logger,
-		a.config.RequestIDKey,
 	)
 	proxyHandler := handlers.NewProxyHandler(
 		a.popularityClient,
 		a.logger,
-		a.config.RequestIDKey,
 	)
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.logger,
-		a.config,
 		a.jwtHandler,
 		a.returnManager,
-		libsdi.JWTSubjectService,
+		consts.JWTSubjectService,
+	)
+	serviceJWTHandler := libsmiddleware.NewServiceJWTHandler(
+		a.logger,
+		a.jwtHandler,
+		a.returnManager,
+		a.config.JWTExpirationService,
 	)
 
 	publicRouter := r.PathPrefix("").Subrouter()
 	protectedRouter := r.PathPrefix("").Subrouter()
 
 	publicRouter.Use(
-		libsmiddleware.RequestIDMiddleware(a.config),
-		libsmiddleware.LoggingMiddleware(a.logger, a.config),
-		libsmiddleware.Logger(a.logger, libsmiddleware.LoggerConfig{
-			RequestIDKey: a.config.RequestIDKey,
-			UserUUIDKey:  a.config.UserUUIDKey,
-		}),
+		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.LoggingMiddleware(a.logger),
+		libsmiddleware.Logger(a.logger),
 	)
 	protectedRouter.Use(
-		libsmiddleware.RequestIDMiddleware(a.config),
-		libsmiddleware.LoggingMiddleware(a.logger, a.config),
+		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.LoggingMiddleware(a.logger),
 		serviceAuthHandler.GetAuthMiddleware(),
-		libsmiddleware.Logger(a.logger, libsmiddleware.LoggerConfig{
-			RequestIDKey: a.config.RequestIDKey,
-			UserUUIDKey:  a.config.UserUUIDKey,
-		}),
+		serviceJWTHandler.GetServiceJWTMiddleware(),
+		libsmiddleware.Logger(a.logger),
 	)
 
 	// Health check route (no auth)
