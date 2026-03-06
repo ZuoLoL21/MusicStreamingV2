@@ -3,6 +3,7 @@ package app
 import (
 	"event_ingestion/internal/di"
 	"event_ingestion/internal/handlers"
+	"libs/consts"
 
 	libsdi "libs/di"
 	libshandlers "libs/handlers"
@@ -60,31 +61,24 @@ func (a *App) initHandlers() {
 func (a *App) setupMiddleware(r *mux.Router) (*mux.Router, *mux.Router) {
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.logger,
-		a.config,
 		a.jwtHandler,
 		a.returns,
-		libsdi.JWTSubjectService,
+		consts.JWTSubjectService,
 	)
 
 	publicRouter := r.PathPrefix("").Subrouter()
 	protectedRouter := r.PathPrefix("").Subrouter()
 
 	publicRouter.Use(
-		libsmiddleware.RequestIDMiddleware(a.config),
-		libsmiddleware.LoggingMiddleware(a.logger, a.config),
-		libsmiddleware.Logger(a.logger, libsmiddleware.LoggerConfig{
-			RequestIDKey: a.config.RequestIDKey,
-			UserUUIDKey:  a.config.UserUUIDKey,
-		}),
+		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.LoggingMiddleware(a.logger),
+		libsmiddleware.Logger(a.logger),
 	)
 	protectedRouter.Use(
-		libsmiddleware.RequestIDMiddleware(a.config),
-		libsmiddleware.LoggingMiddleware(a.logger, a.config),
+		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.LoggingMiddleware(a.logger),
 		serviceAuthHandler.GetAuthMiddleware(),
-		libsmiddleware.Logger(a.logger, libsmiddleware.LoggerConfig{
-			RequestIDKey: a.config.RequestIDKey,
-			UserUUIDKey:  a.config.UserUUIDKey,
-		}),
+		libsmiddleware.Logger(a.logger),
 	)
 
 	return publicRouter, protectedRouter
