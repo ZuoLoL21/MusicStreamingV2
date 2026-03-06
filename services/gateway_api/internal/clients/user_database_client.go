@@ -1,10 +1,6 @@
 package clients
 
 import (
-	"context"
-	"io"
-	"net/http"
-
 	libsclients "libs/clients"
 
 	"go.uber.org/zap"
@@ -20,15 +16,4 @@ func NewUserDatabaseClient(baseURL string, logger *zap.Logger) *UserDatabaseClie
 	return &UserDatabaseClient{
 		ProxyClient: libsclients.NewProxyClient(baseURL, logger),
 	}
-}
-
-// ProxyRequest forwards a request to the user database service with a service JWT
-func (c *UserDatabaseClient) ProxyRequest(
-	ctx context.Context,
-	method, path, query string,
-	body io.Reader,
-	headers http.Header,
-	serviceJWT, requestID string,
-) ([]byte, int, http.Header, error) {
-	return c.ForwardWithServiceJWT(ctx, method, path, query, body, headers, serviceJWT, requestID)
 }

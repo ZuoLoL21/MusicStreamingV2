@@ -46,29 +46,29 @@ func (h *ProxyHandler) ProxyPublicFiles(w http.ResponseWriter, r *http.Request) 
 // ProxyPrivateFiles handles public file requests (GET /files/private/*)
 // Requires normal JWT validation (handled by middleware)
 func (h *ProxyHandler) ProxyPrivateFiles(w http.ResponseWriter, r *http.Request) {
-	libshandlers.ProxyWithServiceJWT(w, r, h.logger, h.userDBClient.ProxyRequest)
+	libshandlers.ProxyWithServiceJWT(w, r, h.logger, h.userDBClient.ForwardWithServiceJWT)
 }
 
 // ProxyRenew handles token renewal requests (POST /renew)
 // Requires refresh token validation (handled by middleware)
 func (h *ProxyHandler) ProxyRenew(w http.ResponseWriter, r *http.Request) {
-	libshandlers.ProxyWithServiceJWT(w, r, h.logger, h.userDBClient.ProxyRequest)
+	libshandlers.ProxyWithServiceJWT(w, r, h.logger, h.userDBClient.ForwardWithServiceJWT)
 }
 
 // ProxyUserDatabase handles all user database service routes
 // Requires normal JWT validation (handled by middleware)
 func (h *ProxyHandler) ProxyUserDatabase(w http.ResponseWriter, r *http.Request) {
-	libshandlers.ProxyWithServiceJWT(w, r, h.logger, h.userDBClient.ProxyRequest)
+	libshandlers.ProxyWithServiceJWT(w, r, h.logger, h.userDBClient.ForwardWithServiceJWT)
 }
 
 // ProxyRecommendation handles all recommendation service routes
 // Requires normal JWT validation (handled by middleware)
 func (h *ProxyHandler) ProxyRecommendation(w http.ResponseWriter, r *http.Request) {
-	libshandlers.ProxyWithServiceJWT(w, r, h.logger, h.recommendClient.ProxyRequest)
+	libshandlers.ProxyWithServiceJWT(w, r, h.logger, h.recommendClient.ForwardWithServiceJWT)
 }
 
 // ProxyEventIngestion handles all event ingestion service routes
 // Requires normal JWT validation (handled by middleware)
 func (h *ProxyHandler) ProxyEventIngestion(w http.ResponseWriter, r *http.Request) {
-	libshandlers.ProxyWithServiceJWT(w, r, h.logger, h.eventIngestionClient.ProxyRequest)
+	libshandlers.ProxyWithServiceJWT(w, r, h.logger, h.eventIngestionClient.ForwardWithServiceJWT)
 }
