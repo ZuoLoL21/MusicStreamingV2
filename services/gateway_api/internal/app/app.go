@@ -34,8 +34,6 @@ func (a *App) Router() *mux.Router {
 		a.RecommendClient,
 		a.EventIngestionClient,
 		a.Logger,
-		a.Config.RequestIDKey,
-		a.Config.ServiceJWTKey,
 	)
 	normalAuthHandler := libsmiddleware.NewAuthHandler(
 		a.Logger,
@@ -67,8 +65,8 @@ func (a *App) Router() *mux.Router {
 		libsmiddleware.RequestIDMiddleware(a.Config),
 		libsmiddleware.LoggingMiddleware(a.Logger, a.Config),
 		libsmiddleware.Logger(a.Logger, libsmiddleware.LoggerConfig{
-			RequestIDKey: a.Config.RequestIDKey,
-			UserUUIDKey:  a.Config.UserUUIDKey,
+			RequestIDKey: libsdi.RequestIDKey,
+			UserUUIDKey:  libsdi.UserUUIDKey,
 		}),
 	)
 	refreshRouter.Use(
@@ -76,8 +74,8 @@ func (a *App) Router() *mux.Router {
 		libsmiddleware.LoggingMiddleware(a.Logger, a.Config),
 		refreshAuthHandler.GetAuthMiddleware(),
 		libsmiddleware.Logger(a.Logger, libsmiddleware.LoggerConfig{
-			RequestIDKey: a.Config.RequestIDKey,
-			UserUUIDKey:  a.Config.UserUUIDKey,
+			RequestIDKey: libsdi.RequestIDKey,
+			UserUUIDKey:  libsdi.UserUUIDKey,
 		}),
 		serviceJWTHandler.GetServiceJWTMiddleware(),
 	)
@@ -86,8 +84,8 @@ func (a *App) Router() *mux.Router {
 		libsmiddleware.LoggingMiddleware(a.Logger, a.Config),
 		normalAuthHandler.GetAuthMiddleware(),
 		libsmiddleware.Logger(a.Logger, libsmiddleware.LoggerConfig{
-			RequestIDKey: a.Config.RequestIDKey,
-			UserUUIDKey:  a.Config.UserUUIDKey,
+			RequestIDKey: libsdi.RequestIDKey,
+			UserUUIDKey:  libsdi.UserUUIDKey,
 		}),
 		serviceJWTHandler.GetServiceJWTMiddleware(),
 	)
@@ -95,12 +93,14 @@ func (a *App) Router() *mux.Router {
 	// Public
 	publicRouter.HandleFunc("/health", libshandlers.NewHealthCheckHandler("gateway-api")).Methods("GET")
 	publicRouter.HandleFunc("/login", proxyHandler.ProxyLogin).Methods("POST", "PUT", "OPTIONS")
-	publicRouter.PathPrefix("/files/").HandlerFunc(proxyHandler.ProxyUserDatabase).Methods("GET")
+	publicRouter.PathPrefix("/files/public/").HandlerFunc(proxyHandler.ProxyPublicFiles).Methods("GET")
 
 	// Renewal
 	refreshRouter.HandleFunc("/renew", proxyHandler.ProxyRenew).Methods("POST")
 
 	// Protected
+	protectedRouter.PathPrefix("/files/private/").HandlerFunc(proxyHandler.ProxyPrivateFiles).Methods("GET")
+
 	// User Database Service routes
 	protectedRouter.PathPrefix("/users").HandlerFunc(proxyHandler.ProxyUserDatabase)
 	protectedRouter.PathPrefix("/artists").HandlerFunc(proxyHandler.ProxyUserDatabase)
