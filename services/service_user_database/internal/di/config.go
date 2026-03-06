@@ -22,6 +22,7 @@ type Config struct {
 	JWTStorePath             string
 	JWTExpirationNormal      time.Duration
 	JWTExpirationRefresh     time.Duration
+	JWTExpirationService     time.Duration
 	ApplicationName          string
 	JWTTimeout               time.Duration
 	VaultAddr                string
@@ -49,6 +50,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 	jwtStorePath := os.Getenv("JWT_STORE_PATH")
 	jwtTimeNormalStr := os.Getenv("JWT_TIME_IN_M_NORMAL")
 	jwtTimeRefreshStr := os.Getenv("JWT_TIME_IN_D_REFRESH")
+	jwtTimeServiceStr := os.Getenv("JWT_TIME_IN_M_SERVICE")
 	applicationName := os.Getenv("VAULT_APPLICATION_NAME")
 	jwtTimeoutStr := os.Getenv("VAULT_JWT_TIMEOUT_SECONDS")
 	vaultAddr := os.Getenv("VAULT_ADDR")
@@ -78,24 +80,40 @@ func LoadConfig(logger *zap.Logger) *Config {
 	}
 
 	// Parse JWT expiration times
-	normalTime := 0
-	if jwtTimeNormalStr == "" {
-		slogger.Warn("JWT_TIME_IN_M_NORMAL environment variable is not set")
-	} else {
-		normalTime, err = strconv.Atoi(jwtTimeNormalStr)
+	jwtExpirationNormal := consts.JWTExpirationNormal
+	if jwtTimeNormalStr != "" {
+		normalTime, err := strconv.Atoi(jwtTimeNormalStr)
 		if err != nil {
-			slogger.Errorf("Error parsing JWT_TIME_IN_M_NORMAL: %v", err)
+			slogger.Errorf("Error parsing JWT_TIME_IN_M_NORMAL: %v, using default", err)
+		} else {
+			jwtExpirationNormal = time.Minute * time.Duration(normalTime)
 		}
+	} else {
+		slogger.Warnf("JWT_TIME_IN_M_NORMAL environment variable is not set, using default: %v", consts.JWTExpirationNormal)
 	}
 
-	refreshTime := 0
-	if jwtTimeRefreshStr == "" {
-		slogger.Warn("JWT_TIME_IN_D_REFRESH environment variable is not set")
-	} else {
-		refreshTime, err = strconv.Atoi(jwtTimeRefreshStr)
+	jwtExpirationRefresh := consts.JWTExpirationRefresh
+	if jwtTimeRefreshStr != "" {
+		refreshTime, err := strconv.Atoi(jwtTimeRefreshStr)
 		if err != nil {
-			slogger.Errorf("Error parsing JWT_TIME_IN_D_REFRESH: %v", err)
+			slogger.Errorf("Error parsing JWT_TIME_IN_D_REFRESH: %v, using default", err)
+		} else {
+			jwtExpirationRefresh = time.Hour * 24 * time.Duration(refreshTime)
 		}
+	} else {
+		slogger.Warnf("JWT_TIME_IN_D_REFRESH environment variable is not set, using default: %v", consts.JWTExpirationRefresh)
+	}
+
+	jwtExpirationService := consts.JWTExpirationService
+	if jwtTimeServiceStr != "" {
+		serviceTime, err := strconv.Atoi(jwtTimeServiceStr)
+		if err != nil {
+			slogger.Errorf("Error parsing JWT_TIME_IN_D_REFRESH: %v, using default", err)
+		} else {
+			jwtExpirationService = time.Hour * 24 * time.Duration(serviceTime)
+		}
+	} else {
+		slogger.Warnf("JWT_TIME_IN_D_REFRESH environment variable is not set, using default: %v", consts.JWTExpirationRefresh)
 	}
 
 	// Parse JWT timeout for Vault operations
@@ -126,8 +144,9 @@ func LoadConfig(logger *zap.Logger) *Config {
 		MinIOBucketName:          minioBucketName,
 		EventIngestionServiceURL: eventIngestionServiceURL,
 		JWTStorePath:             jwtStorePath,
-		JWTExpirationNormal:      time.Minute * time.Duration(normalTime),
-		JWTExpirationRefresh:     time.Hour * 24 * time.Duration(refreshTime),
+		JWTExpirationNormal:      jwtExpirationNormal,
+		JWTExpirationRefresh:     jwtExpirationRefresh,
+		JWTExpirationService:     jwtExpirationService,
 		ApplicationName:          applicationName,
 		JWTTimeout:               jwtTimeout,
 		VaultAddr:                vaultAddr,

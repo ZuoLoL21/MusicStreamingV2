@@ -64,15 +64,16 @@ func LoadConfig(logger *zap.Logger) *Config {
 	}
 
 	// Parse JWT expiration time for service JWT
-	serviceTime := 2
-	if jwtTimeServiceStr == "" {
-		slogger.Warn("JWT_TIME_IN_M_SERVICE environment variable is not set, using default: 2 minutes")
-	} else {
-		serviceTime, err = strconv.Atoi(jwtTimeServiceStr)
+	jwtExpirationService := consts.JWTExpirationService
+	if jwtTimeServiceStr != "" {
+		serviceTime, err := strconv.Atoi(jwtTimeServiceStr)
 		if err != nil {
-			slogger.Errorf("Error parsing JWT_TIME_IN_M_SERVICE: %v", err)
-			serviceTime = 2
+			slogger.Errorf("Error parsing JWT_TIME_IN_M_SERVICE: %v, using default", err)
+		} else {
+			jwtExpirationService = time.Minute * time.Duration(serviceTime)
 		}
+	} else {
+		slogger.Warnf("JWT_TIME_IN_M_SERVICE environment variable is not set, using default: %v", consts.JWTExpirationService)
 	}
 
 	// Parse JWT timeout for Vault operations
@@ -100,7 +101,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 		RecommendationServiceURL: recommendationServiceURL,
 		EventIngestionServiceURL: eventIngestionServiceURL,
 		JWTStorePath:             jwtStorePath,
-		JWTExpirationService:     time.Minute * time.Duration(serviceTime),
+		JWTExpirationService:     jwtExpirationService,
 		ApplicationName:          applicationName,
 		JWTTimeout:               jwtTimeout,
 		VaultAddr:                vaultAddr,

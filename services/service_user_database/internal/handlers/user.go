@@ -458,7 +458,7 @@ func (h *UserHandler) syncUserDimToClickHouse(userUUID pgtype.UUID, country stri
 	serviceJWT := h.jwtHandler.GenerateJwt(
 		libsconsts.JWTSubjectService,
 		userUUIDStr,
-		2*time.Minute,
+		h.config.JWTExpirationService,
 	)
 	req.Header.Set("Authorization", "Bearer "+serviceJWT)
 
