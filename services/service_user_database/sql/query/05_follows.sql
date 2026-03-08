@@ -49,10 +49,10 @@ ORDER BY f.created_at DESC, f.uuid DESC
 LIMIT $2;
 
 -- name: GetFollowedArtistsForUser :many
-SELECT pu.*
+SELECT a.*
 FROM follows f
-         JOIN public_user pu
-              ON f.to_artist = pu.uuid
+         JOIN artist a
+              ON f.to_artist = a.uuid
 WHERE f.from_user = $1
   AND (
     $3::timestamptz IS NULL

@@ -56,10 +56,10 @@ func (q *Queries) GetFollowCount(ctx context.Context, fromUser pgtype.UUID) (int
 }
 
 const getFollowedArtistsForUser = `-- name: GetFollowedArtistsForUser :many
-SELECT pu.uuid, pu.username, pu.email, pu.bio, pu.profile_image_path, pu.country, pu.created_at, pu.updated_at
+SELECT a.uuid, a.artist_name, a.bio, a.profile_image_path, a.created_at, a.updated_at
 FROM follows f
-         JOIN public_user pu
-              ON f.to_artist = pu.uuid
+         JOIN artist a
+              ON f.to_artist = a.uuid
 WHERE f.from_user = $1
   AND (
     $3::timestamptz IS NULL
@@ -79,7 +79,7 @@ type GetFollowedArtistsForUserParams struct {
 	Uuid     pgtype.UUID        `json:"uuid"`
 }
 
-func (q *Queries) GetFollowedArtistsForUser(ctx context.Context, arg GetFollowedArtistsForUserParams) ([]PublicUser, error) {
+func (q *Queries) GetFollowedArtistsForUser(ctx context.Context, arg GetFollowedArtistsForUserParams) ([]Artist, error) {
 	rows, err := q.db.Query(ctx, getFollowedArtistsForUser,
 		arg.FromUser,
 		arg.Limit,
@@ -90,16 +90,14 @@ func (q *Queries) GetFollowedArtistsForUser(ctx context.Context, arg GetFollowed
 		return nil, err
 	}
 	defer rows.Close()
-	var items []PublicUser
+	var items []Artist
 	for rows.Next() {
-		var i PublicUser
+		var i Artist
 		if err := rows.Scan(
 			&i.Uuid,
-			&i.Username,
-			&i.Email,
+			&i.ArtistName,
 			&i.Bio,
 			&i.ProfileImagePath,
-			&i.Country,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

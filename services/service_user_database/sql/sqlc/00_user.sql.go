@@ -116,7 +116,7 @@ LIMIT $2
 `
 
 type SearchForUserParams struct {
-	Similarity interface{}      `json:"similarity"`
+	Similarity string           `json:"similarity"`
 	Limit      int32            `json:"limit"`
 	Column3    interface{}      `json:"column_3"`
 	CreatedAt  pgtype.Timestamp `json:"created_at"`

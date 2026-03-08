@@ -306,7 +306,7 @@ LIMIT $2
 `
 
 type SearchForPlaylistParams struct {
-	Similarity interface{}      `json:"similarity"`
+	Similarity string           `json:"similarity"`
 	Limit      int32            `json:"limit"`
 	UserUuid   pgtype.UUID      `json:"user_uuid"`
 	Column4    interface{}      `json:"column_4"`
