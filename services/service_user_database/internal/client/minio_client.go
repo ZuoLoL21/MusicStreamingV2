@@ -164,3 +164,13 @@ func (m *MinIOFileStorageClient) GetObject(ctx context.Context, objectPath strin
 
 	return object, stat.ContentType, stat.Size, nil
 }
+
+// GetBucketName returns the bucket name (used for testing)
+func (m *MinIOFileStorageClient) GetBucketName() string {
+	return m.bucketName
+}
+
+// GetEndpoint returns the endpoint (used for testing)
+func (m *MinIOFileStorageClient) GetEndpoint() string {
+	return m.endpoint
+}

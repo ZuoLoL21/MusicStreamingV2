@@ -155,7 +155,10 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		ProfileImagePath: profileImagePath,
 	}); err != nil {
 		h.logger.Error("failed to update user image after creation", zap.Error(err))
-		h.logger.Warn("user created but image update failed",
+		if profileImagePath.Valid {
+			cleanupImage(r.Context(), h.fileStorage, consts.PicturesProfileFolder, userID, h.logger)
+		}
+		h.logger.Warn("user created but image update failed - image cleaned up",
 			zap.String("userID", userID),
 			zap.Error(err))
 	}

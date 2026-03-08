@@ -8,6 +8,7 @@ import (
 
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
+	libsmiddleware "libs/middleware"
 
 	"go.uber.org/zap"
 )
@@ -29,6 +30,8 @@ func NewFollowsHandler(logger *zap.Logger, config *di.Config, returns *libsdi.Re
 }
 
 func (h *FollowsHandler) GetFollowersForUser(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -43,15 +46,22 @@ func (h *FollowsHandler) GetFollowersForUser(w http.ResponseWriter, r *http.Requ
 		Uuid:    cursorID,
 	})
 	if err != nil {
-		h.logger.Error("failed to get followers for user", zap.Error(err))
+		logger.Warn("failed to get followers for user",
+			zap.String("user_uuid", uuidToString(userUUID)),
+			zap.Error(err))
 		h.returns.ReturnError(w, "failed to get followers", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Debug("followers retrieved successfully",
+		zap.String("user_uuid", uuidToString(userUUID)),
+		zap.Int("count", len(followers)))
 	h.returns.ReturnJSON(w, followers, http.StatusOK)
 }
 
 func (h *FollowsHandler) GetFollowingUsersForUser(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -66,15 +76,22 @@ func (h *FollowsHandler) GetFollowingUsersForUser(w http.ResponseWriter, r *http
 		Uuid:     cursorID,
 	})
 	if err != nil {
-		h.logger.Error("failed to get following users", zap.Error(err))
+		logger.Warn("failed to get following users",
+			zap.String("user_uuid", uuidToString(userUUID)),
+			zap.Error(err))
 		h.returns.ReturnError(w, "failed to get following users", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Debug("following users retrieved successfully",
+		zap.String("user_uuid", uuidToString(userUUID)),
+		zap.Int("count", len(following)))
 	h.returns.ReturnJSON(w, following, http.StatusOK)
 }
 
 func (h *FollowsHandler) GetFollowersForArtist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	artistUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -89,15 +106,22 @@ func (h *FollowsHandler) GetFollowersForArtist(w http.ResponseWriter, r *http.Re
 		Uuid:     cursorID,
 	})
 	if err != nil {
-		h.logger.Error("failed to get followers for artist", zap.Error(err))
+		logger.Warn("failed to get followers for artist",
+			zap.String("artist_uuid", uuidToString(artistUUID)),
+			zap.Error(err))
 		h.returns.ReturnError(w, "failed to get followers", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Debug("artist followers retrieved successfully",
+		zap.String("artist_uuid", uuidToString(artistUUID)),
+		zap.Int("count", len(followers)))
 	h.returns.ReturnJSON(w, followers, http.StatusOK)
 }
 
 func (h *FollowsHandler) GetFollowedArtistsForUser(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -112,15 +136,22 @@ func (h *FollowsHandler) GetFollowedArtistsForUser(w http.ResponseWriter, r *htt
 		Uuid:     cursorID,
 	})
 	if err != nil {
-		h.logger.Error("failed to get followed artists", zap.Error(err))
+		logger.Warn("failed to get followed artists",
+			zap.String("user_uuid", uuidToString(userUUID)),
+			zap.Error(err))
 		h.returns.ReturnError(w, "failed to get followed artists", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Debug("followed artists retrieved successfully",
+		zap.String("user_uuid", uuidToString(userUUID)),
+		zap.Int("count", len(artists)))
 	h.returns.ReturnJSON(w, artists, http.StatusOK)
 }
 
 func (h *FollowsHandler) FollowUser(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	fromUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -136,15 +167,20 @@ func (h *FollowsHandler) FollowUser(w http.ResponseWriter, r *http.Request) {
 		FromUser: fromUUID,
 		ToUser:   toUUID,
 	}); err != nil {
-		h.logger.Error("failed to follow user", zap.Error(err))
+		logger.Error("failed to follow user", zap.Error(err))
 		h.returns.ReturnError(w, "failed to follow user", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("user followed successfully",
+		zap.String("from_user", uuidToString(fromUUID)),
+		zap.String("to_user", uuidToString(toUUID)))
 	h.returns.ReturnText(w, "user followed", http.StatusOK)
 }
 
 func (h *FollowsHandler) UnfollowUser(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	fromUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -160,15 +196,20 @@ func (h *FollowsHandler) UnfollowUser(w http.ResponseWriter, r *http.Request) {
 		FromUser: fromUUID,
 		ToUser:   toUUID,
 	}); err != nil {
-		h.logger.Error("failed to unfollow user", zap.Error(err))
+		logger.Error("failed to unfollow user", zap.Error(err))
 		h.returns.ReturnError(w, "failed to unfollow user", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("user unfollowed successfully",
+		zap.String("from_user", uuidToString(fromUUID)),
+		zap.String("to_user", uuidToString(toUUID)))
 	h.returns.ReturnText(w, "user unfollowed", http.StatusOK)
 }
 
 func (h *FollowsHandler) FollowArtist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	fromUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -184,15 +225,20 @@ func (h *FollowsHandler) FollowArtist(w http.ResponseWriter, r *http.Request) {
 		FromUser: fromUUID,
 		ToArtist: artistUUID,
 	}); err != nil {
-		h.logger.Error("failed to follow artist", zap.Error(err))
+		logger.Error("failed to follow artist", zap.Error(err))
 		h.returns.ReturnError(w, "failed to follow artist", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("artist followed successfully",
+		zap.String("user_uuid", uuidToString(fromUUID)),
+		zap.String("artist_uuid", uuidToString(artistUUID)))
 	h.returns.ReturnText(w, "artist followed", http.StatusOK)
 }
 
 func (h *FollowsHandler) UnfollowArtist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	fromUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -208,15 +254,20 @@ func (h *FollowsHandler) UnfollowArtist(w http.ResponseWriter, r *http.Request) 
 		FromUser: fromUUID,
 		ToArtist: artistUUID,
 	}); err != nil {
-		h.logger.Error("failed to unfollow artist", zap.Error(err))
+		logger.Error("failed to unfollow artist", zap.Error(err))
 		h.returns.ReturnError(w, "failed to unfollow artist", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("artist unfollowed successfully",
+		zap.String("user_uuid", uuidToString(fromUUID)),
+		zap.String("artist_uuid", uuidToString(artistUUID)))
 	h.returns.ReturnText(w, "artist unfollowed", http.StatusOK)
 }
 
 func (h *FollowsHandler) CheckIfFollowingUser(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	fromUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -233,10 +284,17 @@ func (h *FollowsHandler) CheckIfFollowingUser(w http.ResponseWriter, r *http.Req
 		ToUser:   targetUUID,
 	})
 	if err != nil {
-		h.logger.Error("failed to check if following user", zap.Error(err))
+		logger.Warn("failed to check if following user",
+			zap.String("from_user", uuidToString(fromUUID)),
+			zap.String("target_user", uuidToString(targetUUID)),
+			zap.Error(err))
 		h.returns.ReturnError(w, "failed to check follow status", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Debug("follow status checked",
+		zap.String("from_user", uuidToString(fromUUID)),
+		zap.String("target_user", uuidToString(targetUUID)),
+		zap.Bool("is_following", isFollowing))
 	h.returns.ReturnJSON(w, map[string]bool{"is_following": isFollowing}, http.StatusOK)
 }

@@ -176,7 +176,7 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 			zap.String("artist_name", artistName))
 
 		if profileImagePath.Valid {
-			cleanupImage(r.Context(), h.fileStorage, "consts.PicturesArtistFolder", artistID, h.logger)
+			cleanupImage(r.Context(), h.fileStorage, consts.PicturesArtistFolder, artistID, h.logger)
 		}
 		h.returns.ReturnError(w, "unable to create artist profile", http.StatusInternalServerError)
 		return
@@ -194,6 +194,8 @@ type updateArtistProfileRequest struct {
 }
 
 func (h *ArtistHandler) UpdateArtistProfile(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	artistUUID, ok := h.checkArtistAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
 		return
@@ -211,15 +213,19 @@ func (h *ArtistHandler) UpdateArtistProfile(w http.ResponseWriter, r *http.Reque
 		ArtistName: body.ArtistName,
 		Bio:        bio,
 	}); err != nil {
-		h.logger.Error("failed to update artist profile", zap.Error(err))
+		logger.Error("failed to update artist profile", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update artist profile", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("artist profile updated successfully",
+		zap.String("artist_uuid", uuidToString(artistUUID)))
 	h.returns.ReturnText(w, "artist profile updated", http.StatusOK)
 }
 
 func (h *ArtistHandler) UpdateArtistPicture(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	artistUUID, ok := h.checkArtistAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
 		return
@@ -233,8 +239,9 @@ func (h *ArtistHandler) UpdateArtistPicture(w http.ResponseWriter, r *http.Reque
 	// Artist UUID
 	imageID := uuid.UUID(artistUUID.Bytes).String()
 
+	// Upload
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		"consts.PicturesArtistFolder", imageID, "image", h.logger, h.returns)
+		consts.PicturesArtistFolder, imageID, "image", h.logger, h.returns)
 	if !ok {
 		return
 	}
@@ -244,12 +251,12 @@ func (h *ArtistHandler) UpdateArtistPicture(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Update
+	// Update database
 	if err := h.db.UpdateArtistPicture(r.Context(), sqlhandler.UpdateArtistPictureParams{
 		Uuid:             artistUUID,
 		ProfileImagePath: profileImagePath,
 	}); err != nil {
-		h.logger.Error("failed to update artist picture", zap.Error(err))
+		logger.Error("failed to update artist picture in database", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update artist picture", http.StatusInternalServerError)
 		return
 	}
@@ -258,6 +265,8 @@ func (h *ArtistHandler) UpdateArtistPicture(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *ArtistHandler) GetUsersRepresentingArtist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	artistUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -266,11 +275,16 @@ func (h *ArtistHandler) GetUsersRepresentingArtist(w http.ResponseWriter, r *htt
 
 	members, err := h.db.GetUsersRepresentingArtist(r.Context(), artistUUID)
 	if err != nil {
-		h.logger.Error("failed to get artist members", zap.Error(err))
+		logger.Warn("failed to get artist members",
+			zap.String("artist_uuid", uuidToString(artistUUID)),
+			zap.Error(err))
 		h.returns.ReturnError(w, "failed to get artist members", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Debug("artist members retrieved successfully",
+		zap.String("artist_uuid", uuidToString(artistUUID)),
+		zap.Int("count", len(members)))
 	h.returns.ReturnJSON(w, members, http.StatusOK)
 }
 
@@ -279,6 +293,8 @@ type addUserToArtistRequest struct {
 }
 
 func (h *ArtistHandler) AddUserToArtist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	artistUUID, targetUserUUID, ok := h.checkArtistAccessWithTarget(w, r, sqlhandler.ArtistMemberRoleOwner)
 	if !ok {
 		return
@@ -294,15 +310,20 @@ func (h *ArtistHandler) AddUserToArtist(w http.ResponseWriter, r *http.Request) 
 		UserUuid:   targetUserUUID,
 		Role:       body.Role,
 	}); err != nil {
-		h.logger.Error("failed to add user to artist", zap.Error(err))
+		logger.Error("failed to add user to artist", zap.Error(err))
 		h.returns.ReturnError(w, "failed to add user to artist", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("user added to artist successfully",
+		zap.String("artist_uuid", uuidToString(artistUUID)),
+		zap.String("user_uuid", uuidToString(targetUserUUID)))
 	h.returns.ReturnText(w, "user added to artist", http.StatusCreated)
 }
 
 func (h *ArtistHandler) RemoveUserFromArtist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	artistUUID, targetUserUUID, ok := h.checkArtistAccessWithTarget(w, r, sqlhandler.ArtistMemberRoleOwner)
 	if !ok {
 		return
@@ -312,11 +333,14 @@ func (h *ArtistHandler) RemoveUserFromArtist(w http.ResponseWriter, r *http.Requ
 		ArtistUuid: artistUUID,
 		UserUuid:   targetUserUUID,
 	}); err != nil {
-		h.logger.Error("failed to remove user from artist", zap.Error(err))
+		logger.Error("failed to remove user from artist", zap.Error(err))
 		h.returns.ReturnError(w, "failed to remove user from artist", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("user removed from artist successfully",
+		zap.String("artist_uuid", uuidToString(artistUUID)),
+		zap.String("user_uuid", uuidToString(targetUserUUID)))
 	h.returns.ReturnText(w, "user removed from artist", http.StatusOK)
 }
 
@@ -325,6 +349,8 @@ type changeUserRoleRequest struct {
 }
 
 func (h *ArtistHandler) ChangeUserRole(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	artistUUID, targetUserUUID, ok := h.checkArtistAccessWithTarget(w, r, sqlhandler.ArtistMemberRoleOwner)
 	if !ok {
 		return
@@ -340,10 +366,14 @@ func (h *ArtistHandler) ChangeUserRole(w http.ResponseWriter, r *http.Request) {
 		UserUuid:   targetUserUUID,
 		Role:       body.Role,
 	}); err != nil {
-		h.logger.Error("failed to change user role", zap.Error(err))
+		logger.Error("failed to change user role", zap.Error(err))
 		h.returns.ReturnError(w, "failed to change user role", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("user role changed successfully",
+		zap.String("artist_uuid", uuidToString(artistUUID)),
+		zap.String("user_uuid", uuidToString(targetUserUUID)),
+		zap.String("new_role", string(body.Role)))
 	h.returns.ReturnText(w, "role updated", http.StatusOK)
 }

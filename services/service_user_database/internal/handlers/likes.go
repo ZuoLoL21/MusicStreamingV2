@@ -9,6 +9,7 @@ import (
 
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
+	libsmiddleware "libs/middleware"
 
 	"go.uber.org/zap"
 )
@@ -32,6 +33,8 @@ func NewLikesHandler(logger *zap.Logger, config *di.Config, returns *libsdi.Retu
 }
 
 func (h *LikesHandler) GetLikesForUser(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -46,7 +49,9 @@ func (h *LikesHandler) GetLikesForUser(w http.ResponseWriter, r *http.Request) {
 		Uuid:     cursorID,
 	})
 	if err != nil {
-		h.logger.Error("failed to get likes for user", zap.Error(err))
+		logger.Warn("failed to get likes for user",
+			zap.String("user_uuid", uuidToString(userUUID)),
+			zap.Error(err))
 		h.returns.ReturnError(w, "failed to get likes", http.StatusInternalServerError)
 		return
 	}
@@ -56,10 +61,15 @@ func (h *LikesHandler) GetLikesForUser(w http.ResponseWriter, r *http.Request) {
 		applyDefaultImageIfEmpty(&likes[i].ImagePath, "music")
 	}
 
+	logger.Debug("likes retrieved successfully",
+		zap.String("user_uuid", uuidToString(userUUID)),
+		zap.Int("count", len(likes)))
 	h.returns.ReturnJSON(w, likes, http.StatusOK)
 }
 
 func (h *LikesHandler) IsLiked(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -76,15 +86,24 @@ func (h *LikesHandler) IsLiked(w http.ResponseWriter, r *http.Request) {
 		ToMusic:  musicUUID,
 	})
 	if err != nil {
-		h.logger.Error("failed to check like status", zap.Error(err))
+		logger.Warn("failed to check like status",
+			zap.String("user_uuid", uuidToString(userUUID)),
+			zap.String("music_uuid", uuidToString(musicUUID)),
+			zap.Error(err))
 		h.returns.ReturnError(w, "failed to check like status", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Debug("like status checked",
+		zap.String("user_uuid", uuidToString(userUUID)),
+		zap.String("music_uuid", uuidToString(musicUUID)),
+		zap.Bool("liked", liked))
 	h.returns.ReturnJSON(w, map[string]bool{"liked": liked}, http.StatusOK)
 }
 
 func (h *LikesHandler) LikeMusic(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -100,15 +119,20 @@ func (h *LikesHandler) LikeMusic(w http.ResponseWriter, r *http.Request) {
 		FromUser: userUUID,
 		ToMusic:  musicUUID,
 	}); err != nil {
-		h.logger.Error("failed to like music", zap.Error(err))
+		logger.Error("failed to like music", zap.Error(err))
 		h.returns.ReturnError(w, "failed to like music", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("music liked successfully",
+		zap.String("user_uuid", uuidToString(userUUID)),
+		zap.String("music_uuid", uuidToString(musicUUID)))
 	h.returns.ReturnText(w, "music liked", http.StatusOK)
 }
 
 func (h *LikesHandler) UnlikeMusic(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -124,10 +148,13 @@ func (h *LikesHandler) UnlikeMusic(w http.ResponseWriter, r *http.Request) {
 		FromUser: userUUID,
 		ToMusic:  musicUUID,
 	}); err != nil {
-		h.logger.Error("failed to unlike music", zap.Error(err))
+		logger.Error("failed to unlike music", zap.Error(err))
 		h.returns.ReturnError(w, "failed to unlike music", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("music unliked successfully",
+		zap.String("user_uuid", uuidToString(userUUID)),
+		zap.String("music_uuid", uuidToString(musicUUID)))
 	h.returns.ReturnText(w, "music unliked", http.StatusOK)
 }

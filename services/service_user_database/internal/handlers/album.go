@@ -9,6 +9,7 @@ import (
 	sqlhandler "backend/sql/sqlc"
 
 	libsdi "libs/di"
+	libsmiddleware "libs/middleware"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -80,6 +81,8 @@ func (h *AlbumHandler) GetAlbum(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AlbumHandler) GetAlbumsForArtist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	artistUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -94,7 +97,9 @@ func (h *AlbumHandler) GetAlbumsForArtist(w http.ResponseWriter, r *http.Request
 		Uuid:       cursorID,
 	})
 	if err != nil {
-		h.logger.Error("failed to get albums for artist", zap.Error(err))
+		logger.Warn("failed to get albums for artist",
+			zap.String("artist_uuid", uuidToString(artistUUID)),
+			zap.Error(err))
 		h.returns.ReturnError(w, "failed to get albums", http.StatusInternalServerError)
 		return
 	}
@@ -103,10 +108,15 @@ func (h *AlbumHandler) GetAlbumsForArtist(w http.ResponseWriter, r *http.Request
 		applyDefaultImageIfEmpty(&albums[i].ImagePath, "album")
 	}
 
+	logger.Debug("albums retrieved successfully",
+		zap.String("artist_uuid", uuidToString(artistUUID)),
+		zap.Int("count", len(albums)))
 	h.returns.ReturnJSON(w, albums, http.StatusOK)
 }
 
 func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -161,7 +171,7 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 		Description:  descText,
 		ImagePath:    imagePath,
 	}); err != nil {
-		h.logger.Error("failed to create album", zap.Error(err))
+		logger.Error("failed to create album", zap.Error(err))
 
 		if imagePath.Valid {
 			cleanupImage(r.Context(), h.fileStorage, consts.PicturesAlbumFolder, albumID, h.logger)
@@ -170,6 +180,9 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Info("album created successfully",
+		zap.String("album_uuid", albumID),
+		zap.String("original_name", originalName))
 	h.returns.ReturnText(w, "album created", http.StatusCreated)
 }
 
@@ -179,6 +192,8 @@ type updateAlbumRequest struct {
 }
 
 func (h *AlbumHandler) UpdateAlbum(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	albumUUID, ok := h.checkAlbumAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
 		return
@@ -199,15 +214,19 @@ func (h *AlbumHandler) UpdateAlbum(w http.ResponseWriter, r *http.Request) {
 		OriginalName: body.OriginalName,
 		Description:  description,
 	}); err != nil {
-		h.logger.Error("failed to update album", zap.Error(err))
+		logger.Error("failed to update album", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update album", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("album updated successfully",
+		zap.String("album_uuid", uuidToString(albumUUID)))
 	h.returns.ReturnText(w, "album updated", http.StatusOK)
 }
 
 func (h *AlbumHandler) UpdateAlbumImage(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	albumUUID, ok := h.checkAlbumAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
 		return
@@ -233,11 +252,12 @@ func (h *AlbumHandler) UpdateAlbumImage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Update database
 	if err := h.db.UpdateAlbumImage(r.Context(), sqlhandler.UpdateAlbumImageParams{
 		Uuid:      albumUUID,
 		ImagePath: imagePath,
 	}); err != nil {
-		h.logger.Error("failed to update album image", zap.Error(err))
+		logger.Error("failed to update album image in database", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update album image", http.StatusInternalServerError)
 		return
 	}
@@ -246,16 +266,20 @@ func (h *AlbumHandler) UpdateAlbumImage(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *AlbumHandler) DeleteAlbum(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	albumUUID, ok := h.checkAlbumAccess(w, r, sqlhandler.ArtistMemberRoleOwner)
 	if !ok {
 		return
 	}
 
 	if err := h.db.DeleteAlbum(r.Context(), albumUUID); err != nil {
-		h.logger.Error("failed to delete album", zap.Error(err))
+		logger.Error("failed to delete album", zap.Error(err))
 		h.returns.ReturnError(w, "failed to delete album", http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("album deleted successfully",
+		zap.String("album_uuid", uuidToString(albumUUID)))
 	h.returns.ReturnText(w, "album deleted", http.StatusOK)
 }

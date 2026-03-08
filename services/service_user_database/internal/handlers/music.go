@@ -394,6 +394,8 @@ func (h *MusicHandler) DeleteMusic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MusicHandler) UpdateMusicImage(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	musicUUID, ok := h.checkMusicAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
 		return
@@ -406,7 +408,7 @@ func (h *MusicHandler) UpdateMusicImage(w http.ResponseWriter, r *http.Request) 
 
 	imageID := uuid.UUID(musicUUID.Bytes).String()
 
-	// Upload image
+	// Upload
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
 		consts.PicturesMusicFolder, imageID, "image", h.logger, h.returns)
 	if !ok {
@@ -423,7 +425,7 @@ func (h *MusicHandler) UpdateMusicImage(w http.ResponseWriter, r *http.Request) 
 		Uuid:      musicUUID,
 		ImagePath: imagePath,
 	}); err != nil {
-		h.logger.Error("failed to update music image", zap.Error(err))
+		logger.Error("failed to update music image in database", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update music image", http.StatusInternalServerError)
 		return
 	}
