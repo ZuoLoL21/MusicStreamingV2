@@ -21,11 +21,11 @@ docker compose -f $COMPOSE_FILE up -d \
   mock-event-ingestion
 
 echo "Running init containers..."
-docker compose -f $COMPOSE_FILE up \
+docker compose -f $COMPOSE_FILE up --force-recreate \
   minio-init-test \
   vault-init-test
 
 echo "Running integration tests..."
-docker compose -f $COMPOSE_FILE run --rm --no-deps integration-tests
+docker compose -f $COMPOSE_FILE run --rm --no-deps --force-recreate integration-tests
 
 echo "Integration tests passed. Push allowed."
