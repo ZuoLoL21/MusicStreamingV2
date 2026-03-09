@@ -154,7 +154,7 @@ func TestIntegration_FileUpload_MultipleFiles(t *testing.T) {
 	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage)
 
 	// Upload single file (expected behavior)
-	imageData := []byte("fake image data")
+	imageData := createTestImage(512, 512)
 	formFields := map[string]string{}
 	req := createMultipartRequest(t, "POST", "/users/me/image", "image", "profile.jpg", imageData, formFields)
 
@@ -187,7 +187,7 @@ func TestIntegration_FileUpload_LargeFilename(t *testing.T) {
 		"for_way_too_long_and_might_cause_issues_in_some_systems_" +
 		"but_we_should_handle_it_gracefully_right.jpg"
 
-	imageData := []byte("fake image data")
+	imageData := createTestImage(512, 512)
 	formFields := map[string]string{}
 	req := createMultipartRequest(t, "POST", "/users/me/image", "image", longFilename, imageData, formFields)
 
@@ -218,7 +218,7 @@ func TestIntegration_FileUpload_SpecialCharactersFilename(t *testing.T) {
 	// Filename with special characters
 	specialFilename := "my@#$%profile!&*.jpg"
 
-	imageData := []byte("fake image data")
+	imageData := createTestImage(512, 512)
 	formFields := map[string]string{}
 	req := createMultipartRequest(t, "POST", "/users/me/image", "image", specialFilename, imageData, formFields)
 

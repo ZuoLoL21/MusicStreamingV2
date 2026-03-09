@@ -807,7 +807,7 @@ func TestIntegration_DB_Music_TagAssociations(t *testing.T) {
 	musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 
 	// Assign tags
-	err = db.AssignTagToMusic(ctx, sqlhandler.AssignTagToMusicParams{
+	err := db.AssignTagToMusic(ctx, sqlhandler.AssignTagToMusicParams{
 		MusicUuid: musicUUID,
 		TagName:   "rock",
 	})

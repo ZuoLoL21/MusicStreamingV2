@@ -164,13 +164,13 @@ func TestIntegration_BusinessLogic_DuplicateTrackInPlaylist(t *testing.T) {
 	router.ServeHTTP(rr1, req1)
 	assert.Equal(t, http.StatusCreated, rr1.Code)
 
-	// Add same track again
+	// Add same track again (duplicates are allowed in playlists)
 	req2 := createJSONRequest(t, "POST", "/playlists/"+builders.UUIDToString(playlistUUID)+"/tracks", requestBody)
 	rr2 := httptest.NewRecorder()
 	router.ServeHTTP(rr2, req2)
 
-	// Implementation dependent - may allow duplicates or reject
-	assert.NotEqual(t, 0, rr2.Code)
+	// Playlists allow duplicate tracks (songs can repeat)
+	assert.Equal(t, http.StatusCreated, rr2.Code)
 }
 
 func TestIntegration_BusinessLogic_RemoveNonExistentTrack(t *testing.T) {
@@ -230,7 +230,7 @@ func TestIntegration_BusinessLogic_IncrementPlayCountMultipleTimes(t *testing.T)
 	// Verify play count is 5
 	music, err := db.GetMusic(ctx, musicUUID)
 	require.NoError(t, err)
-	assert.Equal(t, int32(5), music.PlayCount)
+	assert.Equal(t, int32(5), music.PlayCount.Int32)
 }
 
 func TestIntegration_BusinessLogic_DeleteArtistWithAlbums(t *testing.T) {

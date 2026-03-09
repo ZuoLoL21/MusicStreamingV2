@@ -308,10 +308,10 @@ func TestIntegration_Auth_ExpiredJWT(t *testing.T) {
 	testUUID := "550e8400-e29b-41d4-a716-446655440000"
 
 	// Generate JWT with very short expiration
-	expiredJWT := jwtHandler.GenerateJwt("normal", testUUID, 1*time.Nanosecond)
+	expiredJWT := jwtHandler.GenerateJwt("normal", testUUID, 1*time.Millisecond)
 
 	// Wait for token to expire
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 
 	// Attempt to validate expired JWT
 	_, err := jwtHandler.ValidateJwt("normal", expiredJWT)

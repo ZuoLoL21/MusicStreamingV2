@@ -36,7 +36,7 @@ func TestIntegration_AlbumHandler_CreateAlbum_Success(t *testing.T) {
 	handler := handlers.NewAlbumHandler(logger, config, returns, db, fileStorage)
 
 	// Create album with image
-	imageData := []byte("fake album image")
+	imageData := createTestImage(1024, 1024) // Album images require 1024x1024
 	formFields := map[string]string{
 		"artist_uuid":   builders.UUIDToString(artistUUID),
 		"original_name": "Test Album",
@@ -220,7 +220,7 @@ func TestIntegration_AlbumHandler_UpdateAlbumImage_Success(t *testing.T) {
 
 	handler := handlers.NewAlbumHandler(logger, config, returns, db, fileStorage)
 
-	imageData := []byte("updated album image")
+	imageData := createTestImage(1024, 1024)
 	req := createMultipartRequest(t, "PUT", "/albums/"+builders.UUIDToString(albumUUID)+"/image",
 		"image", "newalbum.jpg", imageData, map[string]string{})
 

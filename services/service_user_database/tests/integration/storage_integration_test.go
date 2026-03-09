@@ -137,7 +137,7 @@ func TestIntegration_SaveImage_Success(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.folder, func(t *testing.T) {
-			imageContent := []byte("Fake JPEG image data")
+			imageContent := createTestImage(512, 512)
 			imageReader := bytes.NewReader(imageContent)
 
 			// Save image
@@ -256,7 +256,7 @@ func TestIntegration_FullWorkflow_Image(t *testing.T) {
 
 	folder := consts.PicturesAlbumFolder
 	imageID := "full-workflow-image"
-	imageContent := []byte("Fake image data")
+	imageContent := createTestImage(1024, 1024)
 
 	// Step 1: Save image
 	objectPath, err := minioClient.SaveImage(ctx, folder, imageID, bytes.NewReader(imageContent))

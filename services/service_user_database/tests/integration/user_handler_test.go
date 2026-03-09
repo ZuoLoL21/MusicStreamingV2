@@ -342,7 +342,7 @@ func TestIntegration_UserHandler_UpdateImage(t *testing.T) {
 	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage)
 
 	// Upload image
-	imageData := []byte("fake image data")
+	imageData := createTestImage(512, 512) // Profile images require 512x512
 	formFields := map[string]string{}
 	req := createMultipartRequest(t, "POST", "/users/me/image", "image", "profile.jpg", imageData, formFields)
 

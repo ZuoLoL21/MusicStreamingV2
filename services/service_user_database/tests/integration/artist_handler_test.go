@@ -36,7 +36,7 @@ func TestIntegration_ArtistHandler_Create(t *testing.T) {
 	handler := handlers.NewArtistHandler(logger, config, returns, db, fileStorage)
 
 	// Create artist with image
-	imageData := []byte("fake artist image")
+	imageData := createTestImage(512, 512) // Artist images require 512x512
 	formFields := map[string]string{
 		"artist_name": "The Test Band",
 		"bio":         "A great test band",
@@ -79,7 +79,7 @@ func TestIntegration_ArtistHandler_Create_GeneratesSlug(t *testing.T) {
 	handler := handlers.NewArtistHandler(logger, config, returns, db, fileStorage)
 
 	// Create artist with name that needs slug generation
-	imageData := []byte("fake image")
+	imageData := createTestImage(512, 512)
 	formFields := map[string]string{
 		"artist_name": "Artist With Spaces",
 	}
@@ -217,7 +217,7 @@ func TestIntegration_ArtistHandler_UpdatePicture(t *testing.T) {
 	handler := handlers.NewArtistHandler(logger, config, returns, db, fileStorage)
 
 	// Upload new picture
-	imageData := []byte("new artist picture")
+	imageData := createTestImage(512, 512)
 	formFields := map[string]string{}
 	req := createMultipartRequest(t, "POST", "/artists/"+builders.UUIDToString(artistUUID)+"/picture", "image", "newpic.jpg", imageData, formFields)
 
@@ -336,7 +336,7 @@ func TestIntegration_ArtistHandler_SearchForArtist(t *testing.T) {
 	handler := handlers.NewSearchHandler(logger, config, returns, db, nil)
 
 	// Search for artists with "bea" (should match Beatles and Beach Boys)
-	req := createRequest(t, "GET", "/search/artists?query=bea&limit=10", nil)
+	req := createRequest(t, "GET", "/search/artists?q=bea&limit=10", nil)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/search/artists", handler.SearchArtists).Methods("GET")
@@ -372,7 +372,7 @@ func TestIntegration_ArtistHandler_SearchForArtist_NoResults(t *testing.T) {
 	handler := handlers.NewSearchHandler(logger, config, returns, db, nil)
 
 	// Search for non-existent artist
-	req := createRequest(t, "GET", "/search/artists?query=NonExistentArtistXYZ&limit=10", nil)
+	req := createRequest(t, "GET", "/search/artists?q=NonExistentArtistXYZ&limit=10", nil)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/search/artists", handler.SearchArtists).Methods("GET")

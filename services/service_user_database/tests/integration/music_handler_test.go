@@ -265,7 +265,7 @@ func TestIntegration_MusicHandler_UpdateMusicImage_Success(t *testing.T) {
 
 	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
 
-	imageData := []byte("updated music image")
+	imageData := createTestImage(1024, 1024)
 	req := createMultipartRequest(t, "PUT", "/music/"+builders.UUIDToString(musicUUID)+"/image",
 		"image", "newcover.jpg", imageData, map[string]string{})
 

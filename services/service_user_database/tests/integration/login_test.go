@@ -24,7 +24,10 @@ func TestIntegration_Login_Success(t *testing.T) {
 
 	ctx := context.Background()
 	logger := zap.NewNop()
-	config := &backenddi.Config{}
+	config := &backenddi.Config{
+		JWTExpirationNormal:  10 * time.Minute,
+		JWTExpirationRefresh: 10 * 24 * time.Hour,
+	}
 	vaultConfig := NewTestVaultConfig(t)
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
@@ -63,7 +66,10 @@ func TestIntegration_Login_WrongPassword(t *testing.T) {
 
 	ctx := context.Background()
 	logger := zap.NewNop()
-	config := &backenddi.Config{}
+	config := &backenddi.Config{
+		JWTExpirationNormal:  10 * time.Minute,
+		JWTExpirationRefresh: 10 * 24 * time.Hour,
+	}
 	vaultConfig := NewTestVaultConfig(t)
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
@@ -94,7 +100,10 @@ func TestIntegration_Login_NonExistentUser(t *testing.T) {
 	defer CleanupTestData(t, pool)
 
 	logger := zap.NewNop()
-	config := &backenddi.Config{}
+	config := &backenddi.Config{
+		JWTExpirationNormal:  10 * time.Minute,
+		JWTExpirationRefresh: 10 * 24 * time.Hour,
+	}
 	vaultConfig := NewTestVaultConfig(t)
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
@@ -120,7 +129,10 @@ func TestIntegration_Login_CaseInsensitiveEmail(t *testing.T) {
 
 	ctx := context.Background()
 	logger := zap.NewNop()
-	config := &backenddi.Config{}
+	config := &backenddi.Config{
+		JWTExpirationNormal:  10 * time.Minute,
+		JWTExpirationRefresh: 10 * 24 * time.Hour,
+	}
 	vaultConfig := NewTestVaultConfig(t)
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
@@ -170,7 +182,10 @@ func TestIntegration_Login_EmptyPassword(t *testing.T) {
 	defer CleanupTestData(t, pool)
 
 	logger := zap.NewNop()
-	config := &backenddi.Config{}
+	config := &backenddi.Config{
+		JWTExpirationNormal:  10 * time.Minute,
+		JWTExpirationRefresh: 10 * 24 * time.Hour,
+	}
 	vaultConfig := NewTestVaultConfig(t)
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
@@ -195,7 +210,10 @@ func TestIntegration_Login_EmptyEmail(t *testing.T) {
 	defer CleanupTestData(t, pool)
 
 	logger := zap.NewNop()
-	config := &backenddi.Config{}
+	config := &backenddi.Config{
+		JWTExpirationNormal:  10 * time.Minute,
+		JWTExpirationRefresh: 10 * 24 * time.Hour,
+	}
 	vaultConfig := NewTestVaultConfig(t)
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
@@ -221,7 +239,10 @@ func TestIntegration_Login_ReturnsJWT(t *testing.T) {
 
 	ctx := context.Background()
 	logger := zap.NewNop()
-	config := &backenddi.Config{}
+	config := &backenddi.Config{
+		JWTExpirationNormal:  10 * time.Minute,
+		JWTExpirationRefresh: 10 * 24 * time.Hour,
+	}
 	vaultConfig := NewTestVaultConfig(t)
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
@@ -273,7 +294,10 @@ func TestIntegration_Login_JWTContainsUserUUID(t *testing.T) {
 
 	ctx := context.Background()
 	logger := zap.NewNop()
-	config := &backenddi.Config{}
+	config := &backenddi.Config{
+		JWTExpirationNormal:  10 * time.Minute,
+		JWTExpirationRefresh: 10 * 24 * time.Hour,
+	}
 	vaultConfig := NewTestVaultConfig(t)
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
@@ -318,7 +342,10 @@ func TestIntegration_Login_PasswordHashing(t *testing.T) {
 
 	ctx := context.Background()
 	logger := zap.NewNop()
-	config := &backenddi.Config{}
+	config := &backenddi.Config{
+		JWTExpirationNormal:  10 * time.Minute,
+		JWTExpirationRefresh: 10 * 24 * time.Hour,
+	}
 	vaultConfig := NewTestVaultConfig(t)
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)

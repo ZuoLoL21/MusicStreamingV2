@@ -10,6 +10,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"io"
 	libsconsts "libs/consts"
 	"mime/multipart"
@@ -280,6 +283,23 @@ func createJSONRequest(t *testing.T, method, path string, body interface{}) *htt
 // ensureTimestampDistinct adds minimal delay for timestamp uniqueness
 func ensureTimestampDistinct() {
 	time.Sleep(10 * time.Millisecond)
+}
+
+// createTestImage creates a minimal valid PNG image for testing (10x10 pixels)
+func createTestImage(width, height int) []byte {
+	// Create a minimal PNG image
+	buf := &bytes.Buffer{}
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	// Fill with a simple color (optional, makes it slightly larger but more realistic)
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			img.Set(x, y, color.RGBA{R: 100, G: 150, B: 200, A: 255})
+		}
+	}
+
+	_ = png.Encode(buf, img)
+	return buf.Bytes()
 }
 
 // createMultipartRequest creates an HTTP request with multipart form data for file uploads
