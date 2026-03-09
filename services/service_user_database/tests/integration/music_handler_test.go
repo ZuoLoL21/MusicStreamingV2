@@ -35,7 +35,6 @@ func TestIntegration_MusicHandler_CreateMusic_WithAudio(t *testing.T) {
 	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
 
 	audioData := []byte("fake audio data")
-	imageData := []byte("fake music image")
 	formFields := map[string]string{
 		"artist_uuid":      builders.UUIDToString(artistUUID),
 		"song_name":        "Test Song",
@@ -368,7 +367,7 @@ func TestIntegration_MusicHandler_DeleteMusic_RequiresOwnerRole(t *testing.T) {
 	musicUUID := builders.NewMusicBuilder(artistUUID, ownerUUID).Build(t, ctx, db)
 
 	// Add manager role (not owner)
-	err := db.AddArtistMember(ctx, sqlhandler.AddArtistMemberParams{
+	err := db.AddUserToArtist(ctx, sqlhandler.AddUserToArtistParams{
 		UserUuid:   managerUUID,
 		ArtistUuid: artistUUID,
 		Role:       sqlhandler.ArtistMemberRoleManager,
