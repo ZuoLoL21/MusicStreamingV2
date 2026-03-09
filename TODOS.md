@@ -24,4 +24,8 @@
 - Hashicorp
   - Change Hashicorp vault to no longer be in dev mode → persistent secrets
   - Dynamic Secrets (change secrets each time you access it)
+
+
+### More features
+- Email validation (send an email when registering)
 - Add database migration (allow a way to non-destructively update database tables without downing the container)
