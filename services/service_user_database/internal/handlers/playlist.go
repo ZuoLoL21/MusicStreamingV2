@@ -146,9 +146,11 @@ func (h *PlaylistHandler) CreatePlaylist(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Get required fields
-	originalName := r.FormValue("original_name")
-	if originalName == "" {
-		h.returns.ReturnError(w, "original_name required", http.StatusBadRequest)
+	rawOriginalName := r.FormValue("original_name")
+
+	originalName, err := validateStringField(rawOriginalName, "original_name", 1, 200)
+	if err != nil {
+		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -219,6 +221,12 @@ func (h *PlaylistHandler) UpdatePlaylist(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	originalName, err := validateStringField(body.OriginalName, "original_name", 1, 200)
+	if err != nil {
+		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	var description pgtype.Text
 	if body.Description != nil {
 		description = pgtype.Text{String: *body.Description, Valid: true}
@@ -232,7 +240,7 @@ func (h *PlaylistHandler) UpdatePlaylist(w http.ResponseWriter, r *http.Request)
 	if err := h.db.UpdatePlaylist(r.Context(), sqlhandler.UpdatePlaylistParams{
 		UserUuid:     userUUID,
 		Uuid:         playlistUUID,
-		OriginalName: body.OriginalName,
+		OriginalName: originalName,
 		Description:  description,
 		IsPublic:     isPublic,
 	}); err != nil {

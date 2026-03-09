@@ -86,6 +86,10 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		h.returns.ReturnError(w, "email required", http.StatusBadRequest)
 		return
 	}
+	if !isValidEmail(email) {
+		h.returns.ReturnError(w, "invalid email format", http.StatusBadRequest)
+		return
+	}
 
 	password := r.FormValue("password")
 	if password == "" || len(password) < 8 {
@@ -276,11 +280,17 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	username, err := validateStringField(body.Username, "username", 5, 100)
+	if err != nil {
+		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	bio := optionalStringToPgtype(body.Bio)
 
 	if err := h.db.UpdateProfile(r.Context(), sqlhandler.UpdateProfileParams{
 		Uuid:     userUUID,
-		Username: body.Username,
+		Username: username,
 		Bio:      bio,
 		Country:  body.Country,
 	}); err != nil {

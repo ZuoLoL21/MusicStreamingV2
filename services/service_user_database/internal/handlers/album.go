@@ -132,11 +132,14 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 		h.returns.ReturnError(w, "artist_uuid required", http.StatusBadRequest)
 		return
 	}
-	originalName := r.FormValue("original_name")
-	if originalName == "" {
-		h.returns.ReturnError(w, "original_name required", http.StatusBadRequest)
+	rawOriginalName := r.FormValue("original_name")
+
+	originalName, err := validateStringField(rawOriginalName, "original_name", 1, 200)
+	if err != nil {
+		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	var description *string
 	if descVal := r.FormValue("description"); descVal != "" {
 		description = &descVal
@@ -204,6 +207,12 @@ func (h *AlbumHandler) UpdateAlbum(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	originalName, err := validateStringField(body.OriginalName, "original_name", 1, 200)
+	if err != nil {
+		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	var description pgtype.Text
 	if body.Description != nil {
 		description = pgtype.Text{String: *body.Description, Valid: true}
@@ -211,7 +220,7 @@ func (h *AlbumHandler) UpdateAlbum(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.db.UpdateAlbum(r.Context(), sqlhandler.UpdateAlbumParams{
 		Uuid:         albumUUID,
-		OriginalName: body.OriginalName,
+		OriginalName: originalName,
 		Description:  description,
 	}); err != nil {
 		logger.Error("failed to update album", zap.Error(err))

@@ -140,11 +140,14 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	artistName := r.FormValue("artist_name")
-	if artistName == "" {
-		h.returns.ReturnError(w, "artist_name required", http.StatusBadRequest)
+	rawArtistName := r.FormValue("artist_name")
+
+	artistName, err := validateStringField(rawArtistName, "artist_name", 1, 200)
+	if err != nil {
+		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	var bio *string
 	if bioVal := r.FormValue("bio"); bioVal != "" {
 		bio = &bioVal
@@ -206,11 +209,17 @@ func (h *ArtistHandler) UpdateArtistProfile(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	artistName, err := validateStringField(body.ArtistName, "artist_name", 1, 200)
+	if err != nil {
+		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	bio := optionalStringToPgtype(body.Bio)
 
 	if err := h.db.UpdateArtistProfile(r.Context(), sqlhandler.UpdateArtistProfileParams{
 		Uuid:       artistUUID,
-		ArtistName: body.ArtistName,
+		ArtistName: artistName,
 		Bio:        bio,
 	}); err != nil {
 		logger.Error("failed to update artist profile", zap.Error(err))

@@ -208,9 +208,11 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	songName := r.FormValue("song_name")
-	if songName == "" {
-		h.returns.ReturnError(w, "song_name required", http.StatusBadRequest)
+	rawSongName := r.FormValue("song_name")
+
+	songName, err := validateStringField(rawSongName, "song_name", 1, 500)
+	if err != nil {
+		h.returns.ReturnError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
