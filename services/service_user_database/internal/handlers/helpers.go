@@ -201,3 +201,35 @@ func checkArtistRole(ctx context.Context, q consts.DB, artistUUID pgtype.UUID, u
 	}
 	return false
 }
+
+// validateStringField validates that a string is not empty or whitespace-only
+func validateStringField(field string, fieldName string, minLen, maxLen int) (string, error) {
+	trimmed := strings.TrimSpace(field)
+	if trimmed == "" {
+		return "", fmt.Errorf("%s cannot be empty or whitespace-only", fieldName)
+	}
+	if len(trimmed) < minLen {
+		return "", fmt.Errorf("%s must be at least %d characters", fieldName, minLen)
+	}
+	if maxLen > 0 && len(trimmed) > maxLen {
+		return "", fmt.Errorf("%s must not exceed %d characters", fieldName, maxLen)
+	}
+	return trimmed, nil
+}
+
+// isValidEmail checks if an email address is valid (basic validation)
+func isValidEmail(email string) bool {
+	if email == "" {
+		return false
+	}
+	atIndex := strings.Index(email, "@")
+	if atIndex <= 0 || atIndex >= len(email)-1 {
+		return false
+	}
+
+	domainPart := email[atIndex+1:]
+	if !strings.Contains(domainPart, ".") || strings.HasPrefix(domainPart, ".") || strings.HasSuffix(domainPart, ".") {
+		return false
+	}
+	return true
+}
