@@ -1,0 +1,162 @@
+services:
+  # PostgreSQL test instance with tmpfs for speed
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: service-user-db-postgres-test
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: music_streaming_test
+    ports:
+      - "15432:5432"  # Different port to avoid conflicts
+    tmpfs:
+      - /var/lib/postgresql/data  # In-memory storage for speed
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d music_streaming_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - integration-test-net
+
+  # MinIO test instance with tmpfs for speed
+  minio-test:
+    image: minio/minio:latest
+    container_name: service-user-db-minio-test
+    command: server /data --console-address ":9001"
+    ports:
+      - "19000:9000"
+      - "19001:9001"
+    environment:
+      MINIO_ROOT_USER: testuser
+      MINIO_ROOT_PASSWORD: testpassword
+    tmpfs:
+      - /data  # In-memory storage for speed
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - integration-test-net
+
+  # MinIO initialization
+  minio-init-test:
+    image: minio/mc:latest
+    container_name: service-user-db-minio-init-test
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set minio http://minio-test:9000 testuser testpassword; do
+        echo 'Waiting for MinIO...'
+        sleep 1
+      done &&
+      /usr/bin/mc mb minio/test-bucket --ignore-existing &&
+      /usr/bin/mc anonymous set download minio/test-bucket &&
+      echo 'MinIO initialized successfully'
+      "
+    depends_on:
+      minio-test:
+        condition: service_healthy
+    networks:
+      - integration-test-net
+
+  # Vault test instance (dev mode)
+  vault-test:
+    image: hashicorp/vault:latest
+    container_name: service-user-db-vault-test
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: test-root-token
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - "18200:8200"
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "sh", "-c", "VAULT_ADDR=http://127.0.0.1:8200 vault status"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - integration-test-net
+
+  # Vault initialization - setup transit engine and JWT keys
+  vault-init-test:
+    image: hashicorp/vault:latest
+    container_name: service-user-db-vault-init-test
+    environment:
+      VAULT_ADDR: http://vault-test:8200
+      VAULT_TOKEN: test-root-token
+    entrypoint: >
+      /bin/sh -c "
+      until vault status; do
+        echo 'Waiting for Vault...'
+        sleep 1
+      done &&
+      (vault secrets enable -path=transit transit || echo 'Transit already enabled') &&
+      (vault write -f transit/keys/service-user-database type=rsa-4096 || echo 'service-user-database key exists') &&
+      (vault write -f transit/keys/gateway-api type=rsa-4096 || echo 'gateway-api key exists') &&
+      (vault write -f transit/keys/jwt-backend type=rsa-4096 || echo 'jwt-backend key exists') &&
+      (vault write -f transit/keys/jwt-user type=rsa-4096 || echo 'jwt-user key exists') &&
+      (vault write -f transit/keys/jwt-refresh type=rsa-4096 || echo 'jwt-refresh key exists') &&
+      echo 'Vault initialized successfully'
+      "
+    depends_on:
+      vault-test:
+        condition: service_healthy
+    networks:
+      - integration-test-net
+
+  # Mock server for service_event_ingestion
+  mock-event-ingestion:
+    image: mockserver/mockserver:latest
+    container_name: service-user-db-mock-event-ingestion
+    environment:
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/expectations.json
+    ports:
+      - "11080:1080"
+    volumes:
+      - ./tests/integration/mock-config/event-ingestion-expectations.json:/config/expectations.json:ro
+    networks:
+      - integration-test-net
+
+  # Test runner container
+  integration-tests:
+    build:
+      context: ../..
+      dockerfile: services/service_user_database/Dockerfile.integration.test
+    container_name: service-user-db-integration-tests
+    environment:
+      # PostgreSQL config
+      DB_HOST: postgres-test
+      DB_PORT: 5432
+      DB_USER: test_user
+      DB_PASSWORD: test_password
+      DB_NAME: music_streaming_test
+      DB_SSLMODE: disable
+      # MinIO config
+      MINIO_ENDPOINT: minio-test:9000
+      MINIO_PUBLIC_ENDPOINT: localhost:19000
+      MINIO_ACCESS_KEY: testuser
+      MINIO_SECRET_KEY: testpassword
+      MINIO_BUCKET_NAME: test-bucket
+      MINIO_USE_SSL: "false"
+      # Vault config
+      VAULT_ADDR: http://vault-test:8200
+      VAULT_TOKEN: test-root-token
+      # Mock service config
+      EVENT_INGESTION_URL: http://mock-event-ingestion:1080
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      minio-init-test:
+        condition: service_completed_successfully
+      vault-init-test:
+        condition: service_completed_successfully
+      mock-event-ingestion:
+        condition: service_started
+    networks:
+      - integration-test-net
+
+networks:
+  integration-test-net:
+    driver: bridge

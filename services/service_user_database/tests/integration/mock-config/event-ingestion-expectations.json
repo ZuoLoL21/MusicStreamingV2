@@ -1,0 +1,18 @@
+[
+  {
+    "id": "accept-all-events",
+    "httpRequest": {
+      "method": "POST",
+      "path": "/.*"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "body": {
+        "status": "accepted"
+      }
+    },
+    "times": {
+      "unlimited": true
+    }
+  }
+]
