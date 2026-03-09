@@ -163,6 +163,11 @@ func (h *FollowsHandler) FollowUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if fromUUID.Bytes == toUUID.Bytes {
+		h.returns.ReturnError(w, "cannot follow yourself", http.StatusBadRequest)
+		return
+	}
+
 	if err := h.db.FollowUser(r.Context(), sqlhandler.FollowUserParams{
 		FromUser: fromUUID,
 		ToUser:   toUUID,
@@ -175,7 +180,7 @@ func (h *FollowsHandler) FollowUser(w http.ResponseWriter, r *http.Request) {
 	logger.Info("user followed successfully",
 		zap.String("from_user", uuidToString(fromUUID)),
 		zap.String("to_user", uuidToString(toUUID)))
-	h.returns.ReturnText(w, "user followed", http.StatusOK)
+	h.returns.ReturnText(w, "user followed", http.StatusCreated)
 }
 
 func (h *FollowsHandler) UnfollowUser(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +238,7 @@ func (h *FollowsHandler) FollowArtist(w http.ResponseWriter, r *http.Request) {
 	logger.Info("artist followed successfully",
 		zap.String("user_uuid", uuidToString(fromUUID)),
 		zap.String("artist_uuid", uuidToString(artistUUID)))
-	h.returns.ReturnText(w, "artist followed", http.StatusOK)
+	h.returns.ReturnText(w, "artist followed", http.StatusCreated)
 }
 
 func (h *FollowsHandler) UnfollowArtist(w http.ResponseWriter, r *http.Request) {

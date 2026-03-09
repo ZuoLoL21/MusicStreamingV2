@@ -314,6 +314,19 @@ func (h *ArtistHandler) AddUserToArtist(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	members, err := h.db.GetUsersRepresentingArtist(r.Context(), artistUUID)
+	if err != nil {
+		logger.Error("failed to get artist members", zap.Error(err))
+		h.returns.ReturnError(w, "failed to check artist membership", http.StatusInternalServerError)
+		return
+	}
+	for _, member := range members {
+		if member.Uuid.Bytes == targetUserUUID.Bytes {
+			h.returns.ReturnError(w, "user is already a member of this artist", http.StatusConflict)
+			return
+		}
+	}
+
 	if err := h.db.AddUserToArtist(r.Context(), sqlhandler.AddUserToArtistParams{
 		ArtistUuid: artistUUID,
 		UserUuid:   targetUserUUID,
