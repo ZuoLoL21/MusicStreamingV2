@@ -80,6 +80,7 @@ func uuidToPgtype(uuidStr string) (pgtype.UUID, error) {
 	return id, nil
 }
 
+// TODO remove config from this function everywhere
 func userUUIDFromCtx(w http.ResponseWriter, r *http.Request, config *di.Config, returns *libsdi.ReturnManager) (pgtype.UUID, bool) {
 	uuidStr := helpers.GetUserUUIDFromContext(r.Context())
 	if uuidStr == "" {
