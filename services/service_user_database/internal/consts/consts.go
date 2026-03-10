@@ -23,3 +23,10 @@ const (
 	AudioFolder            = "audio"
 	DefaultsFolder         = "defaults"
 )
+
+// Retry configuration
+const (
+	MaxRetries             = 5
+	InitialRetryBackoffMs  = 10
+	RetryBackoffMultiplier = 2
+)

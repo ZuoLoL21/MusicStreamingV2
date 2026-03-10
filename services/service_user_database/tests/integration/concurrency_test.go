@@ -183,6 +183,7 @@ func TestIntegration_Concurrency_PlaylistTrackAdditions(t *testing.T) {
 	tracks, err := db.GetPlaylistTracks(ctx, sqlhandler.GetPlaylistTracksParams{
 		PlaylistUuid: playlistUUID,
 		Limit:        100,
+		Column3:      -1,
 	})
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(tracks), 5)

@@ -4,6 +4,7 @@ import (
 	"backend/internal/consts"
 	"net/http"
 	"strconv"
+	"time"
 
 	"backend/internal/di"
 	"backend/internal/storage"
@@ -289,16 +290,30 @@ func (h *PlaylistHandler) AddTrackToPlaylist(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.db.AddTrackToPlaylist(r.Context(), sqlhandler.AddTrackToPlaylistParams{
-		MusicUuid:    musicUUID,
-		PlaylistUuid: playlistUUID,
-	}); err != nil {
-		h.logger.Error("failed to add track to playlist", zap.Error(err))
-		h.returns.ReturnError(w, "failed to add track to playlist", http.StatusInternalServerError)
-		return
+	// Retry logic with exponential backoff to handle concurrent position conflicts
+	var lastErr error
+	backoffMs := consts.InitialRetryBackoffMs
+	for attempt := 0; attempt < consts.MaxRetries; attempt++ {
+		err := h.db.AddTrackToPlaylist(r.Context(), sqlhandler.AddTrackToPlaylistParams{
+			MusicUuid:    musicUUID,
+			PlaylistUuid: playlistUUID,
+		})
+		if err == nil {
+			h.returns.ReturnText(w, "track added to playlist", http.StatusCreated)
+			return
+		}
+		lastErr = err
+
+		if attempt < consts.MaxRetries-1 {
+			time.Sleep(time.Millisecond * time.Duration(backoffMs))
+			backoffMs *= consts.RetryBackoffMultiplier
+		}
 	}
 
-	h.returns.ReturnText(w, "track added to playlist", http.StatusCreated)
+	h.logger.Error("failed to add track to playlist after retries",
+		zap.Error(lastErr),
+		zap.Int("attempts", consts.MaxRetries))
+	h.returns.ReturnError(w, "failed to add track to playlist", http.StatusInternalServerError)
 }
 
 func (h *PlaylistHandler) RemoveTrackFromPlaylist(w http.ResponseWriter, r *http.Request) {

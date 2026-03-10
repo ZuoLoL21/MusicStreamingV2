@@ -12,6 +12,11 @@ import (
 )
 
 const addTrackToPlaylist = `-- name: AddTrackToPlaylist :exec
+WITH locked AS (
+    SELECT 1
+    FROM playlist
+    WHERE uuid = $2 FOR UPDATE
+)
 INSERT INTO playlist_track (music_uuid, position, playlist_uuid)
 VALUES (
     $1,

@@ -94,6 +94,11 @@ INSERT INTO playlist (from_user, original_name, description, is_public, image_pa
 VALUES ($1, $2, $3, $4, $5);
 
 -- name: AddTrackToPlaylist :exec
+WITH locked AS (
+    SELECT 1
+    FROM playlist
+    WHERE uuid = $2 FOR UPDATE
+)
 INSERT INTO playlist_track (music_uuid, position, playlist_uuid)
 VALUES (
     $1,
