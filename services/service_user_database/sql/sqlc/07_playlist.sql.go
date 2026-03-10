@@ -101,9 +101,9 @@ JOIN music m
     ON pt.music_uuid = m.uuid
 WHERE pt.playlist_uuid = $1
 AND (
-    $3::int IS NULL
+    $3 < 0
     OR pt.position > $3
-    )
+)
 ORDER BY pt.position
 LIMIT $2
 `
@@ -111,7 +111,7 @@ LIMIT $2
 type GetPlaylistTracksParams struct {
 	PlaylistUuid pgtype.UUID `json:"playlist_uuid"`
 	Limit        int32       `json:"limit"`
-	Column3      int32       `json:"column_3"`
+	Column3      interface{} `json:"column_3"`
 }
 
 func (q *Queries) GetPlaylistTracks(ctx context.Context, arg GetPlaylistTracksParams) ([]Music, error) {

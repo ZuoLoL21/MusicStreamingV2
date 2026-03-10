@@ -150,6 +150,8 @@ func parsePaginationPos(r *http.Request) (limit int32, cursorPos int32) {
 			limit = int32(n)
 		}
 	}
+
+	cursorPos = -1
 	if s := r.URL.Query().Get("cursor_pos"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil {
 			cursorPos = int32(n)

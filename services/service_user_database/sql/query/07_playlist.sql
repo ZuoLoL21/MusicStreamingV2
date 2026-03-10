@@ -58,9 +58,9 @@ JOIN music m
     ON pt.music_uuid = m.uuid
 WHERE pt.playlist_uuid = $1
 AND (
-    $3::int IS NULL
+    $3 < 0
     OR pt.position > $3
-    )
+)
 ORDER BY pt.position
 LIMIT $2;
 
