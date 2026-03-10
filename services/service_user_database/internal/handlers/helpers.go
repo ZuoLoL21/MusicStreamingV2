@@ -208,6 +208,9 @@ func validateStringField(field string, fieldName string, minLen, maxLen int) (st
 	if trimmed == "" {
 		return "", fmt.Errorf("%s cannot be empty or whitespace-only", fieldName)
 	}
+	if strings.Contains(trimmed, "\x00") {
+		return "", fmt.Errorf("%s contains invalid null byte characters", fieldName)
+	}
 	if len(trimmed) < minLen {
 		return "", fmt.Errorf("%s must be at least %d characters", fieldName, minLen)
 	}
