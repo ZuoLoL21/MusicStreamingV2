@@ -106,6 +106,11 @@ func SetupTestDB(t *testing.T) (*pgxpool.Pool, *sqlhandler.Queries) {
 	err = pool.Ping(context.Background())
 	require.NoError(t, err, "failed to ping test database")
 
+	// Set pg_trgm similarity threshold for search queries
+	// Lower threshold (0.2 instead of default 0.3) allows shorter queries to match longer strings
+	_, err = pool.Exec(context.Background(), "SELECT set_limit(0.2);")
+	require.NoError(t, err, "failed to set pg_trgm similarity threshold")
+
 	// Create queries instance
 	queries := sqlhandler.New(pool)
 

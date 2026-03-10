@@ -158,8 +158,8 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 			handler:  "playlist",
 			endpoint: "/playlists",
 			requestBody: map[string]interface{}{
-				"name":        "",
-				"description": "Test playlist",
+				"original_name": "",
+				"description":   "Test playlist",
 			},
 			expectedStatus: http.StatusBadRequest,
 			description:    "Empty playlist name should be rejected",
@@ -169,8 +169,8 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 			handler:  "playlist",
 			endpoint: "/playlists",
 			requestBody: map[string]interface{}{
-				"name":        "My Playlist 🎵🎶",
-				"description": "Unicode test",
+				"original_name": "My Playlist 🎵🎶",
+				"description":   "Unicode test",
 			},
 			expectedStatus: http.StatusCreated,
 			description:    "Unicode characters in playlist name should be accepted",
@@ -180,8 +180,8 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 			handler:  "playlist",
 			endpoint: "/playlists",
 			requestBody: map[string]interface{}{
-				"name":        "Rock & Roll + Blues (90's)",
-				"description": "Special characters test",
+				"original_name": "Rock & Roll + Blues (90's)",
+				"description":   "Special characters test",
 			},
 			expectedStatus: http.StatusCreated,
 			description:    "Special characters should be accepted",
@@ -269,9 +269,8 @@ func TestIntegration_Validation_NullBytes(t *testing.T) {
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
-	// Null bytes should either be rejected or safely handled
-	// Most databases and Go's JSON decoder handle this safely
-	assert.True(t, rr.Code == http.StatusOK || rr.Code == http.StatusBadRequest)
+	// Null bytes should be rejected
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 func TestIntegration_Validation_LeadingTrailingWhitespace(t *testing.T) {
@@ -377,8 +376,8 @@ func TestIntegration_Validation_NumericFields(t *testing.T) {
 		expectedStatus int
 	}{
 		{"negative_duration", "-100", http.StatusBadRequest},
-		{"zero_duration", "0", http.StatusOK}, // Zero may be valid
-		{"very_large_duration", "999999999", http.StatusOK},
+		{"zero_duration", "0", http.StatusCreated}, // Zero is valid, returns 201 Created
+		{"very_large_duration", "999999999", http.StatusCreated},
 		{"non_numeric_duration", "abc", http.StatusBadRequest},
 		{"float_duration", "123.45", http.StatusBadRequest}, // Expecting int
 	}
@@ -386,8 +385,9 @@ func TestIntegration_Validation_NumericFields(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			formFields := map[string]string{
-				"song_name": "Test Song",
-				"duration":  tc.duration,
+				"song_name":        "Test Song",
+				"duration_seconds": tc.duration,
+				"artist_uuid":      builders.UUIDToString(testArtist),
 			}
 			audioData := []byte("fake audio")
 			req := createMultipartRequest(t, "POST", "/artists/"+builders.UUIDToString(testArtist)+"/music",

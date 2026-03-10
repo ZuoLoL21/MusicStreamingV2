@@ -202,8 +202,9 @@ func TestIntegration_Auth_NonMemberCreateMusic(t *testing.T) {
 
 	// Non-member tries to create music for artist
 	formFields := map[string]string{
-		"song_name": "Unauthorized Song",
-		"duration":  "180",
+		"song_name":        "Unauthorized Song",
+		"duration_seconds": "180",
+		"artist_uuid":      builders.UUIDToString(artistUUID),
 	}
 	audioData := []byte("fake audio data")
 	req := createMultipartRequest(t, "POST", "/artists/"+builders.UUIDToString(artistUUID)+"/music",
@@ -256,7 +257,7 @@ func TestIntegration_Auth_NonOwnerRemoveMember(t *testing.T) {
 	req := createRequest(t, "DELETE", "/artists/"+builders.UUIDToString(artistUUID)+"/members/"+builders.UUIDToString(memberB), nil)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/artists/{artist_uuid}/members/{user_uuid}", wrapWithAuth(t, handler.RemoveUserFromArtist, memberA)).Methods("DELETE")
+	router.HandleFunc("/artists/{uuid}/members/{userUuid}", wrapWithAuth(t, handler.RemoveUserFromArtist, memberA)).Methods("DELETE")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)

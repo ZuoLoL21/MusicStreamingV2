@@ -206,7 +206,7 @@ func TestIntegration_FollowUserHandler_CheckIfFollowing(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 	var response map[string]bool
 	assertJSONResponse(t, rr, http.StatusOK, &response)
-	assert.True(t, response["following"])
+	assert.True(t, response["is_following"])
 }
 
 func TestIntegration_FollowUserHandler_GetFollowersForUser(t *testing.T) {

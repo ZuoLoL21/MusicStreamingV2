@@ -329,7 +329,6 @@ func TestIntegration_DB_Playlist_AddRemoveTracks(t *testing.T) {
 	err = db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
 		PlaylistUuid: playlistUUID,
 		MusicUuid:    music1UUID,
-		Position:     0,
 	})
 	require.NoError(t, err)
 
@@ -337,7 +336,6 @@ func TestIntegration_DB_Playlist_AddRemoveTracks(t *testing.T) {
 	err = db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
 		PlaylistUuid: playlistUUID,
 		MusicUuid:    music2UUID,
-		Position:     1,
 	})
 	require.NoError(t, err)
 
@@ -394,23 +392,20 @@ func TestIntegration_DB_Playlist_ReorderTracks(t *testing.T) {
 	require.NoError(t, err)
 	playlistUUID := playlists[0].Uuid
 
-	// Add tracks with specific positions
+	// Add tracks (positions auto-calculated)
 	err = db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
 		PlaylistUuid: playlistUUID,
 		MusicUuid:    music1UUID,
-		Position:     0,
 	})
 	require.NoError(t, err)
 	err = db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
 		PlaylistUuid: playlistUUID,
 		MusicUuid:    music2UUID,
-		Position:     1,
 	})
 	require.NoError(t, err)
 	err = db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
 		PlaylistUuid: playlistUUID,
 		MusicUuid:    music3UUID,
-		Position:     2,
 	})
 	require.NoError(t, err)
 
@@ -450,13 +445,12 @@ func TestIntegration_DB_Playlist_GetTracksWithPagination(t *testing.T) {
 	require.NoError(t, err)
 	playlistUUID := playlists[0].Uuid
 
-	// Add multiple tracks
+	// Add multiple tracks (positions auto-calculated)
 	for i := 0; i < 5; i++ {
 		musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 		db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
 			PlaylistUuid: playlistUUID,
 			MusicUuid:    musicUUID,
-			Position:     int32(i),
 		})
 	}
 
@@ -502,14 +496,12 @@ func TestIntegration_DB_Playlist_DuplicateTracks(t *testing.T) {
 	err = db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
 		PlaylistUuid: playlistUUID,
 		MusicUuid:    musicUUID,
-		Position:     0,
 	})
 	require.NoError(t, err)
 
 	err = db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
 		PlaylistUuid: playlistUUID,
 		MusicUuid:    musicUUID,
-		Position:     1,
 	})
 	require.NoError(t, err)
 
