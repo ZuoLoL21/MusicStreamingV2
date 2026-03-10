@@ -13,17 +13,20 @@ import (
 
 const addTrackToPlaylist = `-- name: AddTrackToPlaylist :exec
 INSERT INTO playlist_track (music_uuid, position, playlist_uuid)
-VALUES ($1, $2, $3)
+VALUES (
+    $1,
+    COALESCE((SELECT get_max_playlist_size($1)+1),0),
+    $2
+)
 `
 
 type AddTrackToPlaylistParams struct {
 	MusicUuid    pgtype.UUID `json:"music_uuid"`
-	Position     int32       `json:"position"`
 	PlaylistUuid pgtype.UUID `json:"playlist_uuid"`
 }
 
 func (q *Queries) AddTrackToPlaylist(ctx context.Context, arg AddTrackToPlaylistParams) error {
-	_, err := q.db.Exec(ctx, addTrackToPlaylist, arg.MusicUuid, arg.Position, arg.PlaylistUuid)
+	_, err := q.db.Exec(ctx, addTrackToPlaylist, arg.MusicUuid, arg.PlaylistUuid)
 	return err
 }
 

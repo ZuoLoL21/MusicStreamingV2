@@ -64,6 +64,7 @@ type DB interface {
 	UnfollowUser(ctx context.Context, arg sqlhandler.UnfollowUserParams) error
 	FollowArtist(ctx context.Context, arg sqlhandler.FollowArtistParams) error
 	UnfollowArtist(ctx context.Context, arg sqlhandler.UnfollowArtistParams) error
+	IsFollowingArtist(ctx context.Context, arg sqlhandler.IsFollowingArtistParams) (bool, error)
 
 	GetAllTags(ctx context.Context, arg sqlhandler.GetAllTagsParams) ([]sqlhandler.MusicTag, error)
 	GetTag(ctx context.Context, tagName string) (sqlhandler.MusicTag, error)

@@ -73,6 +73,9 @@ SET original_name = $3,
 WHERE uuid = $2
 AND is_user_allowed_playlist_edit($1, $2);
 
+-- TODO: Current implementation just doesn't work
+    -- Requires validating position (ensure positive < max position)
+    -- Requires shifting other 
 -- name: UpdateTrackPosition :exec
 UPDATE playlist_track
 SET position = $4
@@ -92,7 +95,11 @@ VALUES ($1, $2, $3, $4, $5);
 
 -- name: AddTrackToPlaylist :exec
 INSERT INTO playlist_track (music_uuid, position, playlist_uuid)
-VALUES ($1, $2, $3);
+VALUES (
+    $1,
+    COALESCE((SELECT get_max_playlist_size($1)+1),0),
+    $2
+);
 
 ------ DELETE
 -- name: RemoveTrackFromPlaylist :exec
