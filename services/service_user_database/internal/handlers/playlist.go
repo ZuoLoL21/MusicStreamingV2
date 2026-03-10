@@ -268,7 +268,7 @@ func (h *PlaylistHandler) DeletePlaylist(w http.ResponseWriter, r *http.Request)
 }
 
 type addTrackRequest struct {
-	Position int32 `json:"position" validate:"gte=0"`
+	MusicUUID string `json:"music_uuid" validate:"required"`
 }
 
 func (h *PlaylistHandler) AddTrackToPlaylist(w http.ResponseWriter, r *http.Request) {
@@ -277,20 +277,20 @@ func (h *PlaylistHandler) AddTrackToPlaylist(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	musicUUID, ok := parseUUID(r, "musicUuid")
+	body, ok := decodeBody[addTrackRequest](w, r, h.returns)
 	if !ok {
-		h.returns.ReturnError(w, "invalid music uuid", http.StatusBadRequest)
+		h.returns.ReturnError(w, "invalid inputs", http.StatusBadRequest)
 		return
 	}
 
-	body, ok := decodeBody[addTrackRequest](w, r, h.returns)
-	if !ok {
+	musicUUID, err := uuidToPgtype(body.MusicUUID)
+	if err != nil {
+		h.returns.ReturnError(w, "invalid music_uuid", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.db.AddTrackToPlaylist(r.Context(), sqlhandler.AddTrackToPlaylistParams{
 		MusicUuid:    musicUUID,
-		Position:     body.Position,
 		PlaylistUuid: playlistUUID,
 	}); err != nil {
 		h.logger.Error("failed to add track to playlist", zap.Error(err))
