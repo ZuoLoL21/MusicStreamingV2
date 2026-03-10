@@ -144,9 +144,10 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 			name:     "album_empty_name",
 			handler:  "album",
 			endpoint: "/artists/" + builders.UUIDToString(testArtist) + "/albums",
-			requestBody: map[string]interface{}{
-				"name":        "",
-				"description": "Test album",
+			formFields: map[string]string{
+				"artist_uuid":   builders.UUIDToString(testArtist),
+				"original_name": "",
+				"description":   "Test album",
 			},
 			expectedStatus: http.StatusBadRequest,
 			description:    "Empty album name should be rejected",
@@ -157,7 +158,7 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 			name:     "playlist_empty_name",
 			handler:  "playlist",
 			endpoint: "/playlists",
-			requestBody: map[string]interface{}{
+			formFields: map[string]string{
 				"original_name": "",
 				"description":   "Test playlist",
 			},
@@ -168,7 +169,7 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 			name:     "playlist_unicode_name",
 			handler:  "playlist",
 			endpoint: "/playlists",
-			requestBody: map[string]interface{}{
+			formFields: map[string]string{
 				"original_name": "My Playlist 🎵🎶",
 				"description":   "Unicode test",
 			},
@@ -179,7 +180,7 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 			name:     "playlist_special_chars",
 			handler:  "playlist",
 			endpoint: "/playlists",
-			requestBody: map[string]interface{}{
+			formFields: map[string]string{
 				"original_name": "Rock & Roll + Blues (90's)",
 				"description":   "Special characters test",
 			},
@@ -221,7 +222,7 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 
 			case "album":
 				handler := handlers.NewAlbumHandler(logger, config, returns, db, nil)
-				req = createJSONRequest(t, "POST", tc.endpoint, tc.requestBody)
+				req = createMultipartRequest(t, "POST", tc.endpoint, "", "", nil, tc.formFields)
 				router := mux.NewRouter()
 				router.HandleFunc("/artists/{artist_uuid}/albums", wrapWithAuth(t, handler.CreateAlbum, testUser)).Methods("POST")
 				rr = httptest.NewRecorder()
@@ -229,7 +230,7 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 
 			case "playlist":
 				handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
-				req = createJSONRequest(t, "POST", tc.endpoint, tc.requestBody)
+				req = createMultipartRequest(t, "POST", tc.endpoint, "", "", nil, tc.formFields)
 				router := mux.NewRouter()
 				router.HandleFunc(tc.endpoint, wrapWithAuth(t, handler.CreatePlaylist, testUser)).Methods("POST")
 				rr = httptest.NewRecorder()
