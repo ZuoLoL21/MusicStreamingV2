@@ -97,7 +97,7 @@ VALUES ($1, $2, $3, $4, $5);
 INSERT INTO playlist_track (music_uuid, position, playlist_uuid)
 VALUES (
     $1,
-    COALESCE((SELECT get_max_playlist_size($1)+1),0),
+    COALESCE((SELECT get_max_playlist_size($2)+1),0),
     $2
 );
 
