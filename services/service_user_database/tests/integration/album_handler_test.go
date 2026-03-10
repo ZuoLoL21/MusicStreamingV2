@@ -393,7 +393,7 @@ func TestIntegration_AlbumHandler_SearchForAlbum_Success(t *testing.T) {
 
 	handler := handlers.NewSearchHandler(logger, config, returns, db, fileStorage)
 
-	req := createRequest(t, "GET", "/search/albums?q=Moon", nil)
+	req := createRequest(t, "GET", "/search/albums?q=Dark%20Side", nil)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/search/albums", handler.SearchAlbums).Methods("GET")

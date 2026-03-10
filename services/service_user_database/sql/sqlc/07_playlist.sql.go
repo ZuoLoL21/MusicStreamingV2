@@ -412,6 +412,8 @@ func (q *Queries) UpdatePlaylistImage(ctx context.Context, arg UpdatePlaylistIma
 }
 
 const updateTrackPosition = `-- name: UpdateTrackPosition :exec
+    -- Requires validating position (ensure positive < max position)
+    -- Requires shifting other 
 UPDATE playlist_track
 SET position = $4
 WHERE uuid = $3
@@ -425,6 +427,7 @@ type UpdateTrackPositionParams struct {
 	Position     int32       `json:"position"`
 }
 
+// TODO: Current implementation just doesn't work
 func (q *Queries) UpdateTrackPosition(ctx context.Context, arg UpdateTrackPositionParams) error {
 	_, err := q.db.Exec(ctx, updateTrackPosition,
 		arg.UserUuid,

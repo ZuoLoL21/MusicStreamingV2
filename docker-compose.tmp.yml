@@ -1,0 +1,22 @@
+services:
+  # Databases
+  database-postgres-user:
+    image: postgres:16
+    container_name: postgres-user
+    environment:
+      POSTGRES_DB: music_streaming
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${USER_CRUD_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - tmp_vol:/var/lib/postgresql/data
+      - ./services/service_user_database/sql/schema:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  tmp_vol:

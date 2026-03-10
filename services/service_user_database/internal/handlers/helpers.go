@@ -171,7 +171,14 @@ func parsePaginationSearch(r *http.Request) (limit int32, cursorScore pgtype.Flo
 	if cursorScoreStr != "" {
 		if score, err := strconv.ParseFloat(cursorScoreStr, 64); err == nil && score >= 0 && score <= 1 {
 			cursorScore = pgtype.Float8{Float64: score, Valid: true}
+		} else {
+			cursorScore = pgtype.Float8{Float64: -1.0, Valid: true} // IT HAS TO BE -1 FOR PAGINATION. DO NOT CHANGE, WILL BUG
+			return
 		}
+
+	} else {
+		cursorScore = pgtype.Float8{Float64: -1.0, Valid: true} // IT HAS TO BE -1 FOR PAGINATION. DO NOT CHANGE, WILL BUG
+		return
 	}
 
 	cursorTSStr := r.URL.Query().Get("cursor_ts")
