@@ -345,11 +345,13 @@ func TestIntegration_ArtistHandler_SearchForArtist(t *testing.T) {
 	router.ServeHTTP(rr, req)
 
 	// Should return 200 OK with matching artists
-	var artists []map[string]interface{}
-	assertJSONResponse(t, rr, http.StatusOK, &artists)
+	var result struct {
+		Artists []map[string]interface{} `json:"artists"`
+	}
+	assertJSONResponse(t, rr, http.StatusOK, &result)
 
 	// Should match both Beatles and Beach Boys
-	require.GreaterOrEqual(t, len(artists), 2)
+	require.GreaterOrEqual(t, len(result.Artists), 2)
 	// Note: Exact matching depends on search implementation (LIKE, trigram, etc.)
 }
 
@@ -381,8 +383,10 @@ func TestIntegration_ArtistHandler_SearchForArtist_NoResults(t *testing.T) {
 	router.ServeHTTP(rr, req)
 
 	// Should return 200 OK with empty array
-	var artists []map[string]interface{}
-	assertJSONResponse(t, rr, http.StatusOK, &artists)
+	var result struct {
+		Artists []map[string]interface{} `json:"artists"`
+	}
+	assertJSONResponse(t, rr, http.StatusOK, &result)
 
-	assert.Len(t, artists, 0)
+	assert.Len(t, result.Artists, 0)
 }

@@ -376,7 +376,7 @@ func TestIntegration_Validation_NumericFields(t *testing.T) {
 		expectedStatus int
 	}{
 		{"negative_duration", "-100", http.StatusBadRequest},
-		{"zero_duration", "0", http.StatusCreated}, // Zero is valid, returns 201 Created
+		{"zero_duration", "0", http.StatusBadRequest}, // Zero duration is invalid
 		{"very_large_duration", "999999999", http.StatusCreated},
 		{"non_numeric_duration", "abc", http.StatusBadRequest},
 		{"float_duration", "123.45", http.StatusBadRequest}, // Expecting int
