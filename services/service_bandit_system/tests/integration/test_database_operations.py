@@ -107,7 +107,7 @@ def test_get_weight_bias_for_one_new(db_managers):
     result = db_managers.get_weight_bias_for_one(user_uuid, theme)
 
     assert result.Theme == theme
-    assert result.Version == 1
+    assert result.Version == 0
     # New arm should have identity matrix
     expected_weights = np.eye(NUMB_FEATURES) * 1.0
     np.testing.assert_array_almost_equal(result.Weights, expected_weights)

@@ -159,7 +159,7 @@ def test_empty_features_array(test_client):
     )
 
     # Should fail validation
-    assert response.status_code in [422, 500]
+    assert response.status_code == 400
 
 
 def test_unicode_theme_names(db_managers, handler):

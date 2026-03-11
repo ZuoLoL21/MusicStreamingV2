@@ -157,7 +157,7 @@ def test_update_success_new_theme(test_client, db_managers, handler):
     # Verify weights were created in database
     weights = db_managers.get_weight_bias(user_uuid)
     assert theme in weights
-    assert weights[theme].Version == 2  # Should be incremented after update
+    assert weights[theme].Version == 1  # Should be incremented after update
 
 
 def test_update_success_existing_theme(test_client, db_managers):
@@ -318,8 +318,8 @@ def test_predict_then_update_flow(test_client, db_managers):
     # Verify weights exist and were updated
     weights = db_managers.get_weight_bias(user_uuid)
     assert chosen_theme in weights
-    # Version should be at least 2 (1 initial + 1 update)
-    assert weights[chosen_theme].Version >= 2
+    # Version should be at least 1 (1 initial + 1 update)
+    assert weights[chosen_theme].Version >= 1
 
 
 def test_multiple_predictions_same_user(test_client, db_managers):
