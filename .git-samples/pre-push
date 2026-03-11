@@ -3,16 +3,18 @@
 set -e
 
 COMPOSE_FILE="services/service_user_database/docker-compose.integration.yml"
+COMPOSE_FILE2="services/service_bandit_system/docker-compose.integration.yml"
 
-echo "Running integration tests on user database before push..."
 
 cleanup() {
   echo "Cleaning up containers..."
   docker compose -f $COMPOSE_FILE down -v
+  docker compose -f $COMPOSE_FILE2 down -v
 }
-
 trap cleanup EXIT
 
+
+echo "Running integration tests on user database before push..."
 echo "Building everything"
 docker compose -f $COMPOSE_FILE build --no-cache
 
@@ -38,25 +40,16 @@ fi
 echo "----"
 
 
-COMPOSE_FILE="services/service_bandit_system/docker-compose.integration.yml"
-
 echo "Running integration tests on bandit system before push..."
-
-cleanup() {
-  echo "Cleaning up containers..."
-  docker compose -f $COMPOSE_FILE down -v
-}
-
-trap cleanup EXIT
 echo "Building everything"
-docker compose -f $COMPOSE_FILE build --no-cache
+docker compose -f $COMPOSE_FILE2 build --no-cache
 
 
 echo "Starting infrastructure..."
-docker compose -f $COMPOSE_FILE up -d clickhouse-test postgres-test
+docker compose -f $COMPOSE_FILE2 up -d clickhouse-test postgres-test
 
 echo "Running integration tests..."
-docker compose -f $COMPOSE_FILE run --rm --no-deps integration-tests
+docker compose -f $COMPOSE_FILE2 run --rm --no-deps integration-tests
 
 EXIT_CODE=$?
 
