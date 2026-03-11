@@ -13,20 +13,18 @@ cleanup() {
 
 trap cleanup EXIT
 
+echo "Building everything"
+docker compose -f $COMPOSE_FILE build --no-cache
+
 echo "Starting infrastructure..."
-docker compose -f $COMPOSE_FILE up -d \
-  postgres-test \
-  minio-test \
-  vault-test \
-  mock-event-ingestion
+docker compose -f $COMPOSE_FILE up -d postgres-test minio-test vault-test mock-event-ingestion
 
 echo "Running init containers..."
-docker compose -f $COMPOSE_FILE up --force-recreate \
-  minio-init-test \
-  vault-init-test
+docker compose -f $COMPOSE_FILE up --force-recreate minio-init-test vault-init-test
 
 echo "Running integration tests..."
-docker compose -f $COMPOSE_FILE run --rm --no-deps --force-recreate integration-tests
+docker compose -f $COMPOSE_FILE run --rm --no-deps integration-tests
+
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then
@@ -50,14 +48,16 @@ cleanup() {
 }
 
 trap cleanup EXIT
+echo "Building everything"
+docker compose -f $COMPOSE_FILE build --no-cache
+
 
 echo "Starting infrastructure..."
-docker compose -f $COMPOSE_FILE up -d \
-  clickhouse-test \
-  postgres-test
+docker compose -f $COMPOSE_FILE up -d clickhouse-test postgres-test
 
 echo "Running integration tests..."
-docker compose -f $COMPOSE_FILE run --rm --no-deps --force-recreate integration-tests
+docker compose -f $COMPOSE_FILE run --rm --no-deps integration-tests
+
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then
