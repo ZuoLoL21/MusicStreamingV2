@@ -33,8 +33,12 @@ class Config:
         sherman_morrison_divergence_threshold = float(
             os.getenv("SHERMAN_MORRISON_DIVERGENCE_THRESHOLD", "1e-6")
         )
-        max_retries = 3
-        initial_backoff_ms = 100
+        max_retries = int(
+            os.getenv("MAX_RETRIES", "3")
+        )
+        initial_backoff_ms = float(
+            os.getenv("BACKOFF_MS", "100")
+        )
 
         return cls(
             db_warehouse_string=db_warehouse_string,

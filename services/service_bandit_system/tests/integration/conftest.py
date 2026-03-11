@@ -41,7 +41,7 @@ def test_config():
         bandit_params_table="bandit_data",
         alpha=0.5,
         ridge_lambda=1.0,
-        max_retries=3,
+        max_retries=5,
         initial_backoff_ms=100,
         sherman_morrison_recompute_interval=100,
         sherman_morrison_divergence_threshold=1e-6,
