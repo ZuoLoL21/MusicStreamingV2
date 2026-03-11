@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-install-project --compile-bytecode
 
 # Final stage
 FROM python:3.11-slim
@@ -21,6 +21,7 @@ COPY src ./src
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
 EXPOSE 8001
 
