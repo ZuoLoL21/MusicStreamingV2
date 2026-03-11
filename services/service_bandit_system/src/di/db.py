@@ -1,5 +1,5 @@
 import json
-from typing import Dict
+from typing import Any, Dict
 
 import numpy as np
 import structlog
@@ -8,6 +8,17 @@ from sqlalchemy import create_engine, text
 
 from src.di.config import Config
 from src.models.linucb import ArmResultLinUCB, LinUCB
+
+
+def _ensure_deserialized(data: Any) -> Any:
+    """Ensure data is deserialized from JSON string if needed.
+
+    JSONB columns return Python objects directly, while Text columns return strings.
+    This helper handles both cases.
+    """
+    if isinstance(data, str):
+        return json.loads(data)
+    return data
 
 _FEATURE_COLS = [
     "f_user_theme_decay_impressions",
@@ -66,21 +77,21 @@ class DBManagers:
             version,
         ) in rows:
             weights_inv = (
-                np.array(json.loads(weights_inv_json), dtype=np.float64)
+                np.array(_ensure_deserialized(weights_inv_json), dtype=np.float64)
                 if weights_inv_json
                 else None
             )
             if weights_inv is None:
                 # Fallback: compute inverse if not stored
-                weights = np.array(json.loads(weights_json), dtype=np.float64)
+                weights = np.array(_ensure_deserialized(weights_json), dtype=np.float64)
                 weights_inv = np.linalg.inv(weights)
                 updates_since_recompute = 0
 
             arms[theme] = ArmResultLinUCB(
                 Theme=theme,
                 Version=int(version),
-                Weights=np.array(json.loads(weights_json), dtype=np.float64),
-                Biases=np.array(json.loads(biases_json), dtype=np.float64),
+                Weights=np.array(_ensure_deserialized(weights_json), dtype=np.float64),
+                Biases=np.array(_ensure_deserialized(biases_json), dtype=np.float64),
                 WeightsInv=weights_inv,
                 UpdatesSinceRecompute=int(updates_since_recompute)
                 if updates_since_recompute is not None
@@ -109,9 +120,9 @@ class DBManagers:
             version,
         ) = rows[0]
 
-        weights = np.array(json.loads(weights_json), dtype=np.float64)
+        weights = np.array(_ensure_deserialized(weights_json), dtype=np.float64)
         weights_inv = (
-            np.array(json.loads(weights_inv_json), dtype=np.float64)
+            np.array(_ensure_deserialized(weights_inv_json), dtype=np.float64)
             if weights_inv_json
             else None
         )
@@ -123,7 +134,7 @@ class DBManagers:
             Theme=theme,
             Version=int(version),
             Weights=weights,
-            Biases=np.array(json.loads(biases_json), dtype=np.float64),
+            Biases=np.array(_ensure_deserialized(biases_json), dtype=np.float64),
             WeightsInv=weights_inv,
             UpdatesSinceRecompute=int(updates_since_recompute)
             if updates_since_recompute is not None
@@ -141,10 +152,17 @@ class DBManagers:
         latest_version: int,
     ) -> bool:
         query = text(
-            f"UPDATE {self._config.bandit_params_table}"
-            " SET weights = :weights, biases = :biases, weights_inv = :weights_inv,"
-            " updates_since_recompute = :updates_since_recompute, version = :new_version"
-            " WHERE user_uuid = :uuid AND theme = :theme AND version = :latest_version"
+            f"INSERT INTO {self._config.bandit_params_table}"
+            " (user_uuid, theme, weights, biases, weights_inv, updates_since_recompute, version)"
+            " VALUES (:uuid, :theme, CAST(:weights AS jsonb), CAST(:biases AS jsonb), CAST(:weights_inv AS jsonb), :updates_since_recompute, :new_version)"
+            " ON CONFLICT (user_uuid, theme)"
+            " DO UPDATE SET"
+            "   weights = CAST(:weights AS jsonb),"
+            "   biases = CAST(:biases AS jsonb),"
+            "   weights_inv = CAST(:weights_inv AS jsonb),"
+            "   updates_since_recompute = :updates_since_recompute,"
+            "   version = :new_version"
+            f" WHERE {self._config.bandit_params_table}.version = :latest_version"
         )
 
         with self._storage_engine.connect() as conn:

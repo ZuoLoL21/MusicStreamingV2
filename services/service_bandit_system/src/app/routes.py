@@ -2,6 +2,7 @@ import numpy as np
 import structlog
 from fastapi import APIRouter, HTTPException, Depends
 
+from src.di.db import NUMB_FEATURES
 from src.services.bandit import BanditHandler
 from src.middleware import get_request_id
 from src.app.models import (
@@ -11,7 +12,7 @@ from src.app.models import (
     UpdateResponse,
     HealthResponse,
 )
-from src.app.helpers import get_handler
+from src.app.helpers import get_handler, is_features_valid
 
 logger = structlog.get_logger("bandit_routes")
 
@@ -78,6 +79,9 @@ async def update(
     """
     try:
         features_array = np.array(request.features, dtype=np.float64)
+        if not is_features_valid(features_array):
+            raise HTTPException(status_code=400, detail=f"Invalid features, must be of shape 1x{NUMB_FEATURES}")
+
         handler.update(
             request.user_uuid, request.reward, request.theme, features_array
         )
