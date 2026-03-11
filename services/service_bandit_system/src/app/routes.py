@@ -46,6 +46,15 @@ async def predict(
             theme=theme,
             features=features.tolist(),
         )
+    except HTTPException as e:
+        logger.error(
+                "input are invalid",
+                user_uuid=str(request.user_uuid),
+                theme=request.theme,
+                error=str(e),
+                request_id=get_request_id(),
+        )
+        raise e
     except RuntimeError as e:
         logger.error(
             "prediction failed",
@@ -93,6 +102,15 @@ async def update(
             request_id=get_request_id(),
         )
         return UpdateResponse(success=True)
+    except HTTPException as e:
+        logger.error(
+            "input are invalid",
+            user_uuid=str(request.user_uuid),
+            theme=request.theme,
+            error=str(e),
+            request_id=get_request_id(),
+        )
+        raise e
     except RuntimeError as e:
         logger.error(
             "update failed",

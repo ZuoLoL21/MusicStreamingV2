@@ -248,7 +248,7 @@ def test_update_feature_dimension_mismatch(test_client, db_managers):
     )
 
     # Should fail validation or in processing
-    assert response.status_code in [422, 500]
+    assert response.status_code == 400
 
 
 def test_update_without_prior_predict(test_client, db_managers):
@@ -266,7 +266,7 @@ def test_update_without_prior_predict(test_client, db_managers):
 
     # Make update request without predict
     response = test_client.post(
-        f"/update",
+        "/api/v1/update",
         json={
             "user_uuid": str(user_uuid),
             "reward": reward,
@@ -275,7 +275,7 @@ def test_update_without_prior_predict(test_client, db_managers):
         },
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 202
 
     # Verify weights were created
     weights = db_managers.get_weight_bias(user_uuid)

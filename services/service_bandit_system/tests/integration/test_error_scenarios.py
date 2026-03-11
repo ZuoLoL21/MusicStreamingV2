@@ -149,7 +149,7 @@ def test_empty_features_array(test_client):
     theme = "rock"
 
     response = test_client.post(
-        f"/update",
+        "/api/v1/update",
         json={
             "user_uuid": str(user_uuid),
             "reward": 0.5,
