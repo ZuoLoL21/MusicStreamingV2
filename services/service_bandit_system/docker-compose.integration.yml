@@ -1,0 +1,74 @@
+services:
+  postgres-test:
+    image: postgres:15
+    container_name: service-bandit-postgres-test
+    environment:
+      POSTGRES_DB: bandit_test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+    ports:
+      - "5434:5432"  # Different from production port 5433
+    volumes:
+      - ./src/sql/01_bandits.sql:/docker-entrypoint-initdb.d/01_bandits.sql:ro
+    tmpfs:
+      - /var/lib/postgresql/data  # In-memory storage for speed
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d bandit_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - integration-test-net
+
+  clickhouse-test:
+    image: clickhouse/clickhouse-server:23.8
+    container_name: service-bandit-clickhouse-test
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "9002:9000"  # Different from production port 9001
+      - "8124:8123"
+    volumes:
+      - ./tests/integration/sql/init_clickhouse.sql:/docker-entrypoint-initdb.d/init_clickhouse.sql:ro
+    tmpfs:
+      - /var/lib/clickhouse  # In-memory storage for speed
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - integration-test-net
+
+  # Test runner container
+  integration-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.integration.test
+    container_name: service-bandit-integration-tests
+    environment:
+      # PostgreSQL config
+      POSTGRES_HOST: postgres-test
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: bandit_test
+      # ClickHouse config
+      CLICKHOUSE_HOST: clickhouse-test
+      CLICKHOUSE_PORT: 9000
+      CLICKHOUSE_HTTP_PORT: 8123
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: default
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      clickhouse-test:
+        condition: service_healthy
+    networks:
+      - integration-test-net
+
+networks:
+  integration-test-net:
+    driver: bridge
