@@ -28,7 +28,6 @@ echo "Running integration tests..."
 docker compose -f $COMPOSE_FILE run --rm --no-deps integration-tests
 
 EXIT_CODE=$?
-
 if [ $EXIT_CODE -eq 0 ]; then
     echo "Integration tests passed."
 else
@@ -52,7 +51,6 @@ echo "Running integration tests..."
 docker compose -f $COMPOSE_FILE2 run --rm --no-deps integration-tests
 
 EXIT_CODE=$?
-
 if [ $EXIT_CODE -eq 0 ]; then
     echo "Integration tests passed."
 else

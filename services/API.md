@@ -1,6 +1,6 @@
 # MusicStreamingV2 - Unified API Documentation
 
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-03-11
 
 This document provides complete API reference for all services in the MusicStreamingV2 platform. For architecture and design decisions, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -2855,14 +2855,14 @@ POST /recommend/theme
 ```json
 {
   "theme": "rock",
-  "features": [0.75, 0.42, 0.88, 0.31, 0.65],
+  "features": [0.75, 0.42, 0.88, 0.31, 0.65, 0.53, 0.91, 0.22, 0.68, 0.44, 0.77, 0.59],
   "confidence": 0.87
 }
 ```
 
 **Response Fields:**
 - `theme` - Recommended music theme/genre
-- `features` - Feature vector used for prediction (save for feedback)
+- `features` - Feature vector (12 floats) used for prediction (save for feedback)
 - `confidence` - Confidence score for the recommendation (0.0-1.0)
 
 **Status Codes:**
@@ -3332,13 +3332,13 @@ POST /api/v1/predict
 ```json
 {
   "theme": "rock",
-  "features": [0.75, 0.42, 0.88, 0.31, 0.65]
+  "features": [0.75, 0.42, 0.88, 0.31, 0.65, 0.53, 0.91, 0.22, 0.68, 0.44, 0.77, 0.59]
 }
 ```
 
 **Response Fields:**
 - `theme` (string) - Recommended music theme/genre
-- `features` (array of floats) - Feature vector for feedback loop
+- `features` (array of 12 floats) - Feature vector for feedback loop
 
 **Status Codes:**
 - `200 OK` - Prediction successful
@@ -3364,7 +3364,7 @@ POST /api/v1/update
   "user_uuid": "123e4567-e89b-12d3-a456-426614174000",
   "theme": "rock",
   "reward": 0.85,
-  "features": [0.75, 0.42, 0.88, 0.31, 0.65]
+  "features": [0.75, 0.42, 0.88, 0.31, 0.65, 0.53, 0.91, 0.22, 0.68, 0.44, 0.77, 0.59]
 }
 ```
 
@@ -3372,7 +3372,7 @@ POST /api/v1/update
 - `user_uuid` (UUID4, required) - User UUID
 - `theme` (string, required) - Theme that was shown
 - `reward` (float, required) - Reward value 0.0-1.0
-- `features` (array, required) - Feature vector from prediction
+- `features` (array, required) - Feature vector from prediction (must be exactly 12 floats)
 
 **Reward Guidelines:**
 
@@ -3394,8 +3394,9 @@ POST /api/v1/update
 
 **Status Codes:**
 - `202 Accepted` - Update accepted
+- `400 Bad Request` - Invalid features length (must be 12 elements)
 - `401 Unauthorized` - Invalid service JWT
-- `422 Unprocessable Entity` - Invalid reward or features
+- `422 Unprocessable Entity` - Invalid reward value
 - `500 Internal Server Error` - Update failed
 
 ---
