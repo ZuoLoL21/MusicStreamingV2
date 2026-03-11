@@ -4,7 +4,7 @@ set -e
 
 COMPOSE_FILE="services/service_user_database/docker-compose.integration.yml"
 
-echo "Running integration tests before push..."
+echo "Running integration tests on user database before push..."
 
 cleanup() {
   echo "Cleaning up containers..."
@@ -27,5 +27,45 @@ docker compose -f $COMPOSE_FILE up --force-recreate \
 
 echo "Running integration tests..."
 docker compose -f $COMPOSE_FILE run --rm --no-deps --force-recreate integration-tests
+EXIT_CODE=$?
 
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "Integration tests passed."
+else
+    echo "Integration tests failed!"
+    exit $EXIT_CODE
+fi
+
+
+echo "----"
+
+
+COMPOSE_FILE="services/service_bandit_system/docker-compose.integration.yml"
+
+echo "Running integration tests on bandit system before push..."
+
+cleanup() {
+  echo "Cleaning up containers..."
+  docker compose -f $COMPOSE_FILE down -v
+}
+
+trap cleanup EXIT
+
+echo "Starting infrastructure..."
+docker compose -f $COMPOSE_FILE up -d \
+  clickhouse-test \
+  postgres-test
+
+echo "Running integration tests..."
+docker compose -f $COMPOSE_FILE run --rm --no-deps --force-recreate integration-tests
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "Integration tests passed."
+else
+    echo "Integration tests failed!"
+    exit $EXIT_CODE
+fi
+
+echo "--------"
 echo "Integration tests passed. Push allowed."
