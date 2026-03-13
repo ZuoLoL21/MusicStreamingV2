@@ -108,7 +108,9 @@ func fetchKeyVersion(applicationName string, logger *zap.Logger, config ClientCo
 	if err != nil {
 		return 0, fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)

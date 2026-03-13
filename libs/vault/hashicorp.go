@@ -88,7 +88,9 @@ func (h *HashicorpHandler) Sign(
 	if err != nil {
 		return "", 0, fmt.Errorf("%s: %w", consts.ErrHTTPRequestFailed, err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
@@ -171,7 +173,9 @@ func (h *HashicorpHandler) Verify(
 	if err != nil {
 		return fmt.Errorf("%s: %w", consts.ErrHTTPRequestFailed, err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
