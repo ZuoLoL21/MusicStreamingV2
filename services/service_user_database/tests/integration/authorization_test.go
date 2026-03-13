@@ -310,12 +310,12 @@ func TestIntegration_Auth_ExpiredJWT(t *testing.T) {
 
 	// Generate JWT with very short expiration
 	expiredJWT, err := jwtHandler.GenerateJwt("normal", testUUID, 1*time.Millisecond)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait for token to expire
 	time.Sleep(5 * time.Millisecond)
 
 	// Attempt to validate expired JWT
-	_, err := jwtHandler.ValidateJwt("normal", expiredJWT)
+	_, err = jwtHandler.ValidateJwt("normal", expiredJWT)
 	assert.Error(t, err, "expired JWT should fail validation")
 }

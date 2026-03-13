@@ -51,7 +51,7 @@ func TestIntegration_Auth_JWTValidation_ExpiredToken(t *testing.T) {
 	time.Sleep(5 * time.Millisecond)
 
 	// Attempt to validate expired JWT
-	_, err := jwtHandler.ValidateJwt("service", serviceJWT)
+	_, err = jwtHandler.ValidateJwt("service", serviceJWT)
 	assert.Error(t, err, "expired JWT should fail validation")
 }
 
@@ -68,7 +68,7 @@ func TestIntegration_Auth_JWTValidation_WrongSubject(t *testing.T) {
 	require.NotEmpty(t, serviceJWT)
 
 	// Attempt to validate with wrong subject (e.g., "normal")
-	_, err := jwtHandler.ValidateJwt("normal", serviceJWT)
+	_, err = jwtHandler.ValidateJwt("normal", serviceJWT)
 	assert.Error(t, err, "JWT with wrong subject should fail validation")
 }
 
