@@ -25,6 +25,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const cookieRefreshToken = Cookies.get('refresh_token');
     const cookieUserUuid = Cookies.get('user_uuid');
 
+    console.log('AuthProvider: Checking cookies', {
+      hasToken: !!cookieToken,
+      hasRefresh: !!cookieRefreshToken,
+      hasUuid: !!cookieUserUuid,
+      tokenValue: cookieToken?.substring(0, 20) + '...' // Log partial token for debugging
+    });
+
     // Validate cookies exist and are not the string "undefined"
     const isValid =
       cookieToken && cookieToken !== 'undefined' &&
@@ -32,14 +39,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cookieUserUuid && cookieUserUuid !== 'undefined';
 
     if (isValid) {
+      console.log('AuthProvider: Cookies valid, syncing with store');
       // Sync cookies with Zustand store
       setAuth(cookieToken!, cookieRefreshToken!, cookieUserUuid!);
       setIsAuthenticated(true);
     } else {
-      // Clear invalid cookies
-      Cookies.remove('token');
-      Cookies.remove('refresh_token');
-      Cookies.remove('user_uuid');
+      console.log('AuthProvider: Invalid cookies, clearing');
+      // Clear invalid cookies with proper path
+      Cookies.remove('token', { path: '/' });
+      Cookies.remove('refresh_token', { path: '/' });
+      Cookies.remove('user_uuid', { path: '/' });
       setIsAuthenticated(false);
     }
 

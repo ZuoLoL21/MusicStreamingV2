@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, getFileUrl } from '@/lib/api';
 import { Playlist } from '@/lib/types';
 import { Music2 } from 'lucide-react';
 import Link from 'next/link';
@@ -62,7 +62,7 @@ export default function LibraryPage() {
               <div className="aspect-square bg-gradient-to-br from-purple-900 to-blue-900 rounded mb-4 flex items-center justify-center overflow-hidden">
                 {playlist.image_path ? (
                   <img
-                    src={playlist.image_path}
+                    src={getFileUrl(playlist.image_path)}
                     alt={playlist.original_name}
                     className="w-full h-full object-cover"
                   />

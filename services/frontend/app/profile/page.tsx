@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { api, getFileUrl } from '@/lib/api';
 import { User, Artist } from '@/lib/types';
 import ProfileEdit from '@/components/ProfileEdit';
 import Link from 'next/link';
@@ -65,15 +65,13 @@ export default function ProfilePage() {
     );
   }
 
-  const profileImage = user.profile_image_path || '/default-avatar.png';
-
   return (
     <div className="max-w-4xl mx-auto p-6">
       {/* Profile Header */}
       <div className="bg-gray-800 rounded-lg p-6 mb-6">
         <div className="flex items-start gap-6">
           <img
-            src={profileImage}
+            src={getFileUrl(user.profile_image_path || '')}
             alt={user.username}
             className="w-32 h-32 rounded-full object-cover"
           />
@@ -119,7 +117,7 @@ export default function ProfilePage() {
                 className="flex items-center gap-4 p-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition"
               >
                 <img
-                  src={artist.profile_image_path || '/default-artist.png'}
+                  src={getFileUrl(artist.profile_image_path || '')}
                   alt={artist.artist_name}
                   className="w-16 h-16 rounded-full object-cover"
                 />

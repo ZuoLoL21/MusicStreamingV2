@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { api, getFileUrl } from '@/lib/api';
 import { Music } from '@/lib/types';
 import { usePlayerStore } from '@/lib/store';
 import Link from 'next/link';
@@ -111,7 +111,7 @@ export default function LikedSongsPage() {
               </button>
 
               <img
-                src={song.image_path || '/default-music.png'}
+                src={getFileUrl(song.image_path || '')}
                 alt={song.song_name}
                 className="w-12 h-12 rounded object-cover"
               />

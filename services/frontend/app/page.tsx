@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, getFileUrl } from '@/lib/api';
 import { Music, Artist } from '@/lib/types';
 import { Play } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
@@ -102,7 +102,7 @@ export default function HomePage() {
               <div className="aspect-square bg-gray-800 rounded-full mb-4 flex items-center justify-center overflow-hidden">
                 {artist.profile_image_path ? (
                   <img
-                    src={artist.profile_image_path}
+                    src={getFileUrl(artist.profile_image_path)}
                     alt={artist.artist_name}
                     className="w-full h-full object-cover"
                   />
@@ -133,7 +133,7 @@ export default function HomePage() {
                 <div className="relative aspect-square bg-gray-800 rounded mb-4 overflow-hidden">
                   {music.image_path ? (
                     <img
-                      src={music.image_path}
+                      src={getFileUrl(music.image_path)}
                       alt={music.song_name}
                       className="w-full h-full object-cover"
                     />

@@ -31,8 +31,7 @@ export const getFileUrl = (path: string): string => {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   // Direct URL to backend - browser loads files from gateway API
-  const baseUrl = 'http://localhost:8080';
-  return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+  return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
 };
 
 class ApiClient {
@@ -58,6 +57,37 @@ class ApiClient {
 
       return config;
     });
+
+    // Handle auth errors and clear invalid cookies
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        // Check for authentication errors
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          const url = error.config?.url || '';
+
+          // Don't clear cookies if this is a login/register attempt failing
+          // (user just entered wrong credentials)
+          if (!url.includes('/login')) {
+            console.log('Auth error on protected route, clearing cookies and redirecting');
+
+            // Clear invalid cookies
+            Cookies.remove('token', { path: '/' });
+            Cookies.remove('refresh_token', { path: '/' });
+            Cookies.remove('user_uuid', { path: '/' });
+
+            // Only redirect if we're in the browser (not SSR)
+            if (typeof window !== 'undefined') {
+              // Don't redirect if we're already on the login page
+              if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login';
+              }
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
   }
 
   // Auth
@@ -74,7 +104,6 @@ class ApiClient {
     formData.append('display_name', displayName);
     formData.append('country', country);
 
-    // Don't set Content-Type manually - axios will set it with the correct boundary
     const response = await this.client.put('/login', formData);
     return response.data;
   }
@@ -94,8 +123,8 @@ class ApiClient {
     await this.client.post('/users/me', { username, bio });
   }
 
-  async updateEmail(oldPassword: string, email: string): Promise<void> {
-    await this.client.post('/users/me/email', { old_password: oldPassword, email });
+  async updateEmail(email: string): Promise<void> {
+    await this.client.post('/users/me/email', { email });
   }
 
   async updatePassword(oldPassword: string, newPassword: string): Promise<void> {
@@ -105,9 +134,7 @@ class ApiClient {
   async uploadProfileImage(file: File): Promise<void> {
     const formData = new FormData();
     formData.append('image', file);
-    await this.client.post('/users/me/image', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    await this.client.post('/users/me/image', formData);
   }
 
   // Social - Follow/Unfollow
@@ -206,9 +233,7 @@ class ApiClient {
     formData.append('artist_name', name);
     if (bio) formData.append('bio', bio);
     if (image) formData.append('image', image);
-    await this.client.put('/artists', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    await this.client.put('/artists', formData);
   }
 
   async updateArtistProfile(uuid: string, name: string, bio?: string): Promise<void> {
@@ -218,9 +243,7 @@ class ApiClient {
   async uploadArtistImage(uuid: string, image: File): Promise<void> {
     const formData = new FormData();
     formData.append('image', image);
-    await this.client.post(`/artists/${uuid}/image`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    await this.client.post(`/artists/${uuid}/image`, formData);
   }
 
   async getArtistMembers(uuid: string): Promise<ArtistMember[]> {
@@ -261,13 +284,11 @@ class ApiClient {
 
   async createAlbum(artistUuid: string, name: string, description?: string, image?: File): Promise<void> {
     const formData = new FormData();
-    formData.append('from_artist', artistUuid);
+    formData.append('artist_uuid', artistUuid);
     formData.append('original_name', name);
     if (description) formData.append('description', description);
     if (image) formData.append('image', image);
-    await this.client.put('/albums', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    await this.client.put('/albums', formData);
   }
 
   async updateAlbum(uuid: string, name: string, description?: string): Promise<void> {
@@ -277,9 +298,7 @@ class ApiClient {
   async uploadAlbumImage(uuid: string, image: File): Promise<void> {
     const formData = new FormData();
     formData.append('image', image);
-    await this.client.post(`/albums/${uuid}/image`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    await this.client.post(`/albums/${uuid}/image`, formData);
   }
 
   async deleteAlbum(uuid: string): Promise<void> {
@@ -313,14 +332,12 @@ class ApiClient {
     albumUuid?: string
   ): Promise<void> {
     const formData = new FormData();
-    formData.append('from_artist', artistUuid);
+    formData.append('artist_uuid', artistUuid);
     formData.append('song_name', songName);
     formData.append('duration_seconds', String(durationSeconds));
     formData.append('audio_file', audioFile);
     if (albumUuid) formData.append('in_album', albumUuid);
-    await this.client.put('/music', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    await this.client.put('/music', formData);
   }
 
   async updateMusicDetails(uuid: string, songName: string, albumUuid?: string): Promise<void> {
@@ -334,9 +351,7 @@ class ApiClient {
     const formData = new FormData();
     formData.append('audio_file', audioFile);
     formData.append('duration_seconds', String(durationSeconds));
-    await this.client.post(`/music/${uuid}/storage`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    await this.client.post(`/music/${uuid}/storage`, formData);
   }
 
   async deleteMusic(uuid: string): Promise<void> {
@@ -400,9 +415,7 @@ class ApiClient {
     if (description) formData.append('description', description);
     formData.append('is_public', String(isPublic ?? true));
     if (image) formData.append('image', image);
-    await this.client.put('/playlists', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    await this.client.put('/playlists', formData);
   }
 
   async updatePlaylist(
@@ -421,9 +434,7 @@ class ApiClient {
   async uploadPlaylistImage(uuid: string, image: File): Promise<void> {
     const formData = new FormData();
     formData.append('image', image);
-    await this.client.post(`/playlists/${uuid}/image`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    await this.client.post(`/playlists/${uuid}/image`, formData);
   }
 
   async deletePlaylist(uuid: string): Promise<void> {
@@ -486,7 +497,7 @@ class ApiClient {
 
   // Recommendations
   async getThemeRecommendation(): Promise<ThemeRecommendation> {
-    const response = await this.client.post('/recommendation/theme');
+    const response = await this.client.post('/recommend/theme');
     return response.data;
   }
 
@@ -494,7 +505,7 @@ class ApiClient {
     const params = new URLSearchParams({ limit: String(limit) });
     if (cursor?.cursor_decay) params.append('cursor_decay', String(cursor.cursor_decay));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
-    const response = await this.client.get(`/recommendation/popular/songs/all-time?${params}`);
+    const response = await this.client.get(`/popular/songs/all-time?${params}`);
     return response.data;
   }
 
@@ -511,7 +522,7 @@ class ApiClient {
     });
     if (cursor?.cursor_plays) params.append('cursor_plays', String(cursor.cursor_plays));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
-    const response = await this.client.get(`/recommendation/popular/songs/timeframe?${params}`);
+    const response = await this.client.get(`/popular/songs/timeframe?${params}`);
     return response.data;
   }
 
@@ -523,7 +534,25 @@ class ApiClient {
     const params = new URLSearchParams({ limit: String(limit) });
     if (cursor?.cursor_plays) params.append('cursor_plays', String(cursor.cursor_plays));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
-    const response = await this.client.get(`/recommendation/popular/songs/theme/${encodeURIComponent(theme)}?${params}`);
+    const response = await this.client.get(`/popular/songs/theme/${encodeURIComponent(theme)}?${params}`);
+    return response.data;
+  }
+
+  async getPopularSongsByThemeTimeframe(
+    theme: string,
+    startDate: string,
+    endDate: string,
+    limit = 20,
+    cursor?: PopularityCursor
+  ): Promise<SongPopularity[]> {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      start_date: startDate,
+      end_date: endDate,
+    });
+    if (cursor?.cursor_plays) params.append('cursor_plays', String(cursor.cursor_plays));
+    if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
+    const response = await this.client.get(`/popular/songs/theme/${encodeURIComponent(theme)}/timeframe?${params}`);
     return response.data;
   }
 
@@ -531,7 +560,7 @@ class ApiClient {
     const params = new URLSearchParams({ limit: String(limit) });
     if (cursor?.cursor_decay) params.append('cursor_decay', String(cursor.cursor_decay));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
-    const response = await this.client.get(`/recommendation/popular/artists/all-time?${params}`);
+    const response = await this.client.get(`/popular/artists/all-time?${params}`);
     return response.data;
   }
 
@@ -548,12 +577,12 @@ class ApiClient {
     });
     if (cursor?.cursor_plays) params.append('cursor_plays', String(cursor.cursor_plays));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
-    const response = await this.client.get(`/recommendation/popular/artists/timeframe?${params}`);
+    const response = await this.client.get(`/popular/artists/timeframe?${params}`);
     return response.data;
   }
 
   async getPopularThemesAllTime(limit = 20): Promise<ThemePopularity[]> {
-    const response = await this.client.get(`/recommendation/popular/themes/all-time?limit=${limit}`);
+    const response = await this.client.get(`/popular/themes/all-time?limit=${limit}`);
     return response.data;
   }
 
@@ -567,7 +596,7 @@ class ApiClient {
       start_date: startDate,
       end_date: endDate,
     });
-    const response = await this.client.get(`/recommendation/popular/themes/timeframe?${params}`);
+    const response = await this.client.get(`/popular/themes/timeframe?${params}`);
     return response.data;
   }
 

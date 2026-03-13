@@ -21,7 +21,6 @@ export default function ProfileEdit({ user, onClose, onUpdate }: ProfileEditProp
 
   // Email fields
   const [newEmail, setNewEmail] = useState('');
-  const [emailPassword, setEmailPassword] = useState('');
 
   // Password fields
   const [oldPassword, setOldPassword] = useState('');
@@ -46,16 +45,15 @@ export default function ProfileEdit({ user, onClose, onUpdate }: ProfileEditProp
   };
 
   const handleEmailUpdate = async () => {
-    if (!newEmail || !emailPassword) {
-      toast.error('Please fill in all fields');
+    if (!newEmail) {
+      toast.error('Please enter a new email');
       return;
     }
     setLoading(true);
     try {
-      await api.updateEmail(emailPassword, newEmail);
+      await api.updateEmail(newEmail);
       toast.success('Email updated successfully');
       setNewEmail('');
-      setEmailPassword('');
       onUpdate();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to update email');
@@ -203,15 +201,6 @@ export default function ProfileEdit({ user, onClose, onUpdate }: ProfileEditProp
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">Confirm Password</label>
-                <input
-                  type="password"
-                  value={emailPassword}
-                  onChange={(e) => setEmailPassword(e.target.value)}
                   className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

@@ -32,13 +32,30 @@ export default function LoginPage() {
         toast.success('Account created successfully!');
       }
 
-      // Store tokens and user UUID in cookies
-      Cookies.set('token', response.access_token, { expires: 7 });
-      Cookies.set('refresh_token', response.refresh_token, { expires: 30 });
-      Cookies.set('user_uuid', response.user_uuid, { expires: 30 });
+      // Store tokens and user UUID in cookies with proper options
+      Cookies.set('token', response.access_token, {
+        expires: 7,
+        path: '/',
+        sameSite: 'lax',
+        secure: false // Allow on localhost
+      });
+      Cookies.set('refresh_token', response.refresh_token, {
+        expires: 30,
+        path: '/',
+        sameSite: 'lax',
+        secure: false
+      });
+      Cookies.set('user_uuid', response.user_uuid, {
+        expires: 30,
+        path: '/',
+        sameSite: 'lax',
+        secure: false
+      });
 
       // Sync with Zustand store
       setAuth(response.access_token, response.refresh_token, response.user_uuid);
+
+      console.log('Login successful, cookies set, redirecting to home...');
 
       // Redirect to home
       router.push('/');

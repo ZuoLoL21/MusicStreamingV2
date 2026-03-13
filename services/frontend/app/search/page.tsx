@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { api } from '@/lib/api';
+import { api, getFileUrl } from '@/lib/api';
 import { Music, Artist, Album, User, Playlist } from '@/lib/types';
 import { Search as SearchIcon, Play } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
@@ -90,7 +90,7 @@ export default function SearchPage() {
                     <div className="aspect-square bg-gray-800 rounded-full mb-4 flex items-center justify-center overflow-hidden">
                       {artist.profile_image_path ? (
                         <img
-                          src={artist.profile_image_path}
+                          src={getFileUrl(artist.profile_image_path)}
                           alt={artist.artist_name}
                           className="w-full h-full object-cover"
                         />
@@ -122,7 +122,7 @@ export default function SearchPage() {
                     <div className="aspect-square bg-gray-800 rounded mb-4 overflow-hidden">
                       {album.image_path ? (
                         <img
-                          src={album.image_path}
+                          src={getFileUrl(album.image_path)}
                           alt={album.original_name}
                           className="w-full h-full object-cover"
                         />
@@ -152,7 +152,7 @@ export default function SearchPage() {
                     className="flex items-center gap-4 p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition"
                   >
                     <img
-                      src={user.profile_image_path || '/default-avatar.png'}
+                      src={getFileUrl(user.profile_image_path || '')}
                       alt={user.username}
                       className="w-12 h-12 rounded-full object-cover"
                     />
@@ -180,7 +180,7 @@ export default function SearchPage() {
                     <div className="aspect-square bg-gray-800 rounded mb-4 overflow-hidden">
                       {playlist.image_path ? (
                         <img
-                          src={playlist.image_path}
+                          src={getFileUrl(playlist.image_path)}
                           alt={playlist.original_name}
                           className="w-full h-full object-cover"
                         />
@@ -214,7 +214,7 @@ export default function SearchPage() {
                     <div className="w-12 h-12 bg-gray-800 rounded overflow-hidden flex-shrink-0">
                       {music.image_path ? (
                         <img
-                          src={music.image_path}
+                          src={getFileUrl(music.image_path)}
                           alt={music.song_name}
                           className="w-full h-full object-cover"
                         />

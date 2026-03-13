@@ -42,10 +42,10 @@ export function Sidebar() {
   ];
 
   const handleLogout = () => {
-    // Clear cookies
-    Cookies.remove('token');
-    Cookies.remove('refresh_token');
-    Cookies.remove('user_uuid');
+    // Clear cookies with proper path
+    Cookies.remove('token', { path: '/' });
+    Cookies.remove('refresh_token', { path: '/' });
+    Cookies.remove('user_uuid', { path: '/' });
 
     // Clear Zustand store
     clearAuth();
