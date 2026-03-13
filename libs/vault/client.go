@@ -112,7 +112,7 @@ func fetchKeyVersion(applicationName string, logger *zap.Logger, config ClientCo
 		_ = Body.Close()
 	}(resp.Body)
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return 0, fmt.Errorf(consts.ErrVaultReturnedError, resp.StatusCode, string(body))
 	}

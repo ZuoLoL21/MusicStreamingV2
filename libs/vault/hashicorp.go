@@ -92,7 +92,7 @@ func (h *HashicorpHandler) Sign(
 		_ = Body.Close()
 	}(resp.Body)
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return "", 0, fmt.Errorf(consts.ErrVaultReturnedError, resp.StatusCode, string(body))
 	}
@@ -177,7 +177,7 @@ func (h *HashicorpHandler) Verify(
 		_ = Body.Close()
 	}(resp.Body)
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf(consts.ErrVaultReturnedError, resp.StatusCode, string(body))
 	}
