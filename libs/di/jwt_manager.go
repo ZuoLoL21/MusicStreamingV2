@@ -5,11 +5,27 @@ import (
 	"libs/consts"
 	"libs/vault"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 )
+
+// jwtSigningMethod is used to ensure the Vault signing method is registered only once.
+var jwtSigningMethod sync.Once
+
+// registerVaultSigningMethod registers the Vault signing method with the JWT library.
+// This is called once to avoid duplicate registration.
+func registerVaultSigningMethod() {
+	jwtSigningMethod.Do(func() {
+		signingAlg := &vault.SigningMethodVault{Algorithm: consts.HeaderAlgorithm}
+		jwt.RegisterSigningMethod(
+			signingAlg.Alg(),
+			func() jwt.SigningMethod { return signingAlg },
+		)
+	})
+}
 
 // MyCustomClaims represents the custom JWT claims used in the music streaming application.
 // It includes a Uuid field for the user's unique identifier along with the standard
@@ -30,7 +46,8 @@ type JWTConfig interface {
 // It takes a logger, configuration, and application name as parameters.
 //
 // The function initializes the Vault key version, creates a Hashicorp handler,
-// and returns a fully configured JWTHandler ready for token generation and validation.
+// registers the Vault signing method, and returns a fully configured JWTHandler
+// ready for token generation and validation.
 func GetJWTHandler(logger *zap.Logger, config JWTConfig, applicationName string) *JWTHandler {
 	if err := vault.InitializeKeyVersion(applicationName, logger, config); err != nil {
 		logger.Fatal("failed to initialize key version",
@@ -40,9 +57,12 @@ func GetJWTHandler(logger *zap.Logger, config JWTConfig, applicationName string)
 
 	hashicorpHandler := vault.NewHashicorpHandler(config)
 
-	jwtHandler := NewJWTManager()
-	jwtHandler.VaultHandler = hashicorpHandler
-	jwtHandler.ApplicationName = applicationName
+	registerVaultSigningMethod()
+
+	jwtHandler := &JWTHandler{
+		VaultHandler:    hashicorpHandler,
+		ApplicationName: applicationName,
+	}
 
 	logger.Info("JWT handler initialized",
 		zap.String("application_name", applicationName))
@@ -55,20 +75,6 @@ func GetJWTHandler(logger *zap.Logger, config JWTConfig, applicationName string)
 type JWTHandler struct {
 	VaultHandler    *vault.HashicorpHandler
 	ApplicationName string
-}
-
-// NewJWTManager creates and initializes a new JWTHandler.
-// It registers the Vault signing method with the JWT library and returns
-// an empty JWTHandler. The VaultHandler and ApplicationName must be set
-// before using the handler for token operations.
-func NewJWTManager() *JWTHandler {
-	signingAlg := &vault.SigningMethodVault{Algorithm: consts.HeaderAlgorithm}
-
-	jwt.RegisterSigningMethod(
-		signingAlg.Alg(),
-		func() jwt.SigningMethod { return signingAlg },
-	)
-	return &JWTHandler{}
 }
 
 // GenerateJwt generates a new JWT token with the given subject, UUID, and expiration duration.
