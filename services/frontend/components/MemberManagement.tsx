@@ -42,14 +42,19 @@ export default function MemberManagement({
     }
 
     try {
-      // Note: Backend expects user UUID, but UI has username
-      // This would need a search endpoint or user UUID lookup
-      toast.error('Adding members by username requires a user search feature');
-      // await api.addMemberToArtist(artistUuid, userUuid, newMemberRole);
-      // toast.success('Member added successfully');
-      // loadMembers();
-      // setShowAddMember(false);
-      // setNewMemberUsername('');
+      const users = await api.searchUsers(newMemberUsername.trim());
+      const user = users.find((u) => u.username.toLowerCase() === newMemberUsername.trim().toLowerCase());
+
+      if (!user) {
+        toast.error('User not found');
+        return;
+      }
+
+      await api.addMemberToArtist(artistUuid, user.uuid, newMemberRole);
+      toast.success('Member added successfully');
+      loadMembers();
+      setShowAddMember(false);
+      setNewMemberUsername('');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to add member');
     }

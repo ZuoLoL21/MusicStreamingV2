@@ -9,7 +9,6 @@ import {
   Tag,
   AuthResponse,
   Cursor,
-  SearchCursor,
   PopularityCursor,
   ArtistMember,
   ThemeRecommendation,
@@ -18,19 +17,15 @@ import {
   ThemePopularity,
   ListeningHistory,
   TopMusic,
-  PlaylistTrack,
 } from './types';
 
-// Use different URLs for server-side and client-side
 const API_BASE_URL = typeof window === 'undefined'
   ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080')
   : (process.env.NEXT_PUBLIC_API_URL_BROWSER || 'http://localhost:8080');
 
-// Helper to convert relative file paths to full URLs
 export const getFileUrl = (path: string): string => {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  // Direct URL to backend - browser loads files from gateway API
   return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
 };
 
@@ -40,17 +35,14 @@ class ApiClient {
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
-      // Don't set default Content-Type - let axios handle it based on request data
     });
 
-    // Add auth token to requests
     this.client.interceptors.request.use((config) => {
       const token = Cookies.get('token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
 
-      // Set Content-Type to JSON only for non-FormData requests
       if (!(config.data instanceof FormData)) {
         config.headers['Content-Type'] = 'application/json';
       }
@@ -58,27 +50,22 @@ class ApiClient {
       return config;
     });
 
-    // Handle auth errors and clear invalid cookies
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
-        // Check for authentication errors
         if (error.response?.status === 401 || error.response?.status === 403) {
           const url = error.config?.url || '';
 
-          // Don't clear cookies if this is a login/register attempt failing
-          // (user just entered wrong credentials)
+          // Don't clear cookies on login failures
           if (!url.includes('/login')) {
             console.log('Auth error on protected route, clearing cookies and redirecting');
 
-            // Clear invalid cookies
             Cookies.remove('token', { path: '/' });
             Cookies.remove('refresh_token', { path: '/' });
             Cookies.remove('user_uuid', { path: '/' });
 
-            // Only redirect if we're in the browser (not SSR)
+            // Only redirect in browser (not SSR)
             if (typeof window !== 'undefined') {
-              // Don't redirect if we're already on the login page
               if (!window.location.pathname.includes('/login')) {
                 window.location.href = '/login';
               }

@@ -32,7 +32,6 @@ export default function HomePage() {
       }
     } catch (error) {
       toast.error('Failed to load content');
-      console.error(error);
     } finally {
       setLoading(false);
     }

@@ -38,7 +38,7 @@ export function Player() {
       checkLiked();
 
       // Increment play count
-      api.incrementPlayCount(currentTrack.uuid).catch(() => {});
+      api.incrementPlayCount(currentTrack.uuid).catch((err) => console.error('Failed to increment play count:', err));
     }
   }, [currentTrack]);
 
@@ -49,12 +49,11 @@ export function Player() {
     const trackDuration = currentTrack.duration_seconds;
 
     if (listenDuration > 0) {
-      api.sendListenEvent(
+      const completionPercentage = Math.round((listenDuration / trackDuration) * 100);
+      api.recordListeningHistory(
         currentTrack.uuid,
-        currentTrack.from_artist,
-        currentTrack.in_album || null,
         listenDuration,
-        trackDuration
+        completionPercentage
       );
     }
 
@@ -82,9 +81,6 @@ export function Player() {
         await api.likeMusic(currentTrack.uuid);
         setIsLiked(true);
         toast.success('Added to liked songs');
-
-        // Track like event
-        api.sendLikeEvent(currentTrack.uuid, currentTrack.from_artist);
       }
     } catch (error: any) {
       toast.error('Failed to update like status');
