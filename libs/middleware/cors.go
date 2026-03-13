@@ -5,6 +5,8 @@ import (
 )
 
 // CORSMiddleware adds CORS headers to all responses
+// This middleware handles preflight OPTIONS requests and adds
+// the appropriate headers for cross-origin requests
 func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")

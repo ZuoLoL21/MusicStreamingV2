@@ -4,7 +4,6 @@ import (
 	"gateway_api/internal/clients"
 	"gateway_api/internal/di"
 	"gateway_api/internal/handlers"
-	"gateway_api/internal/middleware"
 	"libs/consts"
 
 	libsdi "libs/di"
@@ -27,7 +26,7 @@ type App struct {
 
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
-	r.Use(middleware.CORSMiddleware)
+	r.Use(libsmiddleware.CORSMiddleware)
 
 	// Create handlers
 	proxyHandler := handlers.NewProxyHandler(
