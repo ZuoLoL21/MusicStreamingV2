@@ -4,7 +4,7 @@ use (
 	./libs
 	./services/gateway_api
 	./services/gateway_recommendation
+	./services/service_event_ingestion
 	./services/service_popularity_system
 	./services/service_user_database
-	./services/service_event_ingestion
 )
