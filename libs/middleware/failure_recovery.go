@@ -42,7 +42,14 @@ func userUUID(ctx context.Context) string {
 	return helpers.GetUserUUIDFromContext(ctx)
 }
 
-func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
+// FailureRecoveryMiddleware is a middleware that wraps an HTTP handler to provide
+// panic recovery and request logging. It recovers from any panics that occur during
+// request processing, logs the panic with relevant request details, and returns a
+// 500 Internal Server Error response.
+//
+// Additionally, it logs all HTTP requests with
+// method, path, route, status code, response size, duration, and client information.
+func FailureRecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()

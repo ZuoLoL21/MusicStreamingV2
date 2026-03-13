@@ -61,19 +61,19 @@ func (a *App) Router() *mux.Router {
 
 	publicRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.LoggingMiddleware(a.Logger),
+		libsmiddleware.FailureRecoveryMiddleware(a.Logger),
 		libsmiddleware.Logger(a.Logger),
 	)
 	refreshRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.LoggingMiddleware(a.Logger),
+		libsmiddleware.FailureRecoveryMiddleware(a.Logger),
 		refreshAuthHandler.GetAuthMiddleware(),
 		libsmiddleware.Logger(a.Logger),
 		serviceJWTHandler.GetServiceJWTMiddleware(),
 	)
 	protectedRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.LoggingMiddleware(a.Logger),
+		libsmiddleware.FailureRecoveryMiddleware(a.Logger),
 		normalAuthHandler.GetAuthMiddleware(),
 		libsmiddleware.Logger(a.Logger),
 		serviceJWTHandler.GetServiceJWTMiddleware(),
