@@ -27,17 +27,7 @@ def load_config(config_path):
 
 
 def validate_config(config, base_dir):
-    """
-    Validate configuration structure and references
-
-    Args:
-        config: Parsed YAML config dict
-        base_dir: Base directory for resolving file paths
-
-    Raises:
-        ConfigValidationError: If validation fails
-    """
-
+    """Validate configuration structure and references."""
     errors = []
     base_path = Path(base_dir)
 
@@ -195,15 +185,9 @@ def validate_config(config, base_dir):
 
 
 def validate_mp3(mp3_path):
-    """
-    Validate MP3 file is readable and get duration
+    """Validate MP3 file is readable and get duration.
 
-    Returns:
-        Duration in milliseconds, or 0 if cannot be read
-
-    Note:
-        Returns 0 instead of raising exception to allow processing
-        of files that ffmpeg cannot decode properly
+    Returns 0 if file cannot be decoded (e.g., metadata issues).
     """
     try:
         audio = AudioSegment.from_mp3(mp3_path)
@@ -216,10 +200,5 @@ def validate_mp3(mp3_path):
 
 
 def get_mp3_duration(mp3_path):
-    """
-    Get MP3 duration in milliseconds
-
-    Returns:
-        Duration in ms, or 0 if file cannot be processed
-    """
+    """Get MP3 duration in milliseconds, or 0 if file cannot be processed."""
     return validate_mp3(mp3_path)

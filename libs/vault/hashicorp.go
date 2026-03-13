@@ -93,7 +93,6 @@ func (h *HashicorpHandler) Sign(
 		return "", 0, fmt.Errorf("signature not found in response")
 	}
 
-	// Parse
 	parts := strings.Split(signature, ":")
 	if len(parts) != 3 || parts[0] != VaultSignaturePrefix {
 		return "", 0, fmt.Errorf(ErrInvalidFormat)

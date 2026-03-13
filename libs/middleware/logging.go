@@ -53,7 +53,8 @@ func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 			}
 
 			defer func() {
-				if rec := recover(); rec != nil {
+				rec := recover()
+				if rec != nil {
 					duration := time.Since(start)
 					template, _ := mux.CurrentRoute(r).GetPathTemplate()
 					ctx := r.Context()
@@ -68,7 +69,6 @@ func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 						zap.String("request_id", requestID(ctx)),
 					}
 
-					// Conditionally add user_uuid if present in context
 					if uuid := userUUID(ctx); uuid != "" {
 						fields = append(fields, zap.String("user_uuid", uuid))
 					}
@@ -95,7 +95,6 @@ func LoggingMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 				zap.String("request_id", requestID(ctx)),
 			}
 
-			// Conditionally add user_uuid if present in context
 			if uuid := userUUID(ctx); uuid != "" {
 				fields = append(fields, zap.String("user_uuid", uuid))
 			}

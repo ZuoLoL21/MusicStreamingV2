@@ -12,7 +12,6 @@ type loggerKeyType struct{}
 
 var loggerKey = loggerKeyType{}
 
-// Logger creates a request-scoped logger with context fields pre-bound
 func Logger(baseLogger *zap.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +35,6 @@ func Logger(baseLogger *zap.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-// GetLogger retrieves the request-scoped logger from context
 func GetLogger(ctx context.Context) *zap.Logger {
 	if logger, ok := ctx.Value(loggerKey).(*zap.Logger); ok {
 		return logger
