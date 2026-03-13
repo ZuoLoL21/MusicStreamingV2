@@ -60,10 +60,9 @@ func (c *ProxyClient) ForwardWithServiceJWT(
 		return nil, http.StatusInternalServerError, nil, fmt.Errorf("build URL: %w", err)
 	}
 
-	// Create a copy of headers to avoid modifying the original
+	// Manage headers
 	headersCopy := make(http.Header)
 	for key, values := range headers {
-		// Skip the original Authorization header
 		if key == "Authorization" {
 			continue
 		}
@@ -71,8 +70,6 @@ func (c *ProxyClient) ForwardWithServiceJWT(
 			headersCopy.Add(key, value)
 		}
 	}
-
-	// Add service JWT as Authorization header
 	headersCopy.Set("Authorization", "Bearer "+serviceJWT)
 
 	return c.BaseClient.DoProxy(ctx, method, fullURL, body, headersCopy, requestID)

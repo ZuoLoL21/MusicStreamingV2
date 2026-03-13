@@ -122,7 +122,7 @@ POST /login
 **Response:**
 ```json
 {
-  "normal_token": "eyJhbGciOiJIUzI1NiIs...",
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
   "user_uuid": "123e4567-e89b-12d3-a456-426614174000"
 }
@@ -157,7 +157,7 @@ PUT /login
 **Response:**
 ```json
 {
-  "normal_token": "eyJhbGciOiJIUzI1NiIs...",
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
   "user_uuid": "123e4567-e89b-12d3-a456-426614174000"
 }
@@ -190,7 +190,7 @@ Authorization: Bearer <refresh-token>
 **Response:**
 ```json
 {
-  "normal_token": "eyJhbGciOiJIUzI1NiIs...",
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "user_uuid": "123e4567-e89b-12d3-a456-426614174000"
 }
 ```

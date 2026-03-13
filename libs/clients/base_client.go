@@ -96,16 +96,15 @@ func (b *BaseClient) DoProxy(ctx context.Context, method, url string, body io.Re
 		return nil, http.StatusInternalServerError, nil, fmt.Errorf("create request: %w", err)
 	}
 
-	// Copy headers from original request
+	// Headers
 	for key, values := range headers {
 		for _, value := range values {
 			req.Header.Add(key, value)
 		}
 	}
-
-	// Ensure request ID is set
 	req.Header.Set("X-Request-ID", requestID)
 
+	// Call
 	resp, err := b.HttpClient.Do(req)
 	if err != nil {
 		return nil, http.StatusBadGateway, nil, fmt.Errorf("request failed: %w", err)

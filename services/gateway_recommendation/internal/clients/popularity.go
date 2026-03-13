@@ -33,34 +33,38 @@ func (c *PopularityClient) GetThemePopularity(ctx context.Context, requestID str
 		zap.Int("limit", limit))
 
 	var themes []ThemePopularity
-	url := fmt.Sprintf("/popular/themes/all-time?limit=%d", limit)
+	path := "/popular/themes/all-time"
+	query := fmt.Sprintf("limit=%d", limit)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
+	headers := make(http.Header)
+	headers.Set("Content-Type", "application/json")
 
-	req.Header.Set("X-Request-ID", requestID)
-	req.Header.Set("Authorization", "Bearer "+serviceJWT)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.HttpClient.Do(req)
+	respBody, statusCode, _, err := c.ForwardWithServiceJWT(
+		ctx,
+		"GET",
+		path,
+		query,
+		nil,
+		headers,
+		serviceJWT,
+		requestID,
+	)
 	if err != nil {
 		c.Logger.Error("Theme popularity fetch failed",
 			zap.String("request_id", requestID),
 			zap.Error(err))
 		return nil, fmt.Errorf("fetch theme popularity: %w", err)
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if statusCode != http.StatusOK {
 		c.Logger.Error("Theme popularity fetch failed with non-200 status",
 			zap.String("request_id", requestID),
-			zap.Int("status_code", resp.StatusCode))
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+			zap.Int("status_code", statusCode),
+			zap.String("response", string(respBody)))
+		return nil, fmt.Errorf("unexpected status code: %d", statusCode)
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&themes); err != nil {
+	if err := json.Unmarshal(respBody, &themes); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
