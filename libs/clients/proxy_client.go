@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"time"
 
+	"libs/consts"
+
 	"go.uber.org/zap"
 )
 
@@ -54,7 +56,7 @@ func (c *ProxyClient) ForwardRequest(
 ) ([]byte, int, http.Header, error) {
 	fullURL, err := c.buildURL(path, query)
 	if err != nil {
-		return nil, http.StatusInternalServerError, nil, fmt.Errorf("build URL: %w", err)
+		return nil, http.StatusInternalServerError, nil, fmt.Errorf("%s: %w", consts.ErrBuildURL, err)
 	}
 
 	return c.BaseClient.DoProxy(ctx, method, fullURL, body, headers, requestID)
@@ -75,7 +77,7 @@ func (c *ProxyClient) ForwardWithServiceJWT(
 ) ([]byte, int, http.Header, error) {
 	fullURL, err := c.buildURL(path, query)
 	if err != nil {
-		return nil, http.StatusInternalServerError, nil, fmt.Errorf("build URL: %w", err)
+		return nil, http.StatusInternalServerError, nil, fmt.Errorf("%s: %w", consts.ErrBuildURL, err)
 	}
 
 	// Manage headers
@@ -100,7 +102,7 @@ func (c *ProxyClient) ForwardWithServiceJWT(
 func (c *ProxyClient) buildURL(path, query string) (string, error) {
 	u, err := url.Parse(c.baseURL)
 	if err != nil {
-		return "", fmt.Errorf("parse base URL: %w", err)
+		return "", fmt.Errorf("%s: %w", consts.ErrParseBaseURL, err)
 	}
 
 	u.Path = path

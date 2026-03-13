@@ -1,6 +1,9 @@
 package vault
 
-import "fmt"
+import (
+	"fmt"
+	"libs/consts"
+)
 
 // SigningMethodVault implements the jwt.SigningMethod interface for Vault-based signing.
 // It allows the golang-jwt library to use HashiCorp Vault Transit as a signing backend.
@@ -29,7 +32,7 @@ type SigningKey struct {
 func (h *SigningMethodVault) Sign(signingString string, key interface{}) ([]byte, error) {
 	data, ok := key.(*SigningKey)
 	if !ok {
-		return nil, fmt.Errorf(ErrInvalidKey)
+		return nil, fmt.Errorf(consts.ErrInvalidKey)
 	}
 
 	var previousVersion = data.Version
@@ -63,7 +66,7 @@ func (h *SigningMethodVault) Sign(signingString string, key interface{}) ([]byte
 func (h *SigningMethodVault) Verify(signingString string, sig []byte, key interface{}) error {
 	data, ok := key.(*SigningKey)
 	if !ok {
-		return fmt.Errorf(ErrInvalidKey)
+		return fmt.Errorf(consts.ErrInvalidKey)
 	}
 
 	return data.VaultHandler.Verify(nil, data.Version, data.ApplicationName, signingString, sig)

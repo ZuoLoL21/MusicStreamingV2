@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"libs/consts"
 	"net/http"
 	"strconv"
 	"strings"
@@ -65,20 +66,20 @@ func (h *HashicorpHandler) Sign(
 
 	payload := map[string]interface{}{
 		"input":                base64.StdEncoding.EncodeToString([]byte(signingString)),
-		"hash_algorithm":       VaultHashAlgorithm,
-		"marshaling_algorithm": VaultMarshalingAlg,
+		"hash_algorithm":       consts.VaultHashAlgorithm,
+		"marshaling_algorithm": consts.VaultMarshalingAlg,
 		"key_version":          keyVersion,
 	}
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to marshal request: %w", err)
+		return "", 0, fmt.Errorf("%s: %w", consts.ErrMarshalRequestFailed, err)
 	}
 
-	url := fmt.Sprintf("%s/v1/%s/sign/%s", h.VaultAddr, VaultMountPath, applicationName)
+	url := fmt.Sprintf("%s/v1/%s/sign/%s", h.VaultAddr, consts.VaultMountPath, applicationName)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonData))
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to create request: %w", err)
+		return "", 0, fmt.Errorf("%s: %w", consts.ErrCreateRequest, err)
 	}
 
 	req.Header.Set("X-Vault-Token", h.VaultToken)
@@ -86,13 +87,13 @@ func (h *HashicorpHandler) Sign(
 
 	resp, err := h.HTTPClient.Do(req)
 	if err != nil {
-		return "", 0, fmt.Errorf("HTTP request failed: %w", err)
+		return "", 0, fmt.Errorf("%s: %w", consts.ErrHTTPRequestFailed, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
-		return "", 0, fmt.Errorf("vault sign returned %d: %s", resp.StatusCode, string(body))
+		return "", 0, fmt.Errorf(consts.ErrVaultReturnedError, resp.StatusCode, string(body))
 	}
 
 	var result struct {
@@ -100,22 +101,22 @@ func (h *HashicorpHandler) Sign(
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", 0, fmt.Errorf("failed to decode response: %w", err)
+		return "", 0, fmt.Errorf("%s: %w", consts.ErrDecodeResponse, err)
 	}
 
-	signature, ok := result.Data[VaultSignatureKey].(string)
+	signature, ok := result.Data[consts.VaultSignatureKey].(string)
 	if !ok {
-		return "", 0, fmt.Errorf("signature not found in response")
+		return "", 0, fmt.Errorf(consts.ErrSignatureNotFound)
 	}
 
 	parts := strings.Split(signature, ":")
-	if len(parts) != 3 || parts[0] != VaultSignaturePrefix {
-		return "", 0, fmt.Errorf(ErrInvalidFormat)
+	if len(parts) != 3 || parts[0] != consts.VaultSignaturePrefix {
+		return "", 0, fmt.Errorf(consts.ErrInvalidFormat)
 	}
 
 	version, err := strconv.ParseInt(parts[1][1:], 10, 32)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to parse version: %w", err)
+		return "", 0, fmt.Errorf("%s: %w", consts.ErrParseVersionFailed, err)
 	}
 
 	return parts[2], int32(version), nil
@@ -144,24 +145,24 @@ func (h *HashicorpHandler) Verify(
 		defer cancel()
 	}
 
-	vaultSignature := fmt.Sprintf(VaultSignatureFormat, keyVersion, string(sig))
+	vaultSignature := fmt.Sprintf(consts.VaultSignatureFormat, keyVersion, string(sig))
 
 	payload := map[string]interface{}{
 		"input":                base64.StdEncoding.EncodeToString([]byte(signingString)),
 		"signature":            vaultSignature,
-		"hash_algorithm":       VaultHashAlgorithm,
-		"marshaling_algorithm": VaultMarshalingAlg,
+		"hash_algorithm":       consts.VaultHashAlgorithm,
+		"marshaling_algorithm": consts.VaultMarshalingAlg,
 	}
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("failed to marshal request: %w", err)
+		return fmt.Errorf("%s: %w", consts.ErrMarshalRequestFailed, err)
 	}
 
-	url := fmt.Sprintf("%s/v1/%s/verify/%s", h.VaultAddr, VaultMountPath, applicationName)
+	url := fmt.Sprintf("%s/v1/%s/verify/%s", h.VaultAddr, consts.VaultMountPath, applicationName)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonData))
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return fmt.Errorf("%s: %w", consts.ErrCreateRequest, err)
 	}
 
 	req.Header.Set("X-Vault-Token", h.VaultToken)
@@ -169,13 +170,13 @@ func (h *HashicorpHandler) Verify(
 
 	resp, err := h.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("HTTP request failed: %w", err)
+		return fmt.Errorf("%s: %w", consts.ErrHTTPRequestFailed, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("vault verify returned %d: %s", resp.StatusCode, string(body))
+		return fmt.Errorf(consts.ErrVaultReturnedError, resp.StatusCode, string(body))
 	}
 
 	var result struct {
@@ -183,16 +184,16 @@ func (h *HashicorpHandler) Verify(
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return fmt.Errorf("failed to decode response: %w", err)
+		return fmt.Errorf("%s: %w", consts.ErrDecodeResponse, err)
 	}
 
-	valid, ok := result.Data[VaultValidKey].(bool)
+	valid, ok := result.Data[consts.VaultValidKey].(bool)
 	if !ok {
-		return fmt.Errorf("valid field not found in response")
+		return fmt.Errorf(consts.ErrValidFieldNotFound)
 	}
 
 	if !valid {
-		return fmt.Errorf(ErrInvalidTransitKey)
+		return fmt.Errorf(consts.ErrInvalidTransitKey)
 	}
 
 	return nil

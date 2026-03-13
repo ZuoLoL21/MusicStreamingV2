@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"libs/consts"
 	"libs/di"
 	"libs/helpers"
@@ -58,7 +57,7 @@ func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 			uuid := helpers.GetUserUUIDFromContext(r.Context())
 			if uuid == "" {
 				h.logger.Error("user UUID not found in context")
-				h.returns.ReturnError(w, "internal server error: missing user context", http.StatusInternalServerError)
+				h.returns.ReturnError(w, consts.ErrMissingUserContext, http.StatusInternalServerError)
 				return
 			}
 
@@ -67,7 +66,7 @@ func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 				h.logger.Error("failed to generate service JWT",
 					zap.String("user_uuid", uuid),
 					zap.Error(err))
-				h.returns.ReturnError(w, "internal server error: failed to generate service token", http.StatusInternalServerError)
+				h.returns.ReturnError(w, consts.ErrFailedToGenerateToken, http.StatusInternalServerError)
 				return
 			}
 
@@ -79,16 +78,4 @@ func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
-}
-
-// ExtractServiceJWT extracts a service JWT from the context using a custom key.
-// The key parameter allows specifying a custom context key for extraction.
-// Returns the JWT string if found, or an error if not present in context.
-// This is useful for retrieving the service JWT set by GetServiceJWTMiddleware.
-func ExtractServiceJWT(ctx context.Context, key any) (string, error) {
-	jwt, ok := ctx.Value(key).(string)
-	if !ok || jwt == "" {
-		return "", fmt.Errorf("service JWT not found in context")
-	}
-	return jwt, nil
 }

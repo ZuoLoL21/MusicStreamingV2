@@ -79,12 +79,12 @@ func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 func (h *AuthHandler) parseToken(r *http.Request) (string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
-		return "", fmt.Errorf("missing authorization header")
+		return "", fmt.Errorf(consts.ErrMissingAuthHeader)
 	}
 
 	tokenParts := strings.Split(authHeader, " ")
 	if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
-		return "", fmt.Errorf("invalid authorization header")
+		return "", fmt.Errorf(consts.ErrInvalidAuthHeader)
 	}
 	return tokenParts[1], nil
 }
@@ -93,7 +93,7 @@ func (h *AuthHandler) parseToken(r *http.Request) (string, error) {
 // It uses the JWT handler to validate the token against the expected subject.
 func (h *AuthHandler) authenticate(token string, subject string) (string, error) {
 	if token == "" {
-		return "", fmt.Errorf("invalid jwt")
+		return "", fmt.Errorf(consts.ErrInvalidJWT)
 	}
 
 	uuid, err := h.jwtHandler.ValidateJwt(subject, token)
@@ -108,7 +108,7 @@ func (h *AuthHandler) authenticate(token string, subject string) (string, error)
 				zap.String("reason", "invalid_token"),
 				zap.Error(err))
 		}
-		return "", fmt.Errorf("invalid jwt: %v", err.Error())
+		return "", fmt.Errorf("%s: %v", consts.ErrInvalidJWT, err.Error())
 	}
 
 	h.logger.Info("authentication successful",

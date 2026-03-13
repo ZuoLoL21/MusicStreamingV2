@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"libs/consts"
 	"libs/helpers"
 	"net/http"
 
@@ -66,7 +67,7 @@ func ProxyWithServiceJWT(
 			zap.String("request_id", requestID),
 			zap.String("method", r.Method),
 			zap.String("path", r.URL.Path))
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		http.Error(w, consts.ErrUnauthorized, http.StatusUnauthorized)
 		return
 	}
 

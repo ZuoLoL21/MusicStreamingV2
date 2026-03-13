@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"libs/consts"
 	"net/http"
 	"time"
 
@@ -76,7 +77,7 @@ func readKeyVersionDirectHTTP(applicationName string, logger *zap.Logger, config
 		zap.String("key_name", applicationName),
 		zap.Int("attempts", maxRetries),
 		zap.Error(lastErr))
-	return 0, fmt.Errorf("failed after %d attempts: %w", maxRetries, lastErr)
+	return 0, fmt.Errorf("%s: %w", consts.ErrKeyVersionFetchFailed, lastErr)
 }
 
 // fetchKeyVersion makes a single HTTP request to read the Transit key version from Vault.
@@ -87,7 +88,7 @@ func fetchKeyVersion(applicationName string, logger *zap.Logger, config ClientCo
 	vaultToken := config.GetVaultToken()
 
 	if vaultAddr == "" || vaultToken == "" {
-		return 0, fmt.Errorf("vault address or token not configured")
+		return 0, fmt.Errorf(consts.ErrVaultNotConfigured)
 	}
 
 	url := fmt.Sprintf("%s/v1/transit/keys/%s", vaultAddr, applicationName)
@@ -97,7 +98,7 @@ func fetchKeyVersion(applicationName string, logger *zap.Logger, config ClientCo
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return 0, fmt.Errorf("failed to create request: %w", err)
+		return 0, fmt.Errorf("%s: %w", consts.ErrHTTPRequestFailed, err)
 	}
 
 	req.Header.Set("X-Vault-Token", vaultToken)
@@ -111,7 +112,7 @@ func fetchKeyVersion(applicationName string, logger *zap.Logger, config ClientCo
 
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
-		return 0, fmt.Errorf("vault returned %d: %s", resp.StatusCode, string(body))
+		return 0, fmt.Errorf(consts.ErrVaultReturnedError, resp.StatusCode, string(body))
 	}
 
 	var result struct {
@@ -121,11 +122,11 @@ func fetchKeyVersion(applicationName string, logger *zap.Logger, config ClientCo
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return 0, fmt.Errorf("failed to decode response: %w", err)
+		return 0, fmt.Errorf("%s: %w", consts.ErrDecodeResponse, err)
 	}
 
 	if result.Data.LatestVersion == 0 {
-		return 0, fmt.Errorf("latest_version is 0 or missing")
+		return 0, fmt.Errorf(consts.ErrLatestVersionMissing)
 	}
 
 	return result.Data.LatestVersion, nil

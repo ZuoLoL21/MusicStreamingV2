@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"go.uber.org/zap"
+	"libs/consts"
 )
 
 // BaseClient provides common HTTP functionality for service clients.
@@ -31,14 +32,14 @@ func (b *BaseClient) DoJSON(ctx context.Context, method, url string, reqBody, re
 	if reqBody != nil {
 		jsonBody, err := json.Marshal(reqBody)
 		if err != nil {
-			return fmt.Errorf("marshal request: %w", err)
+			return fmt.Errorf("%s: %w", consts.ErrMarshalRequest, err)
 		}
 		bodyReader = bytes.NewBuffer(jsonBody)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
 	if err != nil {
-		return fmt.Errorf("create request: %w", err)
+		return fmt.Errorf("%s: %w", consts.ErrCreateRequest, err)
 	}
 
 	if reqBody != nil {
@@ -48,7 +49,7 @@ func (b *BaseClient) DoJSON(ctx context.Context, method, url string, reqBody, re
 
 	resp, err := b.HttpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
+		return fmt.Errorf("%s: %w", consts.ErrRequestFailed, err)
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
@@ -56,7 +57,7 @@ func (b *BaseClient) DoJSON(ctx context.Context, method, url string, reqBody, re
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("read response: %w", err)
+		return fmt.Errorf("%s: %w", consts.ErrReadResponse, err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -65,7 +66,7 @@ func (b *BaseClient) DoJSON(ctx context.Context, method, url string, reqBody, re
 
 	if respBody != nil {
 		if err := json.Unmarshal(body, respBody); err != nil {
-			return fmt.Errorf("unmarshal response: %w", err)
+			return fmt.Errorf("%s: %w", consts.ErrUnmarshalResponse, err)
 		}
 	}
 
@@ -80,14 +81,14 @@ func (b *BaseClient) DoJSON(ctx context.Context, method, url string, reqBody, re
 func (b *BaseClient) DoRaw(ctx context.Context, method, url string, requestID string) ([]byte, int, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("create request: %w", err)
+		return nil, http.StatusInternalServerError, fmt.Errorf("%s: %w", consts.ErrCreateRequest, err)
 	}
 
 	req.Header.Set("X-Request-ID", requestID)
 
 	resp, err := b.HttpClient.Do(req)
 	if err != nil {
-		return nil, http.StatusBadGateway, fmt.Errorf("request failed: %w", err)
+		return nil, http.StatusBadGateway, fmt.Errorf("%s: %w", consts.ErrRequestFailed, err)
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
@@ -95,7 +96,7 @@ func (b *BaseClient) DoRaw(ctx context.Context, method, url string, requestID st
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("read response: %w", err)
+		return nil, http.StatusInternalServerError, fmt.Errorf("%s: %w", consts.ErrReadResponse, err)
 	}
 
 	return body, resp.StatusCode, nil
@@ -109,7 +110,7 @@ func (b *BaseClient) DoRaw(ctx context.Context, method, url string, requestID st
 func (b *BaseClient) DoProxy(ctx context.Context, method, url string, body io.Reader, headers http.Header, requestID string) ([]byte, int, http.Header, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, nil, fmt.Errorf("create request: %w", err)
+		return nil, http.StatusInternalServerError, nil, fmt.Errorf("%s: %w", consts.ErrCreateRequest, err)
 	}
 
 	// Headers
@@ -123,7 +124,7 @@ func (b *BaseClient) DoProxy(ctx context.Context, method, url string, body io.Re
 	// Call
 	resp, err := b.HttpClient.Do(req)
 	if err != nil {
-		return nil, http.StatusBadGateway, nil, fmt.Errorf("request failed: %w", err)
+		return nil, http.StatusBadGateway, nil, fmt.Errorf("%s: %w", consts.ErrRequestFailed, err)
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
@@ -131,7 +132,7 @@ func (b *BaseClient) DoProxy(ctx context.Context, method, url string, body io.Re
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, http.StatusInternalServerError, nil, fmt.Errorf("read response: %w", err)
+		return nil, http.StatusInternalServerError, nil, fmt.Errorf("%s: %w", consts.ErrReadResponse, err)
 	}
 
 	return respBody, resp.StatusCode, resp.Header, nil
