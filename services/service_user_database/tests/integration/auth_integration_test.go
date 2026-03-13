@@ -25,7 +25,8 @@ func TestIntegration_Auth_JWTGeneration_Service(t *testing.T) {
 	testUUID := "550e8400-e29b-41d4-a716-446655440000"
 
 	// Generate service JWT
-	serviceJWT := jwtHandler.GenerateJwt("service", testUUID, 2*time.Minute)
+	serviceJWT, err := jwtHandler.GenerateJwt("service", testUUID, 2*time.Minute)
+	require.NoError(t, err)
 	require.NotEmpty(t, serviceJWT, "service JWT should be generated")
 
 	// Validate the JWT
@@ -42,7 +43,8 @@ func TestIntegration_Auth_JWTValidation_ExpiredToken(t *testing.T) {
 	testUUID := "550e8400-e29b-41d4-a716-446655440000"
 
 	// Generate JWT with very short expiration
-	serviceJWT := jwtHandler.GenerateJwt("service", testUUID, 1*time.Millisecond)
+	serviceJWT, err := jwtHandler.GenerateJwt("service", testUUID, 1*time.Millisecond)
+	require.NoError(t, err)
 	require.NotEmpty(t, serviceJWT)
 
 	// Wait for token to expire
@@ -61,7 +63,8 @@ func TestIntegration_Auth_JWTValidation_WrongSubject(t *testing.T) {
 	testUUID := "550e8400-e29b-41d4-a716-446655440000"
 
 	// Generate JWT with "service" subject
-	serviceJWT := jwtHandler.GenerateJwt("service", testUUID, 2*time.Minute)
+	serviceJWT, err := jwtHandler.GenerateJwt("service", testUUID, 2*time.Minute)
+	require.NoError(t, err)
 	require.NotEmpty(t, serviceJWT)
 
 	// Attempt to validate with wrong subject (e.g., "normal")
@@ -100,7 +103,8 @@ func TestIntegration_Auth_UserLoginFlow(t *testing.T) {
 
 	// Generate user JWT (normally done after password verification)
 	jwtHandler := di.GetJWTHandler(logger, config, "gateway-api")
-	userJWT := jwtHandler.GenerateJwt("normal", builders.UUIDToString(user.Uuid), 10*time.Minute)
+	userJWT, err := jwtHandler.GenerateJwt("normal", builders.UUIDToString(user.Uuid), 10*time.Minute)
+	require.NoError(t, err)
 	require.NotEmpty(t, userJWT)
 
 	// Validate user JWT
@@ -110,7 +114,8 @@ func TestIntegration_Auth_UserLoginFlow(t *testing.T) {
 
 	// Simulate gateway transforming user JWT to service JWT
 	serviceJWTHandler := di.GetJWTHandler(logger, config, "service-user-database")
-	serviceJWT := serviceJWTHandler.GenerateJwt("service", extractedUUID, 2*time.Minute)
+	serviceJWT, err := serviceJWTHandler.GenerateJwt("service", extractedUUID, 2*time.Minute)
+	require.NoError(t, err)
 	require.NotEmpty(t, serviceJWT)
 
 	// Validate service JWT at backend
@@ -129,7 +134,8 @@ func TestIntegration_Auth_MultipleApplications(t *testing.T) {
 	backendHandler := di.GetJWTHandler(logger, config, "service-user-database")
 
 	// Generate JWT from gateway
-	gatewayJWT := gatewayHandler.GenerateJwt("normal", testUUID, 10*time.Minute)
+	gatewayJWT, err := gatewayHandler.GenerateJwt("normal", testUUID, 10*time.Minute)
+	require.NoError(t, err)
 	require.NotEmpty(t, gatewayJWT)
 
 	// Validate with correct application
@@ -138,7 +144,8 @@ func TestIntegration_Auth_MultipleApplications(t *testing.T) {
 	assert.Equal(t, testUUID, extractedUUID)
 
 	// Generate service JWT from backend
-	backendJWT := backendHandler.GenerateJwt("service", testUUID, 2*time.Minute)
+	backendJWT, err := backendHandler.GenerateJwt("service", testUUID, 2*time.Minute)
+	require.NoError(t, err)
 	require.NotEmpty(t, backendJWT)
 
 	// Validate with correct application

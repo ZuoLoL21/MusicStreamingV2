@@ -15,13 +15,11 @@ type MyCustomClaims struct {
 	jwt.RegisteredClaims
 }
 
-// JWTConfig combines the required configuration interfaces for JWT management
 type JWTConfig interface {
 	vault.HashicorpConfig
 	vault.ClientConfig
 }
 
-// GetJWTHandler initializes and returns a fully configured JWT handler using Vault Transit
 func GetJWTHandler(logger *zap.Logger, config JWTConfig, applicationName string) *JWTHandler {
 	if err := vault.InitializeKeyVersion(applicationName, logger, config); err != nil {
 		logger.Fatal("failed to initialize key version",
@@ -56,7 +54,7 @@ func NewJWTManager() *JWTHandler {
 	return &JWTHandler{}
 }
 
-func (h *JWTHandler) GenerateJwt(subject string, uuid string, duration time.Duration) string {
+func (h *JWTHandler) GenerateJwt(subject, uuid string, duration time.Duration) (string, error) {
 	claims := MyCustomClaims{
 		Uuid: uuid,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -65,26 +63,25 @@ func (h *JWTHandler) GenerateJwt(subject string, uuid string, duration time.Dura
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 		},
 	}
-	t := jwt.NewWithClaims(
+	token := jwt.NewWithClaims(
 		jwt.GetSigningMethod(vault.HeaderAlgorithm),
 		claims,
 	)
 
-	kid := vault.GetVersion()
-	t.Header[vault.HeaderKeyID] = kid
-	t.Header[vault.HeaderAppName] = h.ApplicationName
+	keyID := vault.GetVersion()
+	token.Header[vault.HeaderKeyID] = keyID
+	token.Header[vault.HeaderAppName] = h.ApplicationName
 
-	key := vault.SigningKey{
+	signingKey := vault.SigningKey{
 		VaultHandler:    h.VaultHandler,
 		ApplicationName: h.ApplicationName,
-		Version:         kid,
+		Version:         keyID,
 	}
-	s, err := t.SignedString(&key)
-
+	tokenString, err := token.SignedString(&signingKey)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	return s
+	return tokenString, nil
 }
 
 func (h *JWTHandler) ValidateJwt(

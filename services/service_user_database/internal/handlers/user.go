@@ -52,22 +52,30 @@ type tokenPair struct {
 	UserUUID     string `json:"user_uuid"`
 }
 
-func (h *UserHandler) issueTokenPair(uuidStr string) tokenPair {
-	access := h.jwtHandler.GenerateJwt(
+func (h *UserHandler) issueTokenPair(uuidStr string) (tokenPair, error) {
+	access, err := h.jwtHandler.GenerateJwt(
 		libsconsts.JWTSubjectNormal,
 		uuidStr,
 		h.config.JWTExpirationNormal,
 	)
-	refresh := h.jwtHandler.GenerateJwt(
+	if err != nil {
+		return tokenPair{}, err
+	}
+
+	refresh, err := h.jwtHandler.GenerateJwt(
 		libsconsts.JWTSubjectRefresh,
 		uuidStr,
 		h.config.JWTExpirationRefresh,
 	)
+	if err != nil {
+		return tokenPair{}, err
+	}
+
 	return tokenPair{
 		AccessToken:  access,
 		RefreshToken: refresh,
 		UserUUID:     uuidStr,
-	}
+	}, nil
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -170,7 +178,13 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	go h.syncUserDimToClickHouse(createdUUID, country, time.Now())
 
 	uuidStr := uuid.UUID(createdUUID.Bytes).String()
-	h.returns.ReturnJSON(w, h.issueTokenPair(uuidStr), http.StatusCreated)
+	tokens, err := h.issueTokenPair(uuidStr)
+	if err != nil {
+		h.logger.Error("failed to generate tokens", zap.Error(err))
+		h.returns.ReturnError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	h.returns.ReturnJSON(w, tokens, http.StatusCreated)
 }
 
 type loginRequest struct {
@@ -202,7 +216,12 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	uuidStr := uuid.UUID(user.Uuid.Bytes).String()
-	tokens := h.issueTokenPair(uuidStr)
+	tokens, err := h.issueTokenPair(uuidStr)
+	if err != nil {
+		logger.Error("failed to generate tokens", zap.Error(err))
+		h.returns.ReturnError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 	logger.Info("user logged in successfully",
 		zap.String("user_uuid", uuidStr))
 	h.logger.Info("token pair issued",
@@ -218,11 +237,16 @@ func (h *UserHandler) Renew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	access := h.jwtHandler.GenerateJwt(
+	access, err := h.jwtHandler.GenerateJwt(
 		libsconsts.JWTSubjectNormal,
 		uuidStr,
 		h.config.JWTExpirationNormal,
 	)
+	if err != nil {
+		h.logger.Error("failed to generate access token", zap.Error(err))
+		h.returns.ReturnError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	h.logger.Info("access token renewed",
 		zap.String("user_uuid", uuidStr))
@@ -468,11 +492,15 @@ func (h *UserHandler) syncUserDimToClickHouse(userUUID pgtype.UUID, country stri
 
 	req.Header.Set("Content-Type", "application/json")
 
-	serviceJWT := h.jwtHandler.GenerateJwt(
+	serviceJWT, err := h.jwtHandler.GenerateJwt(
 		libsconsts.JWTSubjectService,
 		userUUIDStr,
 		h.config.JWTExpirationService,
 	)
+	if err != nil {
+		h.logger.Error("failed to generate service JWT", zap.Error(err))
+		return
+	}
 	req.Header.Set("Authorization", "Bearer "+serviceJWT)
 
 	resp, err := h.httpClient.Do(req)

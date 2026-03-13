@@ -240,11 +240,15 @@ func (h *TagsHandler) syncThemeToClickHouse(musicUUID pgtype.UUID, theme string)
 
 	req.Header.Set("Content-Type", "application/json")
 
-	serviceJWT := h.jwtHandler.GenerateJwt(
+	serviceJWT, err := h.jwtHandler.GenerateJwt(
 		libsconsts.JWTSubjectService,
 		"system",
 		2*time.Minute,
 	)
+	if err != nil {
+		h.logger.Error("failed to generate service JWT", zap.Error(err))
+		return
+	}
 	req.Header.Set("Authorization", "Bearer "+serviceJWT)
 
 	resp, err := h.httpClient.Do(req)
