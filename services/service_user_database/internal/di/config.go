@@ -148,11 +148,6 @@ func LoadConfig(logger *zap.Logger) *Config {
 	}
 }
 
-// GetJWTTimeout implements HashicorpConfig
-func (c *Config) GetJWTTimeout() time.Duration {
-	return c.JWTTimeout
-}
-
 // GetVaultAddr implements VaultConfig
 func (c *Config) GetVaultAddr() string {
 	return c.VaultAddr

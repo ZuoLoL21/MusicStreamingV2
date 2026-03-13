@@ -15,11 +15,10 @@ import (
 )
 
 // HashicorpConfig is the interface that services must implement to use HashicorpHandler.
-// It requires methods to get the Vault address, token, and JWT timeout duration.
+// It requires methods to get the Vault address and token.
 type HashicorpConfig interface {
 	GetVaultAddr() string
 	GetVaultToken() string
-	GetJWTTimeout() time.Duration
 }
 
 // HashicorpHandler handles communication with HashiCorp Vault for JWT signing operations.
@@ -32,13 +31,13 @@ type HashicorpHandler struct {
 }
 
 // NewHashicorpHandler creates a new HashicorpHandler with the given configuration.
-// The handler is configured with the Vault address, token, and timeout for JWT operations.
+// The handler is configured with the Vault address and token.
 // It uses a default HTTP client with a 30-second timeout.
 func NewHashicorpHandler(config HashicorpConfig) *HashicorpHandler {
 	return &HashicorpHandler{
 		VaultAddr:  config.GetVaultAddr(),
 		VaultToken: config.GetVaultToken(),
-		JWTTimeout: config.GetJWTTimeout(),
+		JWTTimeout: consts.JWTTimeoutVault,
 		HTTPClient: &http.Client{Timeout: 30 * time.Second},
 	}
 }

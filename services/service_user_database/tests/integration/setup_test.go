@@ -195,9 +195,6 @@ type testVaultConfig struct {
 func (c *testVaultConfig) GetVaultAddr() string        { return c.vaultAddr }
 func (c *testVaultConfig) GetVaultToken() string       { return c.vaultToken }
 func (c *testVaultConfig) GetVaultTransitPath() string { return "transit" }
-func (c *testVaultConfig) GetJWTTimeout() time.Duration {
-	return 5 * time.Second
-}
 
 // NewTestVaultConfig creates a test vault configuration
 func NewTestVaultConfig(t *testing.T) *testVaultConfig {

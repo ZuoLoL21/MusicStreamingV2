@@ -32,3 +32,8 @@ const (
 	HeaderAppName   = "app_name"
 	HeaderAlgorithm = "VaultSigningAlgorithm"
 )
+
+// Vault Operation Timeouts - timeouts for Vault signing/verification operations
+const (
+	JWTTimeoutVault = 30 * time.Second // Timeout for Vault Transit operations
+)
