@@ -13,13 +13,16 @@ import (
 	"time"
 )
 
-// HashicorpConfig is the interface that services must implement to use HashicorpHandler
+// HashicorpConfig is the interface that services must implement to use HashicorpHandler.
+// It requires methods to get the Vault address, token, and JWT timeout duration.
 type HashicorpConfig interface {
 	GetVaultAddr() string
 	GetVaultToken() string
 	GetJWTTimeout() time.Duration
 }
 
+// HashicorpHandler handles communication with HashiCorp Vault for JWT signing operations.
+// It provides methods to sign and verify data using Vault's Transit secrets engine.
 type HashicorpHandler struct {
 	VaultAddr  string
 	VaultToken string
@@ -27,6 +30,9 @@ type HashicorpHandler struct {
 	HTTPClient *http.Client
 }
 
+// NewHashicorpHandler creates a new HashicorpHandler with the given configuration.
+// The handler is configured with the Vault address, token, and timeout for JWT operations.
+// It uses a default HTTP client with a 30-second timeout.
 func NewHashicorpHandler(config HashicorpConfig) *HashicorpHandler {
 	return &HashicorpHandler{
 		VaultAddr:  config.GetVaultAddr(),
@@ -36,6 +42,15 @@ func NewHashicorpHandler(config HashicorpConfig) *HashicorpHandler {
 	}
 }
 
+// Sign signs data using HashiCorp Vault's Transit secrets engine.
+//
+// Parameters:
+//   - ctx: Context for the request (if nil, a default timeout context is created)
+//   - keyVersion: The version of the Transit key to use for signing
+//   - applicationName: The name of the Transit key in Vault
+//   - signingString: The data to sign
+//
+// Returns the signature as a string, the key version used, and any error that occurred.
 func (h *HashicorpHandler) Sign(
 	ctx context.Context,
 	keyVersion int32,
@@ -106,6 +121,16 @@ func (h *HashicorpHandler) Sign(
 	return parts[2], int32(version), nil
 }
 
+// Verify verifies a signature using HashiCorp Vault's Transit secrets engine.
+//
+// Parameters:
+//   - ctx: Context for the request (if nil, a default timeout context is created)
+//   - keyVersion: The version of the Transit key to use for verification
+//   - applicationName: The name of the Transit key in Vault
+//   - signingString: The original data that was signed
+//   - sig: The signature to verify
+//
+// Returns nil if verification succeeds, or an error if verification fails.
 func (h *HashicorpHandler) Verify(
 	ctx context.Context,
 	keyVersion int32,

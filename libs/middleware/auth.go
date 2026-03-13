@@ -12,6 +12,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// AuthHandler handles JWT-based authentication for HTTP requests.
+//
+// It validates Bearer tokens from the Authorization header and extracts
+// the user UUID to be stored in the request context.
 type AuthHandler struct {
 	logger     *zap.Logger
 	jwtHandler *di.JWTHandler
@@ -19,6 +23,15 @@ type AuthHandler struct {
 	subject    string
 }
 
+// NewAuthHandler creates a new AuthHandler with the given dependencies.
+//
+// Parameters:
+//   - logger: Zap logger for logging authentication events
+//   - jwtHandler: JWT handler for token validation
+//   - returns: ReturnManager for writing responses
+//   - subject: Expected JWT subject (e.g., "normal" for user tokens)
+//
+// Returns a configured AuthHandler ready for middleware creation.
 func NewAuthHandler(
 	logger *zap.Logger,
 	jwtHandler *di.JWTHandler,
@@ -33,6 +46,11 @@ func NewAuthHandler(
 	}
 }
 
+// GetAuthMiddleware returns a Gorilla Mux middleware function that performs JWT authentication.
+// The middleware extracts the Bearer token from the Authorization header, validates it
+// using the JWT handler, and adds the user UUID to the request context on success.
+//
+// Returns 401 Unauthorized if the token is missing, invalid, or has an unexpected subject.
 func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +75,7 @@ func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 	}
 }
 
+// parseToken extracts the JWT token from the Authorization header.
 func (h *AuthHandler) parseToken(r *http.Request) (string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
@@ -70,6 +89,8 @@ func (h *AuthHandler) parseToken(r *http.Request) (string, error) {
 	return tokenParts[1], nil
 }
 
+// authenticate validates the JWT token and returns the user's UUID if valid.
+// It uses the JWT handler to validate the token against the expected subject.
 func (h *AuthHandler) authenticate(token string, subject string) (string, error) {
 	if token == "" {
 		return "", fmt.Errorf("invalid jwt")

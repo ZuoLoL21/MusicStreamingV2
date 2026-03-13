@@ -11,13 +11,21 @@ import (
 	"go.uber.org/zap"
 )
 
-// BaseClient provides common HTTP functionality for service clients
+// BaseClient provides common HTTP functionality for service clients.
+//
+// It wraps an http.Client and a zap.Logger for making HTTP requests
+// with built-in error handling and JSON marshaling support.
 type BaseClient struct {
 	HttpClient *http.Client
 	Logger     *zap.Logger
 }
 
-// DoJSON performs an HTTP request with JSON marshaling/unmarshaling
+// DoJSON performs an HTTP request with JSON marshaling/unmarshaling.
+//
+// It takes the HTTP method, URL, optional request body (will be JSON-marshaled),
+// a response body (will be JSON-unmarshaled into), and a request ID for tracking.
+//
+// Returns an error if the request fails, status code is not 200, or JSON marshaling fails.
 func (b *BaseClient) DoJSON(ctx context.Context, method, url string, reqBody, respBody interface{}, requestID string) error {
 	var bodyReader io.Reader
 	if reqBody != nil {
@@ -64,7 +72,11 @@ func (b *BaseClient) DoJSON(ctx context.Context, method, url string, reqBody, re
 	return nil
 }
 
-// DoRaw performs an HTTP request and returns raw response
+// DoRaw performs an HTTP request and returns raw response bytes.
+//
+// Unlike DoJSON, this method does not perform any JSON marshaling/unmarshaling.
+// It returns the response body as []byte along with the HTTP status code.
+// Useful for endpoints that return non-JSON responses or when raw body handling is needed.
 func (b *BaseClient) DoRaw(ctx context.Context, method, url string, requestID string) ([]byte, int, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
@@ -89,7 +101,11 @@ func (b *BaseClient) DoRaw(ctx context.Context, method, url string, requestID st
 	return body, resp.StatusCode, nil
 }
 
-// DoProxy forwards a raw HTTP request with body and headers, returning raw response with headers
+// DoProxy forwards an HTTP request with full control over body and headers.
+//
+// This is the most flexible method - it accepts a body reader and allows passing
+// through custom headers. It returns the raw response body, status code, and response headers.
+// Used primarily for proxying requests where headers need to be preserved or modified.
 func (b *BaseClient) DoProxy(ctx context.Context, method, url string, body io.Reader, headers http.Header, requestID string) ([]byte, int, http.Header, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {

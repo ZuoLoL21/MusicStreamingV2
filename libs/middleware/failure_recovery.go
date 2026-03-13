@@ -11,22 +11,34 @@ import (
 	"go.uber.org/zap"
 )
 
+// responseWriter is a wrapper around http.ResponseWriter that tracks
+// the HTTP status code and response body bytes written.
+//
+// Used by failure_recovery to be able to extract informatino that we would otherwise not be able to print
 type responseWriter struct {
 	http.ResponseWriter
 	status int
 	bytes  int
 }
 
+// Write intercepts the Write method to track the number of bytes written.
+// It delegates to the underlying ResponseWriter and counts bytes.
 func (rw *responseWriter) Write(b []byte) (int, error) {
 	n, err := rw.ResponseWriter.Write(b)
 	rw.bytes += n
 	return n, err
 }
+
+// WriteHeader intercepts WriteHeader to capture the status code.
+// It stores the status code and then forwards to the underlying ResponseWriter.
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.status = code
 	rw.ResponseWriter.WriteHeader(code)
 }
 
+// getIP extracts the client IP address from the request.
+// It first checks the X-Forwarded-For header and returns the first IP if present.
+// Otherwise, it returns the RemoteAddr from the request.
 func getIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		return strings.Split(xff, ",")[0]
@@ -34,10 +46,14 @@ func getIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
+// requestID extracts the request ID from the context.
+// It uses the helpers package to retrieve the request ID set by request ID middleware.
 func requestID(ctx context.Context) string {
 	return helpers.GetRequestIDFromContext(ctx)
 }
 
+// userUUID extracts the user UUID from the context.
+// It uses the helpers package to retrieve the user UUID set by auth middleware.
 func userUUID(ctx context.Context) string {
 	return helpers.GetUserUUIDFromContext(ctx)
 }

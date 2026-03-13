@@ -10,7 +10,12 @@ import (
 	"go.uber.org/zap"
 )
 
-// CopyHeaders copies HTTP headers, optionally excluding Authorization
+// CopyHeaders copies HTTP headers from the source to a new header map.
+//
+// If excludeAuth is true, the "Authorization" header is excluded from the copy.
+//
+// This is useful for forwarding headers to backend services while optionally
+// removing authentication headers.
 func CopyHeaders(headers http.Header, excludeAuth bool) http.Header {
 	copied := make(http.Header)
 	for key, values := range headers {
@@ -24,7 +29,12 @@ func CopyHeaders(headers http.Header, excludeAuth bool) http.Header {
 	return copied
 }
 
-// WriteProxyResponse writes proxy response with headers and body
+// WriteProxyResponse writes the proxy response to the client.
+//
+// It copies all headers from the backend response to the client response,
+// sets the status code, and writes the response body.
+//
+// This is the final step in proxying a response back to the original client.
 func WriteProxyResponse(w http.ResponseWriter, body []byte, statusCode int, headers http.Header) {
 	for key, values := range headers {
 		for _, value := range values {
@@ -35,8 +45,13 @@ func WriteProxyResponse(w http.ResponseWriter, body []byte, statusCode int, head
 	_, _ = w.Write(body)
 }
 
-// ProxyWithServiceJWT handles standard authenticated proxy pattern
-// Extracts context values → validates JWT → reads body → forwards → writes response
+// ProxyWithServiceJWT handles authenticated proxy requests using service JWT.
+//
+// This handler extracts the service JWT from the request context, validates it exists,
+// reads the request body, forwards the request with the JWT to the backend service,
+// and writes the response back to the client.
+//
+// It returns 401 Unauthorized if the service JWT is missing from context.
 func ProxyWithServiceJWT(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -92,8 +107,14 @@ func ProxyWithServiceJWT(
 	WriteProxyResponse(w, respBody, statusCode, respHeaders)
 }
 
-// ProxyPublic handles truly public routes with no JWT processing
-// Forwards all headers as-is → reads body → forwards → writes response
+// ProxyPublic handles public proxy requests with no JWT processing.
+//
+// This handler forwards all headers (including Authorization) to the backend service
+// as-is.
+//
+// It reads the request body, forwards it to the backend, and writes
+// the response back to the client. Use this for routes that should not require
+// authentication or should pass through the original credentials.
 func ProxyPublic(
 	w http.ResponseWriter,
 	r *http.Request,

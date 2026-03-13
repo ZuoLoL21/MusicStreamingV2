@@ -11,13 +11,20 @@ import (
 	"go.uber.org/zap"
 )
 
-// ClientConfig is the interface that services must implement to use NewVaultClient
+// ClientConfig is the interface that services must implement to use vault functionality.
+// It requires methods to get the Vault address and token from configuration.
 type ClientConfig interface {
 	GetVaultAddr() string
 	GetVaultToken() string
 }
 
-// InitializeKeyVersion fetches the latest key version from Vault Transit and initializes the global version counter
+// InitializeKeyVersion fetches the latest key version from Vault Transit and initializes the global version counter.
+//
+// This should be called during application startup before any JWT operations.
+// It queries Vault for the latest version of the Transit key for the given application name.
+// The function retries up to 15 times with 3-second delays if Vault is temporarily unavailable.
+//
+// Returns an error if the key version cannot be determined after all retries.
 func InitializeKeyVersion(applicationName string, logger *zap.Logger, config ClientConfig) error {
 	latestVersion, err := readKeyVersionDirectHTTP(applicationName, logger, config)
 	if err != nil {
@@ -33,7 +40,10 @@ func InitializeKeyVersion(applicationName string, logger *zap.Logger, config Cli
 	return nil
 }
 
-// readKeyVersionDirectHTTP reads the Transit key version using raw HTTP (bypassing buggy vault-client-go)
+// readKeyVersionDirectHTTP reads the Transit key version using raw HTTP.
+// This function retries up to 15 times with 3-second delays if Vault is unavailable.
+//
+// Returns the latest key version or an error if all retries fail.
 func readKeyVersionDirectHTTP(applicationName string, logger *zap.Logger, config ClientConfig) (int32, error) {
 	maxRetries := 15
 	retryDelay := 3 * time.Second
@@ -69,7 +79,9 @@ func readKeyVersionDirectHTTP(applicationName string, logger *zap.Logger, config
 	return 0, fmt.Errorf("failed after %d attempts: %w", maxRetries, lastErr)
 }
 
-// fetchKeyVersion makes a single HTTP request to read the Transit key
+// fetchKeyVersion makes a single HTTP request to read the Transit key version from Vault.
+// It queries the Vault Transit secrets engine at /v1/transit/keys/{applicationName}.
+// Returns the latest version of the key or an error if the request fails.
 func fetchKeyVersion(applicationName string, logger *zap.Logger, config ClientConfig) (int32, error) {
 	vaultAddr := config.GetVaultAddr()
 	vaultToken := config.GetVaultToken()
