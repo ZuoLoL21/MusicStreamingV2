@@ -232,7 +232,7 @@ func (h *TagsHandler) syncThemeToClickHouse(musicUUID pgtype.UUID, theme string)
 		return
 	}
 
-	req, err := http.NewRequest("POST", h.config.EventIngestionServiceURL+"/api/v1/events/theme", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", h.config.EventIngestionServiceURL+"/events/theme", bytes.NewBuffer(jsonData))
 	if err != nil {
 		h.logger.Error("failed to create theme request", zap.Error(err))
 		return

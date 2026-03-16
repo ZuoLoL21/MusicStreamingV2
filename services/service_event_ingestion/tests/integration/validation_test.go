@@ -125,10 +125,10 @@ func TestIntegration_Validation_ListenEvent(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := createJSONRequest(t, "POST", "/api/v1/events/listen", tc.requestBody)
+			req := createJSONRequest(t, "POST", "/events/listen", tc.requestBody)
 
 			router := mux.NewRouter()
-			router.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
+			router.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -188,10 +188,10 @@ func TestIntegration_Validation_LikeEvent(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := createJSONRequest(t, "POST", "/api/v1/events/like", tc.requestBody)
+			req := createJSONRequest(t, "POST", "/events/like", tc.requestBody)
 
 			router := mux.NewRouter()
-			router.HandleFunc("/api/v1/events/like", handler.IngestLikeEvent).Methods("POST")
+			router.HandleFunc("/events/like", handler.IngestLikeEvent).Methods("POST")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -257,10 +257,10 @@ func TestIntegration_Validation_ThemeEvent(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := createJSONRequest(t, "POST", "/api/v1/events/theme", tc.requestBody)
+			req := createJSONRequest(t, "POST", "/events/theme", tc.requestBody)
 
 			router := mux.NewRouter()
-			router.HandleFunc("/api/v1/events/theme", handler.IngestThemeEvent).Methods("POST")
+			router.HandleFunc("/events/theme", handler.IngestThemeEvent).Methods("POST")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -371,10 +371,10 @@ func TestIntegration_Validation_UserDimEvent(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := createJSONRequest(t, "POST", "/api/v1/events/user", tc.requestBody)
+			req := createJSONRequest(t, "POST", "/events/user", tc.requestBody)
 
 			router := mux.NewRouter()
-			router.HandleFunc("/api/v1/events/user", handler.IngestUserDimEvent).Methods("POST")
+			router.HandleFunc("/events/user", handler.IngestUserDimEvent).Methods("POST")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -489,10 +489,10 @@ func TestIntegration_Validation_ListenEventEdgeCases(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := createJSONRequest(t, "POST", "/api/v1/events/listen", tc.requestBody)
+			req := createJSONRequest(t, "POST", "/events/listen", tc.requestBody)
 
 			router := mux.NewRouter()
-			router.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
+			router.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -570,10 +570,10 @@ func TestIntegration_Validation_ThemeEventEdgeCases(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := createJSONRequest(t, "POST", "/api/v1/events/theme", tc.requestBody)
+			req := createJSONRequest(t, "POST", "/events/theme", tc.requestBody)
 
 			router := mux.NewRouter()
-			router.HandleFunc("/api/v1/events/theme", handler.IngestThemeEvent).Methods("POST")
+			router.HandleFunc("/events/theme", handler.IngestThemeEvent).Methods("POST")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -646,10 +646,10 @@ func TestIntegration_Validation_UserDimEventEdgeCases(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := createJSONRequest(t, "POST", "/api/v1/events/user", tc.requestBody)
+			req := createJSONRequest(t, "POST", "/events/user", tc.requestBody)
 
 			router := mux.NewRouter()
-			router.HandleFunc("/api/v1/events/user", handler.IngestUserDimEvent).Methods("POST")
+			router.HandleFunc("/events/user", handler.IngestUserDimEvent).Methods("POST")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)

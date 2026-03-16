@@ -222,10 +222,10 @@ func assertErrorResponse(t *testing.T, rr *httptest.ResponseRecorder, expectedSt
 // createTestRouter creates a mux.Router with the event handler routes
 func createTestRouter(handler *handlers.EventHandler) *mux.Router {
 	r := mux.NewRouter()
-	r.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
-	r.HandleFunc("/api/v1/events/like", handler.IngestLikeEvent).Methods("POST")
-	r.HandleFunc("/api/v1/events/theme", handler.IngestThemeEvent).Methods("POST")
-	r.HandleFunc("/api/v1/events/user", handler.IngestUserDimEvent).Methods("POST")
+	r.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
+	r.HandleFunc("/events/like", handler.IngestLikeEvent).Methods("POST")
+	r.HandleFunc("/events/theme", handler.IngestThemeEvent).Methods("POST")
+	r.HandleFunc("/events/user", handler.IngestUserDimEvent).Methods("POST")
 	return r
 }
 

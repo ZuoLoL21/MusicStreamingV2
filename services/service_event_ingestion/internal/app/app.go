@@ -89,8 +89,8 @@ func (a *App) registerHealthRoutes(r *mux.Router) {
 }
 
 func (a *App) registerEventRoutes(r *mux.Router) {
-	r.HandleFunc("/api/v1/events/listen", a.handlers.Event.IngestListenEvent).Methods("POST")
-	r.HandleFunc("/api/v1/events/like", a.handlers.Event.IngestLikeEvent).Methods("POST")
-	r.HandleFunc("/api/v1/events/theme", a.handlers.Event.IngestThemeEvent).Methods("POST")
-	r.HandleFunc("/api/v1/events/user", a.handlers.Event.IngestUserDimEvent).Methods("POST")
+	r.HandleFunc("/events/listen", a.handlers.Event.IngestListenEvent).Methods("POST")
+	r.HandleFunc("/events/like", a.handlers.Event.IngestLikeEvent).Methods("POST")
+	r.HandleFunc("/events/theme", a.handlers.Event.IngestThemeEvent).Methods("POST")
+	r.HandleFunc("/events/user", a.handlers.Event.IngestUserDimEvent).Methods("POST")
 }

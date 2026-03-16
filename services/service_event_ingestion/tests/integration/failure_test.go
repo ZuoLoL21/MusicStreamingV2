@@ -46,10 +46,10 @@ func TestFailure_InsertListenEventError(t *testing.T) {
 		"track_duration_seconds":  180,
 		"completion_ratio":        0.67,
 	}
-	req := createJSONRequest(t, "POST", "/api/v1/events/listen", reqBody)
+	req := createJSONRequest(t, "POST", "/events/listen", reqBody)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
+	router.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -79,10 +79,10 @@ func TestFailure_InsertLikeEventError(t *testing.T) {
 		"music_uuid":  NewTestUUID(),
 		"artist_uuid": NewTestUUID(),
 	}
-	req := createJSONRequest(t, "POST", "/api/v1/events/like", reqBody)
+	req := createJSONRequest(t, "POST", "/events/like", reqBody)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/events/like", handler.IngestLikeEvent).Methods("POST")
+	router.HandleFunc("/events/like", handler.IngestLikeEvent).Methods("POST")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -104,10 +104,10 @@ func TestFailure_InsertThemeEventError(t *testing.T) {
 		"music_uuid": NewTestUUID(),
 		"theme":      "rock",
 	}
-	req := createJSONRequest(t, "POST", "/api/v1/events/theme", reqBody)
+	req := createJSONRequest(t, "POST", "/events/theme", reqBody)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/events/theme", handler.IngestThemeEvent).Methods("POST")
+	router.HandleFunc("/events/theme", handler.IngestThemeEvent).Methods("POST")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -129,10 +129,10 @@ func TestFailure_InsertUserDimEventError(t *testing.T) {
 		"country":    "US",
 		"created_at": "2024-01-01T00:00:00Z",
 	}
-	req := createJSONRequest(t, "POST", "/api/v1/events/user", reqBody)
+	req := createJSONRequest(t, "POST", "/events/user", reqBody)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/events/user", handler.IngestUserDimEvent).Methods("POST")
+	router.HandleFunc("/events/user", handler.IngestUserDimEvent).Methods("POST")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -250,10 +250,10 @@ func TestFailure_BatchInsertError(t *testing.T) {
 			"track_duration_seconds":  180,
 			"completion_ratio":        0.67,
 		}
-		req := createJSONRequest(t, "POST", "/api/v1/events/listen", reqBody)
+		req := createJSONRequest(t, "POST", "/events/listen", reqBody)
 
 		router := mux.NewRouter()
-		router.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
+		router.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
 
 		rr := httptest.NewRecorder()
 		router.ServeHTTP(rr, req)
@@ -275,7 +275,7 @@ func TestFailure_InvalidUUIDFormat(t *testing.T) {
 	}{
 		{
 			name:     "invalid_user_uuid_format",
-			endpoint: "/api/v1/events/listen",
+			endpoint: "/events/listen",
 			requestBody: map[string]interface{}{
 				"user_uuid":               "not-a-valid-uuid",
 				"music_uuid":              NewTestUUID(),
@@ -288,7 +288,7 @@ func TestFailure_InvalidUUIDFormat(t *testing.T) {
 		},
 		{
 			name:     "invalid_music_uuid_format",
-			endpoint: "/api/v1/events/listen",
+			endpoint: "/events/listen",
 			requestBody: map[string]interface{}{
 				"user_uuid":               NewTestUUID(),
 				"music_uuid":              "invalid-uuid",
@@ -301,7 +301,7 @@ func TestFailure_InvalidUUIDFormat(t *testing.T) {
 		},
 		{
 			name:     "empty_uuid",
-			endpoint: "/api/v1/events/listen",
+			endpoint: "/events/listen",
 			requestBody: map[string]interface{}{
 				"user_uuid":               "",
 				"music_uuid":              NewTestUUID(),
@@ -369,10 +369,10 @@ func TestFailure_NumericOverflow(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := createJSONRequest(t, "POST", "/api/v1/events/listen", tc.requestBody)
+			req := createJSONRequest(t, "POST", "/events/listen", tc.requestBody)
 
 			router := mux.NewRouter()
-			router.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
+			router.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -400,10 +400,10 @@ func TestFailure_ConcurrentAccess(t *testing.T) {
 				"track_duration_seconds":  180,
 				"completion_ratio":        0.67,
 			}
-			req := createJSONRequest(t, "POST", "/api/v1/events/listen", reqBody)
+			req := createJSONRequest(t, "POST", "/events/listen", reqBody)
 
 			router := mux.NewRouter()
-			router.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
+			router.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)

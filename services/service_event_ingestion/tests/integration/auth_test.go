@@ -29,22 +29,22 @@ func TestAuthentication_MissingJWT(t *testing.T) {
 	}{
 		{
 			name:           "missing_jwt_listen",
-			endpoint:       "/api/v1/events/listen",
+			endpoint:       "/events/listen",
 			expectedStatus: http.StatusUnauthorized,
 		},
 		{
 			name:           "missing_jwt_like",
-			endpoint:       "/api/v1/events/like",
+			endpoint:       "/events/like",
 			expectedStatus: http.StatusUnauthorized,
 		},
 		{
 			name:           "missing_jwt_theme",
-			endpoint:       "/api/v1/events/theme",
+			endpoint:       "/events/theme",
 			expectedStatus: http.StatusUnauthorized,
 		},
 		{
 			name:           "missing_jwt_user",
-			endpoint:       "/api/v1/events/user",
+			endpoint:       "/events/user",
 			expectedStatus: http.StatusUnauthorized,
 		},
 	}
@@ -125,7 +125,7 @@ func TestAuthentication_InvalidAuthHeader(t *testing.T) {
 				"track_duration_seconds":  180,
 				"completion_ratio":        0.67,
 			}
-			req := createJSONRequest(t, "POST", "/api/v1/events/listen", reqBody)
+			req := createJSONRequest(t, "POST", "/events/listen", reqBody)
 			if tc.authHeader != "" {
 				req.Header.Set("Authorization", tc.authHeader)
 			}
@@ -134,7 +134,7 @@ func TestAuthentication_InvalidAuthHeader(t *testing.T) {
 			authHandler := libsmiddleware.NewAuthHandler(logger, nil, returns, libsconsts.JWTSubjectService)
 			protected := router.PathPrefix("").Subrouter()
 			protected.Use(authHandler.GetAuthMiddleware())
-			protected.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
+			protected.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -187,14 +187,14 @@ func TestAuthentication_InvalidJWTToken(t *testing.T) {
 				"track_duration_seconds":  180,
 				"completion_ratio":        0.67,
 			}
-			req := createJSONRequest(t, "POST", "/api/v1/events/listen", reqBody)
+			req := createJSONRequest(t, "POST", "/events/listen", reqBody)
 			req.Header.Set("Authorization", "Bearer "+tc.token)
 
 			router := mux.NewRouter()
 			authHandler := libsmiddleware.NewAuthHandler(logger, nil, returns, libsconsts.JWTSubjectService)
 			protected := router.PathPrefix("").Subrouter()
 			protected.Use(authHandler.GetAuthMiddleware())
-			protected.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
+			protected.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)
@@ -242,14 +242,14 @@ func TestAuthentication_MalformedHeaders(t *testing.T) {
 				"track_duration_seconds":  180,
 				"completion_ratio":        0.67,
 			}
-			req := createJSONRequest(t, "POST", "/api/v1/events/listen", reqBody)
+			req := createJSONRequest(t, "POST", "/events/listen", reqBody)
 			req.Header.Set("Authorization", tc.authHeader)
 
 			router := mux.NewRouter()
 			authHandler := libsmiddleware.NewAuthHandler(logger, nil, returns, libsconsts.JWTSubjectService)
 			protected := router.PathPrefix("").Subrouter()
 			protected.Use(authHandler.GetAuthMiddleware())
-			protected.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
+			protected.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)

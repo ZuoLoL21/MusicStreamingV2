@@ -37,9 +37,9 @@ func TestIntegration_ListenEvent_Ingestion(t *testing.T) {
 		"completion_ratio":        0.67,
 	}
 
-	req := createJSONRequest(t, "POST", "/api/v1/events/listen", reqBody)
+	req := createJSONRequest(t, "POST", "/events/listen", reqBody)
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
+	router.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -103,9 +103,9 @@ func TestIntegration_LikeEvent_Ingestion(t *testing.T) {
 		"artist_uuid": artistUUID,
 	}
 
-	req := createJSONRequest(t, "POST", "/api/v1/events/like", reqBody)
+	req := createJSONRequest(t, "POST", "/events/like", reqBody)
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/events/like", handler.IngestLikeEvent).Methods("POST")
+	router.HandleFunc("/events/like", handler.IngestLikeEvent).Methods("POST")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -155,9 +155,9 @@ func TestIntegration_ThemeEvent_Ingestion(t *testing.T) {
 		"theme":      theme,
 	}
 
-	req := createJSONRequest(t, "POST", "/api/v1/events/theme", reqBody)
+	req := createJSONRequest(t, "POST", "/events/theme", reqBody)
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/events/theme", handler.IngestThemeEvent).Methods("POST")
+	router.HandleFunc("/events/theme", handler.IngestThemeEvent).Methods("POST")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -205,9 +205,9 @@ func TestIntegration_UserDimEvent_Ingestion(t *testing.T) {
 		"created_at": "2024-01-01T00:00:00Z",
 	}
 
-	req := createJSONRequest(t, "POST", "/api/v1/events/user", reqBody)
+	req := createJSONRequest(t, "POST", "/events/user", reqBody)
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/events/user", handler.IngestUserDimEvent).Methods("POST")
+	router.HandleFunc("/events/user", handler.IngestUserDimEvent).Methods("POST")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -262,9 +262,9 @@ func TestIntegration_MultipleEvents_SameUser(t *testing.T) {
 		"completion_ratio":        0.33,
 	}
 
-	req1 := createJSONRequest(t, "POST", "/api/v1/events/listen", reqBody1)
+	req1 := createJSONRequest(t, "POST", "/events/listen", reqBody1)
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
+	router.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
 
 	rr1 := httptest.NewRecorder()
 	router.ServeHTTP(rr1, req1)
@@ -283,7 +283,7 @@ func TestIntegration_MultipleEvents_SameUser(t *testing.T) {
 		"completion_ratio":        1.0,
 	}
 
-	req2 := createJSONRequest(t, "POST", "/api/v1/events/listen", reqBody2)
+	req2 := createJSONRequest(t, "POST", "/events/listen", reqBody2)
 	rr2 := httptest.NewRecorder()
 	router.ServeHTTP(rr2, req2)
 	assert.Equal(t, http.StatusOK, rr2.Code)
@@ -319,9 +319,9 @@ func TestIntegration_EventWithOptionalAlbumUUID(t *testing.T) {
 		"completion_ratio":        0.67,
 	}
 
-	req := createJSONRequest(t, "POST", "/api/v1/events/listen", reqBody)
+	req := createJSONRequest(t, "POST", "/events/listen", reqBody)
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/events/listen", handler.IngestListenEvent).Methods("POST")
+	router.HandleFunc("/events/listen", handler.IngestListenEvent).Methods("POST")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)

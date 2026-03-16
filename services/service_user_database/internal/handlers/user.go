@@ -488,7 +488,7 @@ func (h *UserHandler) syncUserDimToClickHouse(userUUID pgtype.UUID, country stri
 		return
 	}
 
-	req, err := http.NewRequest("POST", h.config.EventIngestionServiceURL+"/api/v1/events/user", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", h.config.EventIngestionServiceURL+"/events/user", bytes.NewBuffer(jsonData))
 	if err != nil {
 		h.logger.Error("failed to create user dim request", zap.Error(err))
 		return

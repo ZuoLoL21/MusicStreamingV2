@@ -22,22 +22,22 @@ func TestIntegration_Error_InvalidJSON(t *testing.T) {
 	}{
 		{
 			name:     "invalid_json_listen",
-			endpoint: "/api/v1/events/listen",
+			endpoint: "/events/listen",
 			handler:  handler.IngestListenEvent,
 		},
 		{
 			name:     "invalid_json_like",
-			endpoint: "/api/v1/events/like",
+			endpoint: "/events/like",
 			handler:  handler.IngestLikeEvent,
 		},
 		{
 			name:     "invalid_json_theme",
-			endpoint: "/api/v1/events/theme",
+			endpoint: "/events/theme",
 			handler:  handler.IngestThemeEvent,
 		},
 		{
 			name:     "invalid_json_user",
-			endpoint: "/api/v1/events/user",
+			endpoint: "/events/user",
 			handler:  handler.IngestUserDimEvent,
 		},
 	}
@@ -70,25 +70,25 @@ func TestIntegration_Error_MalformedJSON(t *testing.T) {
 	}{
 		{
 			name:     "malformed_json_listen",
-			endpoint: "/api/v1/events/listen",
+			endpoint: "/events/listen",
 			body:     `{"user_uuid": "not-a-uuid"}`,
 			handler:  handler.IngestListenEvent,
 		},
 		{
 			name:     "malformed_json_like",
-			endpoint: "/api/v1/events/like",
+			endpoint: "/events/like",
 			body:     `{"user_uuid": "not-a-uuid"}`,
 			handler:  handler.IngestLikeEvent,
 		},
 		{
 			name:     "malformed_json_theme",
-			endpoint: "/api/v1/events/theme",
+			endpoint: "/events/theme",
 			body:     `{"music_uuid": "not-a-uuid"}`,
 			handler:  handler.IngestThemeEvent,
 		},
 		{
 			name:     "malformed_json_user",
-			endpoint: "/api/v1/events/user",
+			endpoint: "/events/user",
 			body:     `{"country": "USA"}`,
 			handler:  handler.IngestUserDimEvent,
 		},
@@ -121,22 +121,22 @@ func TestIntegration_Error_MethodNotAllowed(t *testing.T) {
 	}{
 		{
 			name:     "get_on_listen_endpoint",
-			endpoint: "/api/v1/events/listen",
+			endpoint: "/events/listen",
 			handler:  handler.IngestListenEvent,
 		},
 		{
 			name:     "get_on_like_endpoint",
-			endpoint: "/api/v1/events/like",
+			endpoint: "/events/like",
 			handler:  handler.IngestLikeEvent,
 		},
 		{
 			name:     "get_on_theme_endpoint",
-			endpoint: "/api/v1/events/theme",
+			endpoint: "/events/theme",
 			handler:  handler.IngestThemeEvent,
 		},
 		{
 			name:     "get_on_user_endpoint",
-			endpoint: "/api/v1/events/user",
+			endpoint: "/events/user",
 			handler:  handler.IngestUserDimEvent,
 		},
 	}
@@ -167,22 +167,22 @@ func TestIntegration_Error_EmptyBody(t *testing.T) {
 	}{
 		{
 			name:     "empty_body_listen",
-			endpoint: "/api/v1/events/listen",
+			endpoint: "/events/listen",
 			handler:  handler.IngestListenEvent,
 		},
 		{
 			name:     "empty_body_like",
-			endpoint: "/api/v1/events/like",
+			endpoint: "/events/like",
 			handler:  handler.IngestLikeEvent,
 		},
 		{
 			name:     "empty_body_theme",
-			endpoint: "/api/v1/events/theme",
+			endpoint: "/events/theme",
 			handler:  handler.IngestThemeEvent,
 		},
 		{
 			name:     "empty_body_user",
-			endpoint: "/api/v1/events/user",
+			endpoint: "/events/user",
 			handler:  handler.IngestUserDimEvent,
 		},
 	}
@@ -214,12 +214,12 @@ func TestIntegration_Error_WrongContentType(t *testing.T) {
 	}{
 		{
 			name:     "text_plain_listen",
-			endpoint: "/api/v1/events/listen",
+			endpoint: "/events/listen",
 			handler:  handler.IngestListenEvent,
 		},
 		{
 			name:     "text_plain_like",
-			endpoint: "/api/v1/events/like",
+			endpoint: "/events/like",
 			handler:  handler.IngestLikeEvent,
 		},
 	}
