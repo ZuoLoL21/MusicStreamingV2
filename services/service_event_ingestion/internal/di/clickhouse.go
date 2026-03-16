@@ -53,9 +53,16 @@ func (c *ClickHouseClient) InsertListenEvent(ctx context.Context, req ListenEven
 		) VALUES (?, ?, ?, ?, ?, ?, ?)
 	`, tableListenEvents)
 
-	var albumUUID *uuid.UUID
+	// TODO: Choose one approach
+	//var albumUUID interface{}
+	//if req.AlbumUUID != nil {
+	//	albumUUID = *req.AlbumUUID
+	//} else {
+	//	albumUUID = nil
+	//}
+	var albumUUID uuid.UUID
 	if req.AlbumUUID != nil {
-		albumUUID = req.AlbumUUID
+		albumUUID = *req.AlbumUUID
 	}
 
 	err := c.conn.Exec(ctx, query,

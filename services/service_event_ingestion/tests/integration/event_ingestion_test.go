@@ -58,9 +58,9 @@ func TestIntegration_ListenEvent_Ingestion(t *testing.T) {
 		MusicUUID             string
 		ArtistUUID            string
 		AlbumUUID             string
-		ListenDurationSeconds int
-		TrackDurationSeconds  int
-		CompletionRatio       float64
+		ListenDurationSeconds uint32
+		TrackDurationSeconds  uint32
+		CompletionRatio       float32
 	}
 
 	err = conn.QueryRow(context.Background(),
@@ -83,9 +83,9 @@ func TestIntegration_ListenEvent_Ingestion(t *testing.T) {
 	assert.Equal(t, musicUUID, result.MusicUUID)
 	assert.Equal(t, artistUUID, result.ArtistUUID)
 	assert.Equal(t, albumUUID, result.AlbumUUID)
-	assert.Equal(t, 120, result.ListenDurationSeconds)
-	assert.Equal(t, 180, result.TrackDurationSeconds)
-	assert.Equal(t, 0.67, result.CompletionRatio)
+	assert.Equal(t, uint32(120), result.ListenDurationSeconds)
+	assert.Equal(t, uint32(180), result.TrackDurationSeconds)
+	assert.InDelta(t, 0.67, result.CompletionRatio, 0.01)
 }
 
 func TestIntegration_LikeEvent_Ingestion(t *testing.T) {
@@ -289,14 +289,14 @@ func TestIntegration_MultipleEvents_SameUser(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr2.Code)
 
 	// Verify both events were inserted
-	var count int
+	var count uint64
 	err := conn.QueryRow(context.Background(),
 		`SELECT count() FROM music_listen_events WHERE user_uuid = ?`,
 		userUUID,
 	).Scan(&count)
 
 	require.NoError(t, err)
-	assert.Equal(t, 2, count, "Should have 2 listen events for user")
+	assert.Equal(t, uint64(2), count, "Should have 2 listen events for user")
 }
 
 func TestIntegration_EventWithOptionalAlbumUUID(t *testing.T) {

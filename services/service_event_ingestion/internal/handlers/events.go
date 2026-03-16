@@ -8,6 +8,8 @@ import (
 
 	libsdi "libs/di"
 
+	"github.com/google/uuid"
+
 	"go.uber.org/zap"
 )
 
@@ -36,7 +38,7 @@ func (h *EventHandler) IngestListenEvent(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Validate
-	if req.UserUUID.String() == "" || req.MusicUUID.String() == "" || req.ArtistUUID.String() == "" {
+	if req.UserUUID == uuid.Nil || req.MusicUUID == uuid.Nil || req.ArtistUUID == uuid.Nil {
 		h.logger.Warn("missing required UUIDs in listen event",
 			zap.String("user_uuid", req.UserUUID.String()),
 			zap.String("music_uuid", req.MusicUUID.String()),
@@ -71,7 +73,7 @@ func (h *EventHandler) IngestLikeEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate
-	if req.UserUUID.String() == "" || req.MusicUUID.String() == "" || req.ArtistUUID.String() == "" {
+	if req.UserUUID == uuid.Nil || req.MusicUUID == uuid.Nil || req.ArtistUUID == uuid.Nil {
 		h.returns.ReturnError(w, "Missing required UUIDs", http.StatusBadRequest)
 		return
 	}
@@ -97,7 +99,7 @@ func (h *EventHandler) IngestThemeEvent(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Validate
-	if req.MusicUUID.String() == "" || req.Theme == "" {
+	if req.MusicUUID == uuid.Nil || req.Theme == "" {
 		h.returns.ReturnError(w, "Missing music_uuid or theme", http.StatusBadRequest)
 		return
 	}
@@ -123,7 +125,7 @@ func (h *EventHandler) IngestUserDimEvent(w http.ResponseWriter, r *http.Request
 	}
 
 	// Validate
-	if req.UserUUID.String() == "" || req.Country == "" {
+	if req.UserUUID == uuid.Nil || req.Country == "" {
 		h.returns.ReturnError(w, "Missing user_uuid or country", http.StatusBadRequest)
 		return
 	}
