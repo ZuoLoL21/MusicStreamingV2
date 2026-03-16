@@ -1,0 +1,15 @@
+# Dockerfile for running integration tests
+FROM golang:1.24-alpine
+RUN apk add --no-cache git curl
+WORKDIR /app
+
+COPY services/service_event_ingestion/go.mod services/service_event_ingestion/go.sum ./services/service_event_ingestion/
+COPY libs/ ./libs/
+
+WORKDIR /app/services/service_event_ingestion
+
+RUN go mod download
+
+COPY services/service_event_ingestion/ ./
+
+CMD ["go", "test", "-tags=integration", "-count=1", "./tests/integration/..."]
