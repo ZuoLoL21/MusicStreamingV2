@@ -34,14 +34,18 @@ Use the `next_cursor` and `next_cursor_id` values from the response as `cursor` 
 
 ### File Uploads
 
-Endpoints that accept file uploads use `multipart/form-data`:
+Endpoints that accept file uploads use `multipart/form-data`. There are two types of file uploads: image uploads and audio uploads.
+
+#### Image Uploads
 
 **Endpoints:**
-- `POST /users/me/image`
-- `POST /artists/{uuid}/image`
-- `POST /albums/{uuid}/image`
-- `POST /music/{uuid}/image`
-- `POST /playlists/{uuid}/image`
+| Endpoint | Description | Required Fields |
+|----------|-------------|-----------------|
+| `POST /users/me/image` | Upload user profile image | `image` |
+| `POST /artists/{uuid}/image` | Upload artist image | `image` |
+| `POST /albums/{uuid}/image` | Upload album cover art | `image` |
+| `POST /music/{uuid}/image` | Upload music track cover art | `image` |
+| `POST /playlists/{uuid}/image` | Upload playlist cover image | `image` |
 
 **Request Format:**
 ```
@@ -56,8 +60,8 @@ image: [binary file data]
 - WebP (`.webp`)
 
 **Size Limits:**
-- Profile images: 5 MB max
-- Album/Music/Playlist images: 10 MB max
+- Profile images: 10 MB max
+- Album/Music/Playlist/Artist images: 10 MB max
 
 **Response:**
 ```json
@@ -65,6 +69,58 @@ image: [binary file data]
   "image_url": "http://localhost:8001/files/public/pictures-profile/abc123.jpg"
 }
 ```
+
+#### Audio/Music Uploads
+
+**Endpoints:**
+| Endpoint | Description | Required Fields | Optional Fields |
+|----------|-------------|-----------------|-----------------|
+| `POST /artists/{uuid}/music` | Upload music track with audio file | `title`, `duration_seconds`, `audio` | `in_album`, `image` |
+
+**Request Format:**
+```
+Content-Type: multipart/form-data
+
+title: "Song Title"
+duration_seconds: 180
+audio: [audio file]
+in_album: "album-uuid (optional)"
+image: [cover image (optional)]
+```
+
+**Supported Audio Formats:**
+- MP3 (`.mp3`)
+- WAV (`.wav`)
+- FLAC (`.flac`)
+- OGG (`.ogg`)
+- AAC (`.aac`)
+- M4A (`.m4a`)
+
+**Audio Size Limits:**
+- Max file size: 100 MB per track
+
+**Response:**
+```json
+{
+  "uuid": "123e4567-e89b-12d3-a456-426614174000",
+  "title": "Song Title",
+  "artist_uuid": "123e4567-e89b-12d3-a456-426614174001",
+  "artist_name": "Artist Name",
+  "duration_seconds": 180,
+  "image_url": "http://localhost:8001/files/public/pictures-music/music.jpg",
+  "audio_url": "http://localhost:8001/files/public/audio/abc123.mp3",
+  "created_at": "2024-01-01T00:00:00Z"
+}
+```
+
+**Status Codes for File Uploads:**
+- `200 OK` - Image uploaded successfully
+- `201 Created` - Music track created successfully
+- `400 Bad Request` - Invalid file format, size exceeded, or missing required fields
+- `403 Forbidden` - Not authorized (must be artist member for music uploads)
+- `404 Not Found` - Artist or album not found
+- `415 Unsupported Media Type` - Wrong Content-Type (must be multipart/form-data)
+- `500 Internal Server Error` - Server error
 
 ---
 
@@ -90,6 +146,64 @@ http://localhost:8001/files/public/{bucket}/{object-path}
 
 **Default Images:**
 Applied automatically on read if no image is set (not stored in DB).
+
+---
+
+### Role-Based Access Control
+
+The API implements role-based access control (RBAC) for artist resources and playlist ownership.
+
+#### Artist Member Roles
+
+| Role | Description | Permissions |
+|------|-------------|-------------|
+| `owner` | Full control | Can manage all aspects of the artist including members, content, settings, and transfer ownership |
+| `admin` | Manage members and content | Can add/remove members, upload music, create albums, edit artist info |
+| `member` | Upload content only | Can upload music tracks and images for the artist |
+
+**Role Hierarchy:**
+```
+owner > admin > member
+```
+
+**Role Requirements:**
+- Only the `owner` can transfer ownership to another member
+- Only `owner` and `admin` can manage artist members (add, remove, change roles)
+- All members (`owner`, `admin`, `member`) can upload music and images
+- All members can view artist information
+
+**Changing Roles:**
+Use `POST /artists/{uuid}/members/{userUuid}/role` to update a member's role. The request body should be:
+```json
+{
+  "role": "admin"  // or "member"
+}
+```
+
+**Response:**
+```json
+{
+  "uuid": "123e4567-e89b-12d3-a456-426614174000",
+  "username": "user123",
+  "role": "admin",
+  "joined_at": "2024-01-01T00:00:00Z"
+}
+```
+
+#### Playlist Ownership
+
+Playlists have a simple owner model:
+- The creator of a playlist is automatically the `owner`
+- Only the owner can:
+  - Update playlist details (name, description, visibility)
+  - Upload/change playlist cover image
+  - Delete the playlist
+  - Add or remove tracks from the playlist
+  - Reorder tracks within the playlist
+
+**Playlist Visibility:**
+- Public playlists can be viewed by any authenticated user
+- Private playlists can only be viewed/modified by the owner
 
 ---
 
@@ -146,16 +260,17 @@ Returns `400 Bad Request` with error message.
 
 ### HTTP Status Codes
 
-| Code | Name | When Used |
-|------|------|-----------|
-| `200 OK` | Success | Successful GET, POST, DELETE |
-| `201 Created` | Created | Successful resource creation (PUT, POST) |
+| Code | Name | Description |
+|------|------|-------------|
+| `200 OK` | Success | Successful GET, PUT, PATCH, DELETE operations |
+| `201 Created` | Created | Successful resource creation (POST resulting in new entity) |
 | `202 Accepted` | Accepted | Request accepted for async processing |
-| `400 Bad Request` | Bad Request | Invalid input, malformed JSON, validation failure |
+| `400 Bad Request` | Bad Request | Invalid input, malformed JSON, validation failure, invalid parameters |
 | `401 Unauthorized` | Unauthorized | Invalid/missing/expired JWT token |
-| `403 Forbidden` | Forbidden | Valid JWT but insufficient permissions |
+| `403 Forbidden` | Forbidden | Valid JWT but insufficient permissions (role-based or ownership) |
 | `404 Not Found` | Not Found | Resource does not exist |
-| `409 Conflict` | Conflict | Resource already exists, constraint violation |
+| `409 Conflict` | Conflict | Resource already exists, duplicate entry, constraint violation |
+| `415 Unsupported Media Type` | Unsupported Media Type | Wrong Content-Type header (e.g., not multipart/form-data for file uploads) |
 | `422 Unprocessable Entity` | Validation Error | FastAPI validation errors (Python services) |
 | `500 Internal Server Error` | Server Error | Database error, file system error, unexpected failure |
 | `502 Bad Gateway` | Bad Gateway | Backend service unavailable or returned error |
@@ -188,7 +303,7 @@ Status: `404 Not Found`
 ```
 Status: `400 Bad Request`
 
-**Permission Denied:**
+**Permission Denied (Role-Based):**
 ```json
 {
   "error": "Forbidden",
@@ -196,6 +311,33 @@ Status: `400 Bad Request`
 }
 ```
 Status: `403 Forbidden`
+
+**Permission Denied (Not Owner):**
+```json
+{
+  "error": "Forbidden",
+  "detail": "Not owner of this playlist"
+}
+```
+Status: `403 Forbidden`
+
+**Resource Conflict:**
+```json
+{
+  "error": "Conflict",
+  "detail": "Artist name already exists"
+}
+```
+Status: `409 Conflict`
+
+**Wrong Content-Type:**
+```json
+{
+  "error": "Unsupported Media Type",
+  "detail": "Content-Type must be multipart/form-data"
+}
+```
+Status: `415 Unsupported Media Type`
 
 **Service Unavailable:**
 ```json
@@ -210,12 +352,11 @@ Status: `502 Bad Gateway`
 ## Related Documentation
 
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - System architecture, design decisions, and request flows
-- [.thoughts/DOCUMENTATION_STRATEGY.md](../../.thoughts/DOCUMENTATION_STRATEGY.md) - Documentation maintenance rules
-- [.thoughts/LOGGING_STRATEGY.md](../../.thoughts/LOGGING_STRATEGY.md) - Logging guidelines
+- [API_service_user_database.md](API_service_user_database.md) - User database service API reference
+- [API_gateway_api.md](API_gateway_api.md) - Gateway API reference
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2026-03-06
+**Document Version:** 1.2
+**Last Updated:** 2026-03-16
 **Maintained By:** Development Team
-

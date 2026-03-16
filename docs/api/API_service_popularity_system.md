@@ -1,7 +1,6 @@
 ## Popularity Backend: service_popularity_system
 
-**Base URL:** `http://localhost:8003` (internal)
-**Client Access:** Via `gateway_recommendation` → `gateway_api` at `http://localhost:8080/popular/*`
+**Internal service** - accessed via `gateway_recommendation` → `gateway_api` at `http://localhost:8080/popular/*`
 **Authentication:** Service JWT (auto-generated)
 
 **Note:** This service is accessed through gateway_recommendation. All endpoints listed above in the [Recommendation Backend](API_gateway_recommendation.md#recommendation-backend-gateway_recommendation) section are implemented by this service.

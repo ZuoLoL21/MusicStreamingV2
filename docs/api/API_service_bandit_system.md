@@ -1,7 +1,6 @@
 ## Bandit ML Backend: service_bandit_system
 
-**Base URL:** `http://localhost:8004/api/v1` (internal)
-**Client Access:** Via `gateway_recommendation` → `gateway_api` at `http://localhost:8080/recommend/theme`
+**Internal service** - accessed via `gateway_recommendation` → `gateway_api` at `http://localhost:8080/recommend/theme`
 **Authentication:** Service JWT (auto-generated)
 **Framework:** FastAPI (Python)
 
@@ -10,8 +9,6 @@
 ```http
 GET /api/v1/health
 ```
-
-**Direct Access:** `GET http://localhost:8004/api/v1/health`
 
 **Authentication:** None
 

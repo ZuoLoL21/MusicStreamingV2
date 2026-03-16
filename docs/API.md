@@ -24,13 +24,13 @@ This document provides complete API reference for all services in the MusicStrea
 
 ### Service Access Patterns
 
-| Service | Port | Public Access | Client Access Pattern |
-|---------|------|---------------|----------------------|
-| gateway_api | 8080 | **Yes** | Direct access with Normal/Refresh JWT |
-| service_user_database | 8001 | Internal only | Via gateway_api (automatic Service JWT) |
-| gateway_recommendation | 8002 | Internal only | Via gateway_api at `/recommend/*` and `/popular/*` |
-| service_popularity_system | 8003 | Internal only | Via gateway_recommendation (automatic routing) |
-| service_bandit_system | 8004 | Internal only | Via gateway_recommendation (automatic routing) |
+| Service | Public Access | Client Access Pattern |
+|---------|---------------|----------------------|
+| gateway_api | **Yes** | Direct access with Normal/Refresh JWT at `http://localhost:8080` |
+| service_user_database | Internal only | Via gateway_api at `/users/*`, `/artists/*`, `/albums/*`, `/music/*`, `/tags/*`, `/playlists/*`, `/history/*`, `/search/*` |
+| gateway_recommendation | Internal only | Via gateway_api at `/recommend/*` and `/popular/*` |
+| service_popularity_system | Internal only | Via gateway_recommendation (automatic routing) |
+| service_bandit_system | Internal only | Via gateway_recommendation (automatic routing) |
 
 ### JWT Token Types
 
