@@ -100,8 +100,12 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	password := r.FormValue("password")
-	if password == "" || len(password) < 8 {
-		h.returns.ReturnError(w, "password required (min 8 chars)", http.StatusBadRequest)
+	if password == "" {
+		h.returns.ReturnError(w, "password required", http.StatusBadRequest)
+		return
+	}
+	if !isValidPassword(password) {
+		h.returns.ReturnError(w, "password must be at least 8 characters and contain uppercase, lowercase, number, and special character", http.StatusBadRequest)
 		return
 	}
 

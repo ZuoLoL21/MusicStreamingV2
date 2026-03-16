@@ -37,10 +37,11 @@ func TestIntegration_Error_DatabaseConstraintViolations(t *testing.T) {
 
 		// Try to create second user with same email
 		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
-		req := createJSONRequest(t, "POST", "/register", map[string]interface{}{
+		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
 			"username": "user2",
 			"email":    "duplicate@test.com",
 			"password": "TestPassword123!",
+			"country":  "US",
 		})
 
 		router := mux.NewRouter()
@@ -62,10 +63,11 @@ func TestIntegration_Error_DatabaseConstraintViolations(t *testing.T) {
 
 		// Try to create second user with same username
 		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
-		req := createJSONRequest(t, "POST", "/register", map[string]interface{}{
+		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
 			"username": "samename",
 			"email":    "user2@test.com",
 			"password": "TestPassword123!",
+			"country":  "US",
 		})
 
 		router := mux.NewRouter()
@@ -203,9 +205,10 @@ func TestIntegration_Error_MissingRequiredFields(t *testing.T) {
 
 	t.Run("register_missing_username", func(t *testing.T) {
 		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
-		req := createJSONRequest(t, "POST", "/register", map[string]interface{}{
+		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
 			"email":    "test@test.com",
 			"password": "TestPassword123!",
+			"country":  "US",
 		})
 
 		router := mux.NewRouter()
@@ -219,9 +222,10 @@ func TestIntegration_Error_MissingRequiredFields(t *testing.T) {
 
 	t.Run("register_missing_email", func(t *testing.T) {
 		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
-		req := createJSONRequest(t, "POST", "/register", map[string]interface{}{
+		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
 			"username": "testuser",
 			"password": "TestPassword123!",
+			"country":  "US",
 		})
 
 		router := mux.NewRouter()
@@ -235,9 +239,10 @@ func TestIntegration_Error_MissingRequiredFields(t *testing.T) {
 
 	t.Run("register_missing_password", func(t *testing.T) {
 		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
-		req := createJSONRequest(t, "POST", "/register", map[string]interface{}{
+		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
 			"username": "testuser",
 			"email":    "test@test.com",
+			"country":  "US",
 		})
 
 		router := mux.NewRouter()
@@ -251,7 +256,7 @@ func TestIntegration_Error_MissingRequiredFields(t *testing.T) {
 
 	t.Run("playlist_missing_name", func(t *testing.T) {
 		handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
-		req := createJSONRequest(t, "POST", "/playlists", map[string]interface{}{
+		req := createMultipartRequest(t, "POST", "/playlists", "", "", nil, map[string]string{
 			"description": "Test playlist",
 		})
 
@@ -408,7 +413,7 @@ func TestIntegration_Error_BadRequestBody(t *testing.T) {
 		rr := httptest.NewRecorder()
 		router.ServeHTTP(rr, req)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusUnsupportedMediaType, rr.Code)
 	})
 
 	t.Run("wrong_content_type", func(t *testing.T) {

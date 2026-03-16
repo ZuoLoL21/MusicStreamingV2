@@ -411,10 +411,13 @@ func TestIntegration_Validation_EmailFormat(t *testing.T) {
 	defer CleanupTestData(t, pool)
 
 	logger := zap.NewNop()
-	config := &backenddi.Config{}
+	vaultConfig := NewTestVaultConfig(t)
+	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
+	fileStorage := SetupMinIOClient(t)
+	config := &backenddi.Config{}
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, fileStorage)
 
 	testCases := []struct {
 		name           string
@@ -433,10 +436,11 @@ func TestIntegration_Validation_EmailFormat(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := createJSONRequest(t, "POST", "/register", map[string]interface{}{
+			req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
 				"username": "user_" + strings.ReplaceAll(tc.email, "@", "_"),
 				"email":    tc.email,
 				"password": "TestPassword123!",
+				"country":  "US",
 			})
 
 			router := mux.NewRouter()
@@ -451,11 +455,17 @@ func TestIntegration_Validation_EmailFormat(t *testing.T) {
 }
 
 func TestIntegration_Validation_PasswordStrength(t *testing.T) {
-	logger := zap.NewNop()
-	config := &backenddi.Config{}
-	returns := di.NewReturnManager(logger)
+	pool, db := SetupTestDB(t)
+	defer CleanupTestData(t, pool)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, nil, nil)
+	logger := zap.NewNop()
+	vaultConfig := NewTestVaultConfig(t)
+	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
+	returns := di.NewReturnManager(logger)
+	fileStorage := SetupMinIOClient(t)
+	config := &backenddi.Config{}
+
+	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, fileStorage)
 
 	testCases := []struct {
 		name           string
@@ -473,10 +483,11 @@ func TestIntegration_Validation_PasswordStrength(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := createJSONRequest(t, "POST", "/register", map[string]interface{}{
+			req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
 				"username": "testuser",
 				"email":    "test@example.com",
 				"password": tc.password,
+				"country":  "US",
 			})
 
 			router := mux.NewRouter()
@@ -612,9 +623,10 @@ func TestIntegration_Validation_SecurityInput(t *testing.T) {
 			if tc.expectSafe && rr.Code == http.StatusOK {
 				user, err := db.GetPublicUser(ctx, testUser)
 				require.NoError(t, err)
-				// Verify the raw string is stored (not executed)
-				assert.NotContains(t, user.Username, "<script>")
-				assert.NotContains(t, user.Username, "DROP TABLE")
+				// Verify the raw string is stored as literal (not executed)
+				// The username in the request body should match exactly what's in the DB
+				expectedUsername := tc.requestBody["username"].(string)
+				assert.Equal(t, expectedUsername, user.Username, "Username should be stored as literal string")
 			}
 		})
 	}

@@ -221,6 +221,12 @@ func validateStringField(field string, fieldName string, minLen, maxLen int) (st
 	if strings.Contains(trimmed, "\x00") {
 		return "", fmt.Errorf("%s contains invalid null byte characters", fieldName)
 	}
+	if strings.Contains(trimmed, "\n") {
+		return "", fmt.Errorf("%s contains invalid newline characters", fieldName)
+	}
+	if strings.Contains(trimmed, "\r") {
+		return "", fmt.Errorf("%s contains invalid carriage return characters", fieldName)
+	}
 	if len(trimmed) < minLen {
 		return "", fmt.Errorf("%s must be at least %d characters", fieldName, minLen)
 	}
@@ -235,6 +241,13 @@ func isValidEmail(email string) bool {
 	if email == "" {
 		return false
 	}
+	if strings.Contains(email, " ") {
+		return false
+	}
+	atCount := strings.Count(email, "@")
+	if atCount != 1 {
+		return false
+	}
 	atIndex := strings.Index(email, "@")
 	if atIndex <= 0 || atIndex >= len(email)-1 {
 		return false
@@ -245,4 +258,34 @@ func isValidEmail(email string) bool {
 		return false
 	}
 	return true
+}
+
+// isValidPassword checks if a password meets security requirements
+func isValidPassword(password string) bool {
+	if len(password) < 8 {
+		return false
+	}
+
+	var hasUpper, hasLower, hasNumber, hasSpecial bool
+	specialChars := "!@#$%^&*()_+-=[]{}|;:,.<>?/~`"
+
+	for _, char := range password {
+		if !hasUpper && char >= 'A' && char <= 'Z' {
+			hasUpper = true
+		}
+		if !hasLower && char >= 'a' && char <= 'z' {
+			hasLower = true
+		}
+		if !hasNumber && char >= '0' && char <= '9' {
+			hasNumber = true
+		}
+		if !hasSpecial && strings.ContainsRune(specialChars, char) {
+			hasSpecial = true
+		}
+		if hasUpper && hasLower && hasNumber && hasSpecial {
+			return true
+		}
+	}
+
+	return hasUpper && hasLower && hasNumber && hasSpecial
 }

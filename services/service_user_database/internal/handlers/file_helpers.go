@@ -38,7 +38,7 @@ func parseMultipartForm(w http.ResponseWriter, r *http.Request, maxSizeMB int64,
 			errorMsg = fmt.Sprintf("invalid Content-Type: %s, expected multipart/form-data", contentType)
 		}
 
-		returns.ReturnError(w, errorMsg, http.StatusBadRequest)
+		returns.ReturnError(w, errorMsg, http.StatusUnsupportedMediaType)
 		return false
 	}
 	return true
