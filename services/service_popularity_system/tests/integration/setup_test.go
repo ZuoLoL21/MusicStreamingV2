@@ -66,6 +66,7 @@ func getEnv(key, defaultValue string) string {
 }
 
 // SetupClickHouse connects to ClickHouse and returns a connection
+// It also cleans up all test data before and after the test
 func SetupClickHouse(t *testing.T) driver.Conn {
 	t.Helper()
 	config := GetTestConfig()
@@ -89,11 +90,58 @@ func SetupClickHouse(t *testing.T) driver.Conn {
 	err = conn.Ping(context.Background())
 	require.NoError(t, err, "failed to ping ClickHouse")
 
+	// Clean database before test
+	CleanupTestData(t, conn)
+
 	t.Cleanup(func() {
+		// Clean database after test
+		CleanupTestData(t, conn)
 		conn.Close()
 	})
 
 	return conn
+}
+
+// CleanupTestData removes all data from test tables
+func CleanupTestData(t *testing.T, conn driver.Conn) {
+	t.Helper()
+
+	// Truncate materialized view intermediate tables first (they depend on base tables)
+	materializedViews := []string{
+		"track_popularity_inter",
+		"artist_popularity_inter",
+		"theme_popularity_inter",
+		"track_by_theme_popularity_inter",
+		"track_popularity_daily",
+		"artist_popularity_daily",
+		"theme_popularity_daily",
+		"track_by_theme_popularity_daily",
+	}
+
+	for _, table := range materializedViews {
+		query := fmt.Sprintf("TRUNCATE TABLE IF EXISTS %s", table)
+		err := conn.Exec(context.Background(), query)
+		if err != nil {
+			t.Logf("Warning: Failed to truncate materialized view %s: %v", table, err)
+		}
+	}
+
+	// Then truncate base tables
+	baseTables := []string{
+		"music_listen_events",
+		"music_theme",
+	}
+
+	for _, table := range baseTables {
+		query := fmt.Sprintf("TRUNCATE TABLE IF EXISTS %s", table)
+		err := conn.Exec(context.Background(), query)
+		if err != nil {
+			t.Logf("Warning: Failed to truncate table %s: %v", table, err)
+		}
+	}
+
+	// Wait for all truncations to complete
+	time.Sleep(300 * time.Millisecond)
 }
 
 // SetupTestDatabase creates the required tables and materialized views for testing
@@ -300,14 +348,30 @@ func InsertTestListenEvent(t *testing.T, conn driver.Conn, userUUID, musicUUID, 
 		VALUES (?, ?, ?, ?, ?, ?)
 	`
 
-	err := conn.AsyncInsert(context.Background(), query, false, userUUID, musicUUID, artistUUID, listenDuration, uint32(180), float32(listenDuration)/180.0)
-	if err != nil {
-		err = conn.Exec(context.Background(), query, userUUID, musicUUID, artistUUID, listenDuration, uint32(180), float32(listenDuration)/180.0)
-	}
+	err := conn.Exec(context.Background(), query, userUUID, musicUUID, artistUUID, listenDuration, uint32(180), float32(listenDuration)/180.0)
 	require.NoError(t, err, "Failed to insert listen event")
+}
 
-	// Wait for the event to be processed
-	time.Sleep(100 * time.Millisecond)
+// WaitForMaterializedViews waits for materialized views to process data
+// This is more reliable than a fixed sleep time
+func WaitForMaterializedViews(t *testing.T, conn driver.Conn, expectedMinCount uint64) {
+	t.Helper()
+
+	maxAttempts := 20
+	sleepDuration := 100 * time.Millisecond
+
+	for i := 0; i < maxAttempts; i++ {
+		var count uint64
+		err := conn.QueryRow(context.Background(), "SELECT count() FROM track_popularity_inter").Scan(&count)
+		if err == nil && count >= expectedMinCount {
+			// Give a bit more time for all views to be consistent
+			time.Sleep(100 * time.Millisecond)
+			return
+		}
+		time.Sleep(sleepDuration)
+	}
+
+	t.Logf("Warning: Materialized views may not have fully updated after %v", time.Duration(maxAttempts)*sleepDuration)
 }
 
 // InsertTestTheme inserts a test music theme into ClickHouse
@@ -319,10 +383,7 @@ func InsertTestTheme(t *testing.T, conn driver.Conn, musicUUID uuid.UUID, theme 
 		VALUES (?, ?)
 	`
 
-	err := conn.AsyncInsert(context.Background(), query, false, musicUUID, theme)
-	if err != nil {
-		err = conn.Exec(context.Background(), query, musicUUID, theme)
-	}
+	err := conn.Exec(context.Background(), query, musicUUID, theme)
 	require.NoError(t, err, "Failed to insert theme")
 }
 

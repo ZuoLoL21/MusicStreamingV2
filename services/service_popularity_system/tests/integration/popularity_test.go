@@ -30,7 +30,7 @@ func TestIntegration_PopularSongsAllTime(t *testing.T) {
 	InsertTestListenEvent(t, conn, uuid.MustParse(NewTestUUID()), musicUUID2, artistUUID, 60)
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 2)
 
 	// Create request
 	req := httptest.NewRequest("GET", "/popular/songs/all-time?limit=10", nil)
@@ -64,7 +64,7 @@ func TestIntegration_PopularArtistsAllTime(t *testing.T) {
 	InsertTestListenEvent(t, conn, uuid.MustParse(NewTestUUID()), musicUUID2, artistUUID, 90)
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 1)
 
 	// Create request
 	req := httptest.NewRequest("GET", "/popular/artists/all-time?limit=10", nil)
@@ -103,7 +103,7 @@ func TestIntegration_PopularThemesAllTime(t *testing.T) {
 	InsertTestListenEvent(t, conn, uuid.MustParse(NewTestUUID()), musicUUID2, artistUUID, 90)
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 1)
 
 	// Create request
 	req := httptest.NewRequest("GET", "/popular/themes/all-time?limit=10", nil)
@@ -140,7 +140,7 @@ func TestIntegration_PopularSongsByTheme(t *testing.T) {
 	InsertTestListenEvent(t, conn, uuid.MustParse(NewTestUUID()), musicUUID, artistUUID, 180)
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 1)
 
 	// Create request
 	req := httptest.NewRequest("GET", "/popular/songs/theme/jazz?limit=10", nil)
@@ -172,7 +172,7 @@ func TestIntegration_PopularSongsTimeframe(t *testing.T) {
 	InsertTestListenEvent(t, conn, uuid.MustParse(NewTestUUID()), musicUUID, artistUUID, 120)
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 1)
 
 	today := time.Now().Format("2006-01-02")
 	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
@@ -207,7 +207,7 @@ func TestIntegration_PopularArtistsTimeframe(t *testing.T) {
 	InsertTestListenEvent(t, conn, uuid.MustParse(NewTestUUID()), musicUUID, artistUUID, 90)
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 1)
 
 	today := time.Now().Format("2006-01-02")
 	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
@@ -243,7 +243,7 @@ func TestIntegration_PopularThemesTimeframe(t *testing.T) {
 	InsertTestListenEvent(t, conn, uuid.MustParse(NewTestUUID()), musicUUID, artistUUID, 200)
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 1)
 
 	today := time.Now().Format("2006-01-02")
 	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
@@ -280,7 +280,7 @@ func TestIntegration_PopularSongsTimeframeByTheme(t *testing.T) {
 	InsertTestListenEvent(t, conn, uuid.MustParse(NewTestUUID()), musicUUID, artistUUID, 150)
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 1)
 
 	today := time.Now().Format("2006-01-02")
 	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
@@ -305,7 +305,20 @@ func TestIntegration_PopularSongsTimeframeByTheme(t *testing.T) {
 }
 
 func TestIntegration_EmptyDatabase(t *testing.T) {
+	// Setup and cleanup database to ensure it's truly empty
+	conn := SetupClickHouse(t)
 	handler := CreateTestPopularityHandler(t)
+
+	// Verify database is empty
+	var count uint64
+	err := conn.QueryRow(context.Background(), "SELECT count() FROM music_listen_events").Scan(&count)
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), count, "Base table should be empty before test")
+
+	// Verify materialized views are also empty
+	err = conn.QueryRow(context.Background(), "SELECT count() FROM track_popularity_inter").Scan(&count)
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), count, "Materialized view should be empty before test")
 
 	// Don't insert any data - test empty results
 
@@ -321,7 +334,7 @@ func TestIntegration_EmptyDatabase(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 
 	var results []map[string]interface{}
-	err := json.Unmarshal(rr.Body.Bytes(), &results)
+	err = json.Unmarshal(rr.Body.Bytes(), &results)
 	require.NoError(t, err)
 
 	assert.Equal(t, 0, len(results), "Should return empty array when no data")
@@ -339,7 +352,7 @@ func TestIntegration_LimitParameter(t *testing.T) {
 	}
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 5)
 
 	// Test with limit=2
 	req := httptest.NewRequest("GET", "/popular/songs/all-time?limit=2", nil)
@@ -472,7 +485,7 @@ func TestIntegration_ResponseStructure(t *testing.T) {
 	InsertTestListenEvent(t, conn, uuid.MustParse(NewTestUUID()), musicUUID, artistUUID, 120)
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 1)
 
 	// Test song response structure
 	req := httptest.NewRequest("GET", "/popular/songs/all-time?limit=1", nil)
@@ -548,7 +561,7 @@ func TestIntegration_PopularSongsTimeframeResponseStructure(t *testing.T) {
 	InsertTestListenEvent(t, conn, uuid.MustParse(NewTestUUID()), musicUUID, artistUUID, 120)
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 1)
 
 	today := time.Now().Format("2006-01-02")
 	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
@@ -609,7 +622,7 @@ func TestIntegration_PopularSongsTimeframeByThemeResponseStructure(t *testing.T)
 	InsertTestListenEvent(t, conn, uuid.MustParse(NewTestUUID()), musicUUID, artistUUID, 150)
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 1)
 
 	today := time.Now().Format("2006-01-02")
 	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
@@ -639,23 +652,18 @@ func TestIntegration_PopularSongsTimeframeByThemeResponseStructure(t *testing.T)
 
 // TestIntegration_PopularSongsAllTimeDirectQuery tests the handler by querying directly
 func TestIntegration_PopularSongsAllTimeDirectQuery(t *testing.T) {
-	db := GetClickHouseDB(t)
+	conn := SetupClickHouse(t)
 	handler := CreateTestPopularityHandler(t)
 
 	// Insert test data
 	musicUUID := uuid.MustParse(NewTestUUID())
 	artistUUID := uuid.MustParse(NewTestUUID())
 
-	// Insert directly via SQL
-	_, err := db.ExecContext(context.Background(), `
-		INSERT INTO music_listen_events (user_uuid, music_uuid, artist_uuid, listen_duration_seconds, track_duration_seconds, completion_ratio)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, uuid.MustParse(NewTestUUID()), musicUUID, artistUUID, 100, 180, 0.55)
-
-	require.NoError(t, err, "Failed to insert test data")
+	// Insert directly via driver
+	InsertTestListenEvent(t, conn, uuid.MustParse(NewTestUUID()), musicUUID, artistUUID, 100)
 
 	// Wait for materialized views to update
-	time.Sleep(500 * time.Millisecond)
+	WaitForMaterializedViews(t, conn, 1)
 
 	// Use the handler
 	req := httptest.NewRequest("GET", "/popular/songs/all-time?limit=10", nil)
@@ -669,7 +677,7 @@ func TestIntegration_PopularSongsAllTimeDirectQuery(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 
 	var results []map[string]interface{}
-	err = json.Unmarshal(rr.Body.Bytes(), &results)
+	err := json.Unmarshal(rr.Body.Bytes(), &results)
 	require.NoError(t, err)
 
 	assert.GreaterOrEqual(t, len(results), 1, "Should have at least 1 result")

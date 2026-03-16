@@ -18,4 +18,5 @@ COPY services/service_popularity_system/ ./
 COPY services/database_data_warehouse/ ./database_data_warehouse/
 
 # Run the integration tests
-CMD ["go", "test", "-tags=integration", "-count=1", "-timeout=5m", "./tests/integration/..."]
+# -p=1 disables parallel execution to avoid race conditions
+CMD ["go", "test", "-tags=integration", "-count=1", "-p=1", "-timeout=5m", "./tests/integration/..."]
