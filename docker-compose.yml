@@ -69,6 +69,11 @@ services:
       - clickhouse_data:/var/lib/clickhouse/
       - clickhouse_logs:/var/log/clickhouse-server/
       - ./services/database_data_warehouse:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--user", "clickhouse", "--password", "${CLICKHOUSE_PASSWORD}", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       logging-fluentd:
         condition: service_started
