@@ -36,7 +36,17 @@ func (h *EventHandler) IngestListenEvent(w http.ResponseWriter, r *http.Request)
 
 	// Validate
 	if req.UserUUID.String() == "" || req.MusicUUID.String() == "" || req.ArtistUUID.String() == "" {
+		h.logger.Warn("missing required UUIDs in listen event",
+			zap.String("user_uuid", req.UserUUID.String()),
+			zap.String("music_uuid", req.MusicUUID.String()),
+			zap.String("artist_uuid", req.ArtistUUID.String()),
+		)
 		h.returns.ReturnError(w, "Missing required UUIDs", http.StatusBadRequest)
+		return
+	}
+	if req.AlbumUUID == nil {
+		h.logger.Warn("missing required album_uuid in listen event")
+		h.returns.ReturnError(w, "Missing required album_uuid", http.StatusBadRequest)
 		return
 	}
 	if req.CompletionRatio < 0 || req.CompletionRatio > 1 {
