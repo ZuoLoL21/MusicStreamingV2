@@ -6,8 +6,8 @@
 
 ### Info
 **Disclaimer**: these are AI generated so they might (and will most likely) be outdated
-1) [API](services/API.md)
-2) [ARCHITECTURE](services/ARCHITECTURE.md)
+1) [API](docs/API.md)
+2) [ARCHITECTURE](docs/ARCHITECTURE.md)
 
 
 ### Contribution
