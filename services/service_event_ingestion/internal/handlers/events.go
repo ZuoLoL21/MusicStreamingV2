@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"event_ingestion/internal/di"
 	"net/http"
+	"strings"
 
 	libsdi "libs/di"
 
@@ -42,11 +43,6 @@ func (h *EventHandler) IngestListenEvent(w http.ResponseWriter, r *http.Request)
 			zap.String("artist_uuid", req.ArtistUUID.String()),
 		)
 		h.returns.ReturnError(w, "Missing required UUIDs", http.StatusBadRequest)
-		return
-	}
-	if req.AlbumUUID == nil {
-		h.logger.Warn("missing required album_uuid in listen event")
-		h.returns.ReturnError(w, "Missing required album_uuid", http.StatusBadRequest)
 		return
 	}
 	if req.CompletionRatio < 0 || req.CompletionRatio > 1 {
@@ -133,6 +129,10 @@ func (h *EventHandler) IngestUserDimEvent(w http.ResponseWriter, r *http.Request
 	}
 	if len(req.Country) != 2 {
 		h.returns.ReturnError(w, "Country must be ISO 3166-1 alpha-2 code (2 chars)", http.StatusBadRequest)
+		return
+	}
+	if req.Country != strings.ToUpper(req.Country) {
+		h.returns.ReturnError(w, "Country must be uppercase ISO 3166-1 alpha-2 code", http.StatusBadRequest)
 		return
 	}
 
