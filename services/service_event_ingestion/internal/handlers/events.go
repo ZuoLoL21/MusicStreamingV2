@@ -51,6 +51,10 @@ func (h *EventHandler) IngestListenEvent(w http.ResponseWriter, r *http.Request)
 		h.returns.ReturnError(w, "Completion ratio must be between 0 and 1", http.StatusBadRequest)
 		return
 	}
+	if req.ListenDurationSeconds < 0 {
+		h.returns.ReturnError(w, "Listen duration cannot be negative", http.StatusBadRequest)
+		return
+	}
 
 	// Insert into ClickHouse
 	if err := h.clickhouse.InsertListenEvent(r.Context(), req); err != nil {
@@ -103,6 +107,10 @@ func (h *EventHandler) IngestThemeEvent(w http.ResponseWriter, r *http.Request) 
 		h.returns.ReturnError(w, "Missing music_uuid or theme", http.StatusBadRequest)
 		return
 	}
+	if strings.TrimSpace(req.Theme) == "" {
+		h.returns.ReturnError(w, "Theme cannot be whitespace only", http.StatusBadRequest)
+		return
+	}
 
 	// Upsert theme into ClickHouse
 	if err := h.clickhouse.UpsertTheme(r.Context(), req); err != nil {
@@ -132,6 +140,12 @@ func (h *EventHandler) IngestUserDimEvent(w http.ResponseWriter, r *http.Request
 	if len(req.Country) != 2 {
 		h.returns.ReturnError(w, "Country must be ISO 3166-1 alpha-2 code (2 chars)", http.StatusBadRequest)
 		return
+	}
+	for _, c := range req.Country {
+		if c < 'A' || c > 'Z' {
+			h.returns.ReturnError(w, "Country must be uppercase ISO 3166-1 alpha-2 code (letters only)", http.StatusBadRequest)
+			return
+		}
 	}
 	if req.Country != strings.ToUpper(req.Country) {
 		h.returns.ReturnError(w, "Country must be uppercase ISO 3166-1 alpha-2 code", http.StatusBadRequest)
