@@ -4,64 +4,75 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestParsePaginationDecay(t *testing.T) {
+	testUUID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
 	tests := []struct {
 		name                string
 		url                 string
 		expectedLimit       int
 		expectedCursorDecay float64
-		expectedCursorID    string
+		expectedCursorID    uuid.UUID
 	}{
 		{
 			name:                "no parameters - defaults",
 			url:                 "/test",
 			expectedLimit:       50,
 			expectedCursorDecay: 0.0,
-			expectedCursorID:    "",
+			expectedCursorID:    uuid.Nil,
 		},
 		{
 			name:                "with valid limit",
 			url:                 "/test?limit=25",
 			expectedLimit:       25,
 			expectedCursorDecay: 0.0,
-			expectedCursorID:    "",
+			expectedCursorID:    uuid.Nil,
 		},
 		{
 			name:                "limit exceeds max - capped at 100",
 			url:                 "/test?limit=200",
 			expectedLimit:       50, // invalid, defaults to 50
 			expectedCursorDecay: 0.0,
-			expectedCursorID:    "",
+			expectedCursorID:    uuid.Nil,
 		},
 		{
 			name:                "with cursor values",
-			url:                 "/test?limit=10&cursor_decay=1234.56&cursor_id=abc-123",
+			url:                 "/test?limit=10&cursor_decay=1234.56&cursor_id=550e8400-e29b-41d4-a716-446655440000",
 			expectedLimit:       10,
 			expectedCursorDecay: 1234.56,
-			expectedCursorID:    "abc-123",
+			expectedCursorID:    testUUID,
 		},
 		{
 			name:                "invalid decay - uses default 0.0",
 			url:                 "/test?cursor_decay=invalid",
 			expectedLimit:       50,
 			expectedCursorDecay: 0.0,
-			expectedCursorID:    "",
+			expectedCursorID:    uuid.Nil,
+		},
+		{
+			name:                "invalid cursor_id - uses uuid.Nil",
+			url:                 "/test?cursor_id=not-a-uuid",
+			expectedLimit:       50,
+			expectedCursorDecay: 0.0,
+			expectedCursorID:    uuid.Nil,
 		},
 		{
 			name:                "zero limit - uses default",
 			url:                 "/test?limit=0",
 			expectedLimit:       50,
 			expectedCursorDecay: 0.0,
-			expectedCursorID:    "",
+			expectedCursorID:    uuid.Nil,
 		},
 		{
 			name:                "negative limit - uses default",
 			url:                 "/test?limit=-10",
 			expectedLimit:       50,
 			expectedCursorDecay: 0.0,
-			expectedCursorID:    "",
+			expectedCursorID:    uuid.Nil,
 		},
 	}
 
@@ -77,61 +88,70 @@ func TestParsePaginationDecay(t *testing.T) {
 				t.Errorf("cursorDecay: got %f, want %f", cursorDecay, tt.expectedCursorDecay)
 			}
 			if cursorID != tt.expectedCursorID {
-				t.Errorf("cursorID: got %q, want %q", cursorID, tt.expectedCursorID)
+				t.Errorf("cursorID: got %v, want %v", cursorID, tt.expectedCursorID)
 			}
 		})
 	}
 }
 
 func TestParsePaginationPlays(t *testing.T) {
+	testUUID := uuid.MustParse("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+
 	tests := []struct {
 		name                string
 		url                 string
 		expectedLimit       int
 		expectedCursorPlays uint64
-		expectedCursorID    string
+		expectedCursorID    uuid.UUID
 	}{
 		{
 			name:                "no parameters - defaults",
 			url:                 "/test",
 			expectedLimit:       50,
 			expectedCursorPlays: 0,
-			expectedCursorID:    "",
+			expectedCursorID:    uuid.Nil,
 		},
 		{
 			name:                "with valid limit",
 			url:                 "/test?limit=30",
 			expectedLimit:       30,
 			expectedCursorPlays: 0,
-			expectedCursorID:    "",
+			expectedCursorID:    uuid.Nil,
 		},
 		{
 			name:                "with cursor values",
-			url:                 "/test?limit=20&cursor_plays=5000&cursor_id=xyz-789",
+			url:                 "/test?limit=20&cursor_plays=5000&cursor_id=6ba7b810-9dad-11d1-80b4-00c04fd430c8",
 			expectedLimit:       20,
 			expectedCursorPlays: 5000,
-			expectedCursorID:    "xyz-789",
+			expectedCursorID:    testUUID,
 		},
 		{
 			name:                "invalid plays - uses default 0",
 			url:                 "/test?cursor_plays=invalid",
 			expectedLimit:       50,
 			expectedCursorPlays: 0,
-			expectedCursorID:    "",
+			expectedCursorID:    uuid.Nil,
+		},
+		{
+			name:                "invalid cursor_id - uses uuid.Nil",
+			url:                 "/test?cursor_id=invalid-uuid",
+			expectedLimit:       50,
+			expectedCursorPlays: 0,
+			expectedCursorID:    uuid.Nil,
 		},
 		{
 			name:                "negative plays - uses default 0",
 			url:                 "/test?cursor_plays=-100",
 			expectedLimit:       50,
 			expectedCursorPlays: 0,
-			expectedCursorID:    "",
+			expectedCursorID:    uuid.Nil,
 		},
 		{
 			name:                "large plays value",
 			url:                 "/test?cursor_plays=9999999999",
 			expectedLimit:       50,
 			expectedCursorPlays: 9999999999,
-			expectedCursorID:    "",
+			expectedCursorID:    uuid.Nil,
 		},
 	}
 
@@ -147,7 +167,7 @@ func TestParsePaginationPlays(t *testing.T) {
 				t.Errorf("cursorPlays: got %d, want %d", cursorPlays, tt.expectedCursorPlays)
 			}
 			if cursorID != tt.expectedCursorID {
-				t.Errorf("cursorID: got %q, want %q", cursorID, tt.expectedCursorID)
+				t.Errorf("cursorID: got %v, want %v", cursorID, tt.expectedCursorID)
 			}
 		})
 	}

@@ -1,0 +1,21 @@
+# Dockerfile for running integration tests
+FROM golang:1.24-alpine
+RUN apk add --no-cache git curl
+WORKDIR /app
+
+# Copy go.mod and go.sum first for better caching
+COPY services/service_popularity_system/go.mod services/service_popularity_system/go.sum ./services/service_popularity_system/
+COPY libs/ ./libs/
+
+WORKDIR /app/services/service_popularity_system
+
+RUN go mod download
+
+# Copy the rest of the service files
+COPY services/service_popularity_system/ ./
+
+# Copy the database initialization SQL files
+COPY services/database_data_warehouse/ ./database_data_warehouse/
+
+# Run the integration tests
+CMD ["go", "test", "-tags=integration", "-count=1", "-timeout=5m", "./tests/integration/..."]
