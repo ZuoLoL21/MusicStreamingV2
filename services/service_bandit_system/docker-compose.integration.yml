@@ -25,7 +25,8 @@ services:
     container_name: service-bandit-clickhouse-test
     environment:
       CLICKHOUSE_DB: default
-      CLICKHOUSE_USER: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     ports:
       - "9002:9000"  # Different from production port 9001
@@ -35,7 +36,7 @@ services:
     tmpfs:
       - /var/lib/clickhouse  # In-memory storage for speed
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      test: ["CMD", "clickhouse-client", "--user", "clickhouse", "--password", "clickhouse", "--query", "SELECT 1"]
       interval: 3s
       timeout: 3s
       retries: 5
@@ -45,8 +46,8 @@ services:
   # Test runner container
   integration-tests:
     build:
-      context: .
-      dockerfile: Dockerfile.integration.test
+      context: ../..
+      dockerfile: services/service_bandit_system/Dockerfile.integration.test
     container_name: service-bandit-integration-tests
     environment:
       # PostgreSQL config
@@ -60,7 +61,8 @@ services:
       CLICKHOUSE_PORT: 9000
       CLICKHOUSE_HTTP_PORT: 8123
       CLICKHOUSE_DB: default
-      CLICKHOUSE_USER: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
     depends_on:
       postgres-test:
         condition: service_healthy

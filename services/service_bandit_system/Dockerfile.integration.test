@@ -4,10 +4,11 @@ RUN pip install --no-cache-dir uv
 
 WORKDIR /app
 
-COPY pyproject.toml uv.lock ./
-COPY src ./src
-COPY tests ./tests
-COPY main.py ./
+# Copy service files
+COPY services/service_bandit_system/pyproject.toml services/service_bandit_system/uv.lock ./
+COPY services/service_bandit_system/src ./src
+COPY services/service_bandit_system/tests ./tests
+COPY services/service_bandit_system/main.py ./
 
 RUN uv sync --extra dev
 
