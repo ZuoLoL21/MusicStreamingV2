@@ -141,19 +141,19 @@ OPTIONS /login
 PUT /login
 ```
 
-**Description:** Register a new user account.
+**Description:** Register a new user account with optional profile image.
 
 **Authentication:** None
 
-**Request Body:**
-```json
-{
-  "email": "newuser@example.com",
-  "password": "securepassword",
-  "username": "newuser",
-  "display_name": "New User"
-}
-```
+**Content-Type:** `multipart/form-data`
+
+**Form Fields:**
+- `username` (required, string, min 5 chars) - Username
+- `email` (required, string, valid email format) - Email address
+- `password` (required, string, min 8 chars) - Password
+- `country` (required, string, 2 chars) - ISO 3166-1 alpha-2 country code (e.g., "US", "GB")
+- `bio` (optional, string) - User biography
+- `image` (optional, file) - Profile image (JPEG, PNG, or WebP, square, max 10MB)
 
 **Response:**
 ```json
@@ -166,8 +166,10 @@ PUT /login
 
 **Status Codes:**
 - `201 Created` - Registration successful
-- `400 Bad Request` - Invalid input
-- `409 Conflict` - Email already exists
+- `400 Bad Request` - Invalid input (missing required fields, invalid format, invalid image)
+- `409 Conflict` - Email or username already exists
+- `415 Unsupported Media Type` - Wrong Content-Type (must be multipart/form-data)
+- `500 Internal Server Error` - Server error
 - `502 Bad Gateway` - Backend service unavailable
 
 ---
@@ -1064,30 +1066,27 @@ PUT /artists
 
 **Client Access:** `PUT http://localhost:8080/artists`
 
-**Description:** Create a new artist profile.
+**Description:** Create a new artist profile with optional profile image.
 
 **Authentication:** Normal JWT (via gateway_api)
 
-**Request Body:**
-```json
-{
-  "name": "Artist Name",
-  "bio": "Artist biography"
-}
-```
+**Content-Type:** `multipart/form-data`
+
+**Form Fields:**
+- `artist_name` (required, string, 1-200 chars) - Artist name
+- `bio` (optional, string) - Artist biography
+- `image` (optional, file) - Profile image (JPEG, PNG, or WebP, square, max 10MB)
 
 **Response:**
-```json
-{
-  "uuid": "123e4567-e89b-12d3-a456-426614174000",
-  "name": "Artist Name",
-  "bio": "Artist biography",
-  "created_at": "2024-01-01T00:00:00Z"
-}
+```text
+artist created
 ```
 
 **Status Codes:**
 - `201 Created` - Artist created
+- `400 Bad Request` - Invalid input (missing required fields, invalid image)
+- `415 Unsupported Media Type` - Wrong Content-Type (must be multipart/form-data)
+- `500 Internal Server Error` - Server error
 - `400 Bad Request` - Invalid input
 - `409 Conflict` - Artist name already exists
 - `500 Internal Server Error` - Server error
@@ -1504,30 +1503,29 @@ PUT /albums
 
 **Client Access:** `PUT http://localhost:8080/albums`
 
-**Description:** Create a new album.
+**Description:** Create a new album with optional cover image.
 
 **Authentication:** Normal JWT (via gateway_api)
 
-**Request Body:**
-```json
-{
-  "artist_uuid": "123e4567-e89b-12d3-a456-426614174000",
-  "title": "Album Title",
-  "description": "Album description",
-  "release_date": "2024-01-01"
-}
-```
+**Content-Type:** `multipart/form-data`
+
+**Form Fields:**
+- `artist_uuid` (required, string) - Artist UUID
+- `original_name` (required, string, 1-200 chars) - Album title
+- `description` (optional, string) - Album description
+- `image` (optional, file) - Album cover image (JPEG, PNG, or WebP, square, max 10MB)
 
 **Response:**
-```json
-{
-  "uuid": "123e4567-e89b-12d3-a456-426614174000",
-  "artist_uuid": "123e4567-e89b-12d3-a456-426614174000",
-  "title": "Album Title",
-  "description": "Album description",
-  "release_date": "2024-01-01",
-  "created_at": "2024-01-01T00:00:00Z"
-}
+```text
+album created
+```
+
+**Status Codes:**
+- `201 Created` - Album created
+- `400 Bad Request` - Invalid input (missing required fields, invalid UUID, invalid image)
+- `403 Forbidden` - Not authorized (must be artist member)
+- `415 Unsupported Media Type` - Wrong Content-Type (must be multipart/form-data)
+- `500 Internal Server Error` - Server error
 ```
 
 **Status Codes:**
@@ -1719,30 +1717,31 @@ PUT /music
 
 **Client Access:** `PUT http://localhost:8080/music`
 
-**Description:** Upload a new music track.
+**Description:** Upload a new music track with audio file and optional cover image.
 
 **Authentication:** Normal JWT (via gateway_api)
 
-**Request Body:**
-```json
-{
-  "artist_uuid": "123e4567-e89b-12d3-a456-426614174000",
-  "album_uuid": "123e4567-e89b-12d3-a456-426614174000",
-  "title": "Song Title",
-  "duration_seconds": 180,
-  "storage_path": "audio/abc123.mp3"
-}
-```
+**Content-Type:** `multipart/form-data`
+
+**Form Fields:**
+- `artist_uuid` (required, string) - Artist UUID
+- `song_name` (required, string, 1-500 chars) - Song title
+- `duration_seconds` (required, integer) - Duration in seconds (must be > 0)
+- `audio` (required, file) - Audio file (MP3, WAV, FLAC, OGG, AAC, M4A)
+- `in_album` (optional, string) - Album UUID to add this track to
+- `image` (optional, file) - Track cover image (JPEG, PNG, or WebP, square, max 10MB)
 
 **Response:**
-```json
-{
-  "uuid": "123e4567-e89b-12d3-a456-426614174000",
-  "title": "Song Title",
-  "artist_uuid": "123e4567-e89b-12d3-a456-426614174000",
-  "album_uuid": "123e4567-e89b-12d3-a456-426614174000",
-  "duration_seconds": 180,
-  "created_at": "2024-01-01T00:00:00Z"
+```text
+music created
+```
+
+**Status Codes:**
+- `201 Created` - Music track created
+- `400 Bad Request` - Invalid input (missing required fields, invalid UUID, invalid audio/image file)
+- `403 Forbidden` - Not authorized (must be artist member)
+- `415 Unsupported Media Type` - Wrong Content-Type (must be multipart/form-data)
+- `500 Internal Server Error` - Server error
 }
 ```
 
@@ -2239,18 +2238,17 @@ PUT /playlists
 
 **Client Access:** `PUT http://localhost:8080/playlists`
 
-**Description:** Create a new playlist.
+**Description:** Create a new playlist with optional cover image.
 
 **Authentication:** Normal JWT (via gateway_api)
 
-**Request Body:**
-```json
-{
-  "name": "My Playlist",
-  "description": "Collection of favorite songs",
-  "is_public": true
-}
-```
+**Content-Type:** `multipart/form-data`
+
+**Form Fields:**
+- `original_name` (required, string, 1-200 chars) - Playlist name
+- `description` (optional, string) - Playlist description
+- `is_public` (optional, boolean) - Whether playlist is public (default: false)
+- `image` (optional, file) - Playlist cover image (JPEG, PNG, or WebP, square, max 10MB)
 
 **Response:**
 ```json
@@ -2265,7 +2263,8 @@ PUT /playlists
 
 **Status Codes:**
 - `201 Created` - Playlist created
-- `400 Bad Request` - Invalid input
+- `400 Bad Request` - Invalid input (missing required fields, invalid image)
+- `415 Unsupported Media Type` - Wrong Content-Type (must be multipart/form-data)
 - `500 Internal Server Error` - Server error
 
 ---
