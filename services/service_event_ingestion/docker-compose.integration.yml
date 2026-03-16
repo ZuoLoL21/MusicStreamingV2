@@ -17,7 +17,7 @@ services:
     tmpfs:
       - /var/lib/clickhouse  # In-memory storage for speed
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      test: ["CMD", "clickhouse-client", "--user", "clickhouse", "--password", "clickhouse", "--query", "SELECT 1"]
       interval: 3s
       timeout: 3s
       retries: 5
@@ -50,16 +50,9 @@ services:
     environment:
       VAULT_ADDR: http://vault-test:8200
       VAULT_TOKEN: test-root-token
-    entrypoint: >
-      /bin/sh -c "
-      until vault status; do
-        echo 'Waiting for Vault...'
-        sleep 1
-      done &&
-      (vault secrets enable -path=transit transit || echo 'Transit already enabled') &&
-      (vault write -f transit/keys/event-ingestion type=rsa-4096 || echo 'event-ingestion key exists') &&
-      echo 'Vault initialized successfully'
-      "
+    volumes:
+      - ./tests/integration/scripts/init-vault.sh:/init-vault.sh:ro
+    entrypoint: ["/bin/sh", "/init-vault.sh"]
     depends_on:
       vault-test:
         condition: service_healthy
