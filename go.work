@@ -7,4 +7,5 @@ use (
 	./services/service_event_ingestion
 	./services/service_popularity_system
 	./services/service_user_database
+	./tests_e2e/tests
 )
