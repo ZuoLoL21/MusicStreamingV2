@@ -1,6 +1,6 @@
 # MusicStreamingV2 - Unified API Documentation
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-16
 
 This document provides complete API reference for all services in the MusicStreamingV2 platform. For architecture and design decisions, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -105,9 +105,10 @@ GET /health
 #### Login
 ```http
 POST /login
+OPTIONS /login
 ```
 
-**Description:** Authenticate user and receive JWT tokens.
+**Description:** Authenticate user and receive JWT tokens. The OPTIONS method is available for CORS preflight requests.
 
 **Authentication:** None
 
@@ -220,8 +221,9 @@ DELETE /users/*
 
 **Proxied Routes Include:**
 - User profile management (`/users/me`, `/users/{uuid}`)
-- User relationships (`/users/{uuid}/followers`, `/users/{uuid}/following/*`)
-- User content (`/users/{uuid}/music`, `/users/{uuid}/playlists`, `/users/{uuid}/likes`)
+- User profile updates (`/users/me/email`, `/users/me/password`, `/users/me/image`)
+- User relationships (`/users/{uuid}/followers`, `/users/{uuid}/following/users`, `/users/{uuid}/following/artists`, `/users/{uuid}/following/check`)
+- User content (`/users/{uuid}/music`, `/users/{uuid}/playlists`, `/users/{uuid}/likes`, `/users/{uuid}/artists`)
 - User actions (`/users/{uuid}/follow`)
 
 **See:** [service_user_database User Endpoints](#user-endpoints) for detailed documentation.
@@ -242,7 +244,8 @@ DELETE /artists/*
 
 **Proxied Routes Include:**
 - Artist profiles (`/artists`, `/artists/{uuid}`)
-- Artist members (`/artists/{uuid}/members/*`)
+- Artist images (`/artists/{uuid}/image`)
+- Artist members (`/artists/{uuid}/members/*`, `/artists/{uuid}/members/{userUuid}/role`)
 - Artist content (`/artists/{uuid}/albums`, `/artists/{uuid}/music`)
 - Artist followers (`/artists/{uuid}/followers`, `/artists/{uuid}/follow`)
 
@@ -263,8 +266,9 @@ DELETE /albums/*
 **Authentication:** Normal JWT required
 
 **Proxied Routes Include:**
-- Album creation and management
-- Album music tracks
+- Album creation and management (`/albums`, `/albums/{uuid}`)
+- Album image (`/albums/{uuid}/image`)
+- Album music tracks (`/albums/{uuid}/music`)
 - Album metadata and images
 
 **See:** [service_user_database Album Endpoints](#album-endpoints) for detailed documentation.
@@ -284,10 +288,11 @@ DELETE /music/*
 **Authentication:** Normal JWT required
 
 **Proxied Routes Include:**
-- Music track management
-- Play count and listening history
-- Music likes
-- Music tags
+- Music track management (`/music`, `/music/{uuid}`)
+- Music metadata (`/music/{uuid}/storage`, `/music/{uuid}/image`)
+- Play tracking (`/music/{uuid}/play`, `/music/{uuid}/listen`)
+- Music likes (`/music/{uuid}/like`, `/music/{uuid}/liked`)
+- Music tags (`/music/{uuid}/tags`, `/music/{uuid}/tags/{name}`)
 
 **See:** [service_user_database Music Endpoints](#music-endpoints) for detailed documentation.
 
@@ -305,8 +310,8 @@ DELETE /tags/*
 **Authentication:** Normal JWT required
 
 **Proxied Routes Include:**
-- Tag browsing and management
-- Music tagging
+- Tag browsing and management (`/tags`, `/tags/{name}`)
+- Music tagging (`/music/{uuid}/tags`, `/tags/{name}/music`)
 - Tag-based music discovery
 
 **See:** [service_user_database Tag Endpoints](#tag-endpoints) for detailed documentation.
@@ -326,8 +331,9 @@ DELETE /playlists/*
 **Authentication:** Normal JWT required
 
 **Proxied Routes Include:**
-- Playlist creation and management
-- Playlist tracks
+- Playlist creation and management (`/playlists`, `/playlists/{uuid}`)
+- Playlist image (`/playlists/{uuid}/image`)
+- Playlist tracks (`/playlists/{uuid}/tracks`, `/playlists/{uuid}/tracks/{trackUuid}/position`)
 - Track ordering
 
 **See:** [service_user_database Playlist Endpoints](#playlist-endpoints) for detailed documentation.
@@ -336,7 +342,8 @@ DELETE /playlists/*
 
 #### History Routes
 ```
-GET /history/*
+GET /history
+GET /history/top
 ```
 
 **Description:** Proxies listening history requests to service_user_database.
@@ -344,8 +351,8 @@ GET /history/*
 **Authentication:** Normal JWT required
 
 **Proxied Routes Include:**
-- User listening history
-- Top played music
+- User listening history (`/history`)
+- Top played music (`/history/top`)
 
 **See:** [service_user_database History Endpoints](#history-endpoints) for detailed documentation.
 
@@ -2854,16 +2861,23 @@ POST /recommend/theme
 **Response:**
 ```json
 {
-  "theme": "rock",
-  "features": [0.75, 0.42, 0.88, 0.31, 0.65, 0.53, 0.91, 0.22, 0.68, 0.44, 0.77, 0.59],
-  "confidence": 0.87
+  "recommended_theme": "rock",
+  "theme_features": [0.75, 0.42, 0.88, 0.31, 0.65, 0.53, 0.91, 0.22, 0.68, 0.44, 0.77, 0.59],
+  "popularity_data": [
+    {
+      "theme": "rock",
+      "decay_plays": 1000.5
+    }
+  ]
 }
 ```
 
 **Response Fields:**
-- `theme` - Recommended music theme/genre
-- `features` - Feature vector (12 floats) used for prediction (save for feedback)
-- `confidence` - Confidence score for the recommendation (0.0-1.0)
+- `recommended_theme` - Recommended music theme/genre
+- `theme_features` - Feature vector (12 floats) used for prediction (save for feedback)
+- `popularity_data` - Array of theme popularity data for fallback display
+
+**Note:** The `confidence` field is NOT returned by this endpoint. Only the theme, features, and popularity data are returned.
 
 **Status Codes:**
 - `200 OK` - Recommendation generated
@@ -2889,28 +2903,30 @@ GET /popular/songs/all-time
 **Authentication:** Normal JWT (via gateway_api)
 
 **Query Parameters:**
-- `limit` (optional, default: 20, max: 100)
+- `limit` (optional, default: 50, max: 100)
+- `cursor` (optional) - Decay score cursor for pagination
+- `cursor_id` (optional) - UUID cursor for pagination
 
 **Response:**
+Returns an array of song popularity objects (no wrapper):
 ```json
-{
-  "songs": [
-    {
-      "music_uuid": "123e4567-e89b-12d3-a456-426614174000",
-      "title": "Song Title",
-      "artist_uuid": "123e4567-e89b-12d3-a456-426614174000",
-      "artist_name": "Artist Name",
-      "play_count": 15000,
-      "like_count": 2000,
-      "popularity_score": 0.95
-    }
-  ]
-}
+[
+  {
+    "music_uuid": "123e4567-e89b-12d3-a456-426614174000",
+    "decay_plays": 15000.5,
+    "decay_listen_seconds": 500000.0
+  }
+]
 ```
+
+**Response Fields:**
+- `music_uuid` - Unique identifier for the music track
+- `decay_plays` - Decay-weighted play count (0.0-1.0 normalized)
+- `decay_listen_seconds` - Decay-weighted total listen time in seconds
 
 **Status Codes:**
 - `200 OK` - Success
-- `400 Bad Request` - Invalid limit
+- `400 Bad Request` - Invalid limit or cursor
 - `500 Internal Server Error` - Server error
 
 **Backend:** Routes to service_popularity_system
@@ -2929,26 +2945,30 @@ GET /popular/artists/all-time
 **Authentication:** Normal JWT (via gateway_api)
 
 **Query Parameters:**
-- `limit` (optional, default: 20, max: 100)
+- `limit` (optional, default: 50, max: 100)
+- `cursor` (optional) - Decay score cursor for pagination
+- `cursor_id` (optional) - UUID cursor for pagination
 
 **Response:**
+Returns an array of artist popularity objects (no wrapper):
 ```json
-{
-  "artists": [
-    {
-      "artist_uuid": "123e4567-e89b-12d3-a456-426614174000",
-      "name": "Artist Name",
-      "follower_count": 50000,
-      "total_plays": 500000,
-      "popularity_score": 0.98
-    }
-  ]
-}
+[
+  {
+    "artist_uuid": "123e4567-e89b-12d3-a456-426614174000",
+    "decay_plays": 50000.5,
+    "decay_listen_seconds": 2000000.0
+  }
+]
 ```
+
+**Response Fields:**
+- `artist_uuid` - Unique identifier for the artist
+- `decay_plays` - Decay-weighted play count (0.0-1.0 normalized)
+- `decay_listen_seconds` - Decay-weighted total listen time in seconds
 
 **Status Codes:**
 - `200 OK` - Success
-- `400 Bad Request` - Invalid limit
+- `400 Bad Request` - Invalid limit or cursor
 - `500 Internal Server Error` - Server error
 
 **Backend:** Routes to service_popularity_system
@@ -2967,21 +2987,24 @@ GET /popular/themes/all-time
 **Authentication:** Normal JWT (via gateway_api)
 
 **Query Parameters:**
-- `limit` (optional, default: 20, max: 100)
+- `limit` (optional, default: 50, max: 100)
 
 **Response:**
+Returns an array of theme popularity objects (no wrapper):
 ```json
-{
-  "themes": [
-    {
-      "theme": "rock",
-      "play_count": 1000000,
-      "song_count": 5000,
-      "popularity_score": 0.92
-    }
-  ]
-}
+[
+  {
+    "theme": "rock",
+    "decay_plays": 1000000.5,
+    "decay_listen_seconds": 50000000.0
+  }
+]
 ```
+
+**Response Fields:**
+- `theme` - Music theme/genre name
+- `decay_plays` - Decay-weighted play count (0.0-1.0 normalized)
+- `decay_listen_seconds` - Decay-weighted total listen time in seconds
 
 **Status Codes:**
 - `200 OK` - Success
@@ -3044,39 +3067,39 @@ GET /popular/songs/timeframe
 
 **Client Access:** `GET http://localhost:8080/popular/songs/timeframe`
 
-**Description:** Get trending songs within a specific time period.
+**Description:** Get trending songs within a specific date range.
 
 **Authentication:** Normal JWT (via gateway_api)
 
 **Query Parameters:**
-- `limit` (optional, default: 20, max: 100)
-- `timeframe` (required) - One of: `"day"`, `"week"`, `"month"`, `"year"`
+- `limit` (optional, default: 50, max: 100)
+- `start_date` (required) - Start date in YYYY-MM-DD format
+- `end_date` (required) - End date in YYYY-MM-DD format
+- `cursor` (optional) - Play count cursor for pagination
+- `cursor_id` (optional) - UUID cursor for pagination
 
 **Example:**
 ```
-GET http://localhost:8080/popular/songs/timeframe?timeframe=week&limit=50
+GET http://localhost:8080/popular/songs/timeframe?start_date=2024-01-01&end_date=2024-01-31&limit=50
 ```
 
 **Response:**
 ```json
-{
-  "timeframe": "week",
-  "songs": [
-    {
-      "music_uuid": "123e4567-e89b-12d3-a456-426614174000",
-      "title": "Trending Song",
-      "artist_name": "Artist Name",
-      "play_count": 5000,
-      "like_count": 800,
-      "popularity_score": 0.89,
-      "trend_direction": "up"
-    }
-  ]
-}
+[
+  {
+    "music_uuid": "123e4567-e89b-12d3-a456-426614174000",
+    "plays": 5000,
+    "listen_seconds": 150000
+  }
+]
 ```
 
 **Response Fields:**
-- `trend_direction` - `"up"`, `"down"`, or `"stable"`
+- `music_uuid` - Unique identifier for the song
+- `plays` - Total plays within the date range (uint64)
+- `listen_seconds` - Total listen seconds within the date range (uint64)
+
+**Note:** This endpoint returns a raw array, NOT wrapped in `{"songs": [...]}`. The fields returned are raw metrics, not enriched with `title`, `artist_name`, `like_count`, `popularity_score`, or `trend_direction`. The `timeframe` parameter is NOT supported.
 
 **Status Codes:**
 - `200 OK` - Success
@@ -3094,37 +3117,39 @@ GET /popular/artists/timeframe
 
 **Client Access:** `GET http://localhost:8080/popular/artists/timeframe`
 
-**Description:** Get trending artists within a specific time period.
+**Description:** Get trending artists within a specific date range.
 
 **Authentication:** Normal JWT (via gateway_api)
 
 **Query Parameters:**
-- `limit` (optional, default: 20, max: 100)
-- `timeframe` (required) - `"day"`, `"week"`, `"month"`, `"year"`
+- `limit` (optional, default: 50, max: 100)
+- `start_date` (required) - Start date in YYYY-MM-DD format
+- `end_date` (required) - End date in YYYY-MM-DD format
+- `cursor` (optional) - Play count cursor for pagination
+- `cursor_id` (optional) - UUID cursor for pagination
+
+**Example:**
+```
+GET http://localhost:8080/popular/artists/timeframe?start_date=2024-01-01&end_date=2024-01-31&limit=50
+```
 
 **Response:**
 ```json
-{
-  "timeframe": "week",
-  "artists": [
-    {
-      "artist_uuid": "123e4567-e89b-12d3-a456-426614174000",
-      "name": "Trending Artist",
-      "new_followers": 500,
-      "total_plays": 25000,
-      "popularity_score": 0.85,
-      "trend_direction": "up"
-    }
-  ]
-}
+[
+  {
+    "artist_uuid": "123e4567-e89b-12d3-a456-426614174000",
+    "plays": 25000,
+    "listen_seconds": 750000
+  }
+]
 ```
 
-**Status Codes:**
-- `200 OK` - Success
-- `400 Bad Request` - Invalid timeframe or limit
-- `500 Internal Server Error` - Server error
+**Response Fields:**
+- `artist_uuid` - Unique identifier for the artist
+- `plays` - Total plays within the date range (uint64)
+- `listen_seconds` - Total listen seconds within the date range (uint64)
 
-**Backend:** Routes to service_popularity_system
+**Note:** This endpoint returns a raw array, NOT wrapped in `{"artists": [...]}`. The fields returned are raw metrics, not enriched with `name`, `new_followers`, `popularity_score`, or `trend_direction`. The `timeframe` parameter is NOT supported.
 
 ---
 
@@ -3135,13 +3160,39 @@ GET /popular/themes/timeframe
 
 **Client Access:** `GET http://localhost:8080/popular/themes/timeframe`
 
-**Description:** Get trending themes/genres within a specific time period.
+**Description:** Get trending themes/genres within a specific date range.
 
 **Authentication:** Normal JWT (via gateway_api)
 
 **Query Parameters:**
-- `limit` (optional, default: 20, max: 100)
-- `timeframe` (required) - `"day"`, `"week"`, `"month"`, `"year"`
+- `limit` (optional, default: 50, max: 100)
+- `start_date` (required) - Start date in YYYY-MM-DD format
+- `end_date` (required) - End date in YYYY-MM-DD format
+- `cursor` (optional) - Play count cursor for pagination
+- `cursor_id` (optional) - UUID cursor for pagination
+
+**Example:**
+```
+GET http://localhost:8080/popular/themes/timeframe?start_date=2024-01-01&end_date=2024-01-31&limit=50
+```
+
+**Response:**
+```json
+[
+  {
+    "theme": "rock",
+    "plays": 50000,
+    "listen_seconds": 1500000
+  }
+]
+```
+
+**Response Fields:**
+- `theme` - Theme/genre name
+- `plays` - Total plays within the date range (uint64)
+- `listen_seconds` - Total listen seconds within the date range (uint64)
+
+**Note:** This endpoint returns a raw array, NOT wrapped in `{"themes": [...]}`. The fields returned are raw metrics, not enriched with `popularity_score` or `trend_direction`. The `timeframe` parameter is NOT supported.
 
 **Response:**
 ```json
@@ -3175,7 +3226,7 @@ GET /popular/songs/theme/{theme}/timeframe
 
 **Client Access:** `GET http://localhost:8080/popular/songs/theme/{theme}/timeframe`
 
-**Description:** Get trending songs for a specific theme within a time period.
+**Description:** Get trending songs for a specific theme within a date range.
 
 **Authentication:** Normal JWT (via gateway_api)
 
@@ -3183,46 +3234,36 @@ GET /popular/songs/theme/{theme}/timeframe
 - `theme` - Theme/genre name
 
 **Query Parameters:**
-- `limit` (optional, default: 20, max: 100)
-- `timeframe` (required) - `"day"`, `"week"`, `"month"`, `"year"`
+- `limit` (optional, default: 50, max: 100)
+- `start_date` (required) - Start date in YYYY-MM-DD format
+- `end_date` (required) - End date in YYYY-MM-DD format
+- `cursor` (optional) - Play count cursor for pagination
+- `cursor_id` (optional) - UUID cursor for pagination
 
 **Example:**
 ```
-GET http://localhost:8080/popular/songs/theme/rock/timeframe?timeframe=month&limit=30
+GET http://localhost:8080/popular/songs/theme/rock/timeframe?start_date=2024-01-01&end_date=2024-01-31&limit=30
 ```
 
 **Response:**
 ```json
-{
-  "theme": "rock",
-  "timeframe": "month",
-  "songs": [
-    {
-      "music_uuid": "123e4567-e89b-12d3-a456-426614174000",
-      "title": "Trending Rock Song",
-      "artist_name": "Rock Artist",
-      "play_count": 10000,
-      "like_count": 1500,
-      "popularity_score": 0.87,
-      "trend_direction": "up"
-    }
-  ]
-}
+[
+  {
+    "music_uuid": "123e4567-e89b-12d3-a456-426614174000",
+    "theme": "rock",
+    "plays": 10000,
+    "listen_seconds": 300000
+  }
+]
 ```
 
-**Status Codes:**
-- `200 OK` - Success
-- `400 Bad Request` - Invalid timeframe or limit
-- `404 Not Found` - Theme does not exist
-- `500 Internal Server Error` - Server error
+**Response Fields:**
+- `music_uuid` - Unique identifier for the song
+- `theme` - Theme/genre name
+- `plays` - Total plays within the date range (uint64)
+- `listen_seconds` - Total listen seconds within the date range (uint64)
 
-**Backend:** Routes to service_popularity_system
-
----
-
-### Timeframe Values
-
-Valid timeframe values for all timeframe-based endpoints:
+**Note:** This endpoint returns a raw array, NOT wrapped in `{"songs": [...]}`. The fields returned are raw metrics, not enriched with `title`, `artist_name`, `like_count`, `popularity_score`, or `trend_direction`. The `timeframe` parameter is NOT supported.
 
 | Value | Duration | Description |
 |-------|----------|-------------|
