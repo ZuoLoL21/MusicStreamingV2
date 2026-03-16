@@ -44,16 +44,9 @@ services:
   minio-init-test:
     image: minio/mc:latest
     container_name: service-user-db-minio-init-test
-    entrypoint: >
-      /bin/sh -c "
-      until /usr/bin/mc alias set minio http://minio-test:9000 testuser testpassword; do
-        echo 'Waiting for MinIO...'
-        sleep 1
-      done &&
-      /usr/bin/mc mb minio/test-bucket --ignore-existing &&
-      /usr/bin/mc anonymous set download minio/test-bucket &&
-      echo 'MinIO initialized successfully'
-      "
+    volumes:
+      - ./tests/integration/scripts/init-minio.sh:/init-minio.sh:ro
+    entrypoint: ["/bin/sh", "/init-minio.sh"]
     depends_on:
       minio-test:
         condition: service_healthy
@@ -86,20 +79,9 @@ services:
     environment:
       VAULT_ADDR: http://vault-test:8200
       VAULT_TOKEN: test-root-token
-    entrypoint: >
-      /bin/sh -c "
-      until vault status; do
-        echo 'Waiting for Vault...'
-        sleep 1
-      done &&
-      (vault secrets enable -path=transit transit || echo 'Transit already enabled') &&
-      (vault write -f transit/keys/service-user-database type=rsa-4096 || echo 'service-user-database key exists') &&
-      (vault write -f transit/keys/gateway-api type=rsa-4096 || echo 'gateway-api key exists') &&
-      (vault write -f transit/keys/jwt-backend type=rsa-4096 || echo 'jwt-backend key exists') &&
-      (vault write -f transit/keys/jwt-user type=rsa-4096 || echo 'jwt-user key exists') &&
-      (vault write -f transit/keys/jwt-refresh type=rsa-4096 || echo 'jwt-refresh key exists') &&
-      echo 'Vault initialized successfully'
-      "
+    volumes:
+      - ./tests/integration/scripts/init-vault.sh:/init-vault.sh:ro
+    entrypoint: ["/bin/sh", "/init-vault.sh"]
     depends_on:
       vault-test:
         condition: service_healthy
