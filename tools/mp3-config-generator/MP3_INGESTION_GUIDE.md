@@ -430,7 +430,7 @@ MP3 files are stored in MinIO S3:
 
 The seed data includes a default user 'john':
 ```sql
--- From 04_seed.sql
+-- From 99_seed.sql
 INSERT INTO "user" (uuid, email, hashed_password, username, created_at, updated_at)
 VALUES (
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
