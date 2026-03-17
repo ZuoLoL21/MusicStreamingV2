@@ -21,7 +21,7 @@ services:
 
   # MinIO test instance with tmpfs for speed
   minio-test:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: service-user-db-minio-test
     command: server /data --console-address ":9001"
     ports:
@@ -42,7 +42,7 @@ services:
 
   # MinIO initialization
   minio-init-test:
-    image: minio/mc:latest
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
     container_name: service-user-db-minio-init-test
     volumes:
       - ./tests/integration/scripts/init-minio.sh:/init-minio.sh:ro
@@ -55,7 +55,7 @@ services:
 
   # Vault test instance (dev mode)
   vault-test:
-    image: hashicorp/vault:latest
+    image: hashicorp/vault:1.18.1
     container_name: service-user-db-vault-test
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: test-root-token
@@ -74,7 +74,7 @@ services:
 
   # Vault initialization - setup transit engine and JWT keys
   vault-init-test:
-    image: hashicorp/vault:latest
+    image: hashicorp/vault:1.18.1
     container_name: service-user-db-vault-init-test
     environment:
       VAULT_ADDR: http://vault-test:8200
@@ -90,7 +90,7 @@ services:
 
   # Mock server for service_event_ingestion
   mock-event-ingestion:
-    image: mockserver/mockserver:latest
+    image: mockserver/mockserver:5.15.0
     container_name: service-user-db-mock-event-ingestion
     environment:
       MOCKSERVER_INITIALIZATION_JSON_PATH: /config/expectations.json

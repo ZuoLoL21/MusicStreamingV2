@@ -21,7 +21,7 @@ services:
       - integration-test-net
 
   clickhouse-test:
-    image: clickhouse/clickhouse-server:23.8
+    image: clickhouse/clickhouse-server:24.8
     container_name: service-bandit-clickhouse-test
     environment:
       CLICKHOUSE_DB: default

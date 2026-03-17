@@ -1,7 +1,7 @@
 services:
   # ClickHouse test instance with tmpfs for speed
   clickhouse-test:
-    image: clickhouse/clickhouse-server:23.8
+    image: clickhouse/clickhouse-server:24.8
     container_name: service-popularity-clickhouse-test
     environment:
       CLICKHOUSE_DB: default
@@ -29,7 +29,7 @@ services:
 
   # Vault test instance (dev mode)
   vault-test:
-    image: hashicorp/vault:latest
+    image: hashicorp/vault:1.18.1
     container_name: service-popularity-vault-test
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: test-root-token
@@ -48,7 +48,7 @@ services:
 
   # Vault initialization - setup transit engine and JWT keys
   vault-init-test:
-    image: hashicorp/vault:latest
+    image: hashicorp/vault:1.18.1
     container_name: service-popularity-vault-init-test
     environment:
       VAULT_ADDR: http://vault-test:8200
