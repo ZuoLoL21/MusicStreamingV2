@@ -288,13 +288,10 @@ DELETE /music/*
 **Proxied Routes Include:**
 - Music track management (`/music`, `/music/{uuid}`)
 - Music metadata (`/music/{uuid}/storage`, `/music/{uuid}/image`)
-- Play tracking (`/music/{uuid}/play`)
+- Play tracking (`/music/{uuid}/play`) - **Requires Normal JWT**
 - Listening history (`/music/{uuid}/listen`)
 - Music likes (`/music/{uuid}/like`, `/music/{uuid}/liked`)
 - Music tags (`/music/{uuid}/tags`, `/music/{uuid}/tags/{name}`)
-
-**Public Endpoints (No Authentication):**
-- `POST /music/{uuid}/play` - Increment play count (PUBLIC - no auth required)
 
 **File Upload Endpoints (multipart/form-data):**
 - `PUT /music` - Upload new music track
@@ -468,8 +465,8 @@ POST /events/listen
 - `music_uuid` (required, UUID) - Music track UUID
 - `artist_uuid` (required, UUID) - Artist UUID
 - `album_uuid` (optional, UUID) - Album UUID
-- `listen_duration_seconds` (required, int) - How long the user listened
-- `track_duration_seconds` (required, int) - Total track duration
+- `listen_duration_seconds` (optional, int, default: 0) - How long the user listened (seconds, must be >= 0)
+- `track_duration_seconds` (optional, int, default: 0) - Total track duration (seconds)
 - `completion_ratio` (required, float) - Listen completion ratio (0.0-1.0)
 
 **Status Codes:**

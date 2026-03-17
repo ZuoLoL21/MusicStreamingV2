@@ -66,7 +66,7 @@ Register a new user account.
 
 **Example Request (cURL):**
 ```bash
-curl -X PUT http://localhost:8081/login \
+curl -X PUT http://localhost:8080/login \
   -F "username=johndoe" \
   -F "email=john@example.com" \
   -F "password=secret123" \
@@ -298,6 +298,46 @@ Get all music liked by a user.
 
 ---
 
+### Get User's Uploaded Music
+
+Get all music tracks uploaded by a specific user.
+
+**Endpoint:** `GET /users/{uuid}/music`
+
+**Authentication:** Service JWT required (auto-added by gateway_api)
+
+**Path Parameters:**
+- `uuid`: User's unique identifier
+
+**Query Parameters:**
+- `limit` (optional, default: 20, max: 100) - Number of results per page
+- `cursor` (optional) - Timestamp cursor for pagination (ISO 8601 format)
+- `cursor_id` (optional) - UUID cursor for pagination
+
+**Response:**
+```json
+[
+  {
+    "uuid": "music-uuid-here",
+    "song_name": "Track Name",
+    "from_artist": "artist-uuid-here",
+    "uploaded_by": "user-uuid-here",
+    "in_album": "album-uuid-here",
+    "path_in_file_storage": "http://localhost:8001/files/public/audio/abc123.mp3",
+    "duration_seconds": 180,
+    "image_path": "http://localhost:8001/files/public/pictures-music/abc123.jpg",
+    "created_at": "2024-01-01T00:00:00Z"
+  }
+]
+```
+
+**Status Codes:**
+- `200 OK`: Returns list of music tracks
+- `400 Bad Request`: Invalid UUID or pagination parameters
+- `404 Not Found`: User not found
+
+---
+
 ### Get User's Followers
 
 Get all followers of a user.
@@ -325,6 +365,11 @@ Get all users followed by a user.
 **Path Parameters:**
 - `uuid`: User's unique identifier
 
+**Query Parameters:**
+- `limit` (optional, default: 20, max: 100) - Number of results per page
+- `cursor` (optional) - Timestamp cursor for pagination (ISO 8601 format)
+- `cursor_id` (optional) - UUID cursor for pagination
+
 **Status Codes:**
 - `200 OK`: Returns list of followed users
 
@@ -340,6 +385,11 @@ Get all artists followed by a user.
 
 **Path Parameters:**
 - `uuid`: User's unique identifier
+
+**Query Parameters:**
+- `limit` (optional, default: 20, max: 100) - Number of results per page
+- `cursor` (optional) - Timestamp cursor for pagination (ISO 8601 format)
+- `cursor_id` (optional) - UUID cursor for pagination
 
 **Status Codes:**
 - `200 OK`: Returns list of followed artists
@@ -408,6 +458,11 @@ Get all playlists created by a user.
 
 **Path Parameters:**
 - `uuid`: User's unique identifier
+
+**Query Parameters:**
+- `limit` (optional, default: 20, max: 100) - Number of results per page
+- `cursor` (optional) - Timestamp cursor for pagination (ISO 8601 format)
+- `cursor_id` (optional) - UUID cursor for pagination
 
 **Status Codes:**
 - `200 OK`: Returns list of playlists
@@ -981,17 +1036,20 @@ Delete a music track (Owner only).
 
 ### Play Music
 
-Register a music play event (public endpoint, no auth required).
+Register a music play event and increment play count.
 
 **Endpoint:** `POST /music/{uuid}/play`
 
-**Authentication:** None (truly public endpoint)
+**Authentication:** Service JWT required (auto-added by gateway_api)
 
 **Path Parameters:**
 - `uuid`: Music's unique identifier
 
 **Status Codes:**
 - `200 OK`: Play event registered
+- `400 Bad Request`: Invalid music UUID
+- `404 Not Found`: Music not found
+- `500 Internal Server Error`: Database error
 
 ---
 
