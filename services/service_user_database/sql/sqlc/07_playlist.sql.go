@@ -295,6 +295,41 @@ func (q *Queries) RemoveTrackFromPlaylist(ctx context.Context, arg RemoveTrackFr
 	return err
 }
 
+const reorderPlaylistTracks = `-- name: ReorderPlaylistTracks :exec
+WITH track_mapping AS (
+    SELECT
+        unnest($3::uuid[]) AS music_uuid,
+        generate_series(0, array_length($3::uuid[], 1) - 1) AS new_position
+),
+validation AS (
+    SELECT
+        COUNT(DISTINCT pt.music_uuid) = array_length($3::uuid[], 1) AS all_exist,
+        COUNT(*) = array_length($3::uuid[], 1) AS count_matches
+    FROM playlist_track pt
+    WHERE pt.playlist_uuid = $2
+    AND pt.music_uuid = ANY($3::uuid[])
+)
+UPDATE playlist_track pt
+SET position = tm.new_position
+FROM track_mapping tm, validation v
+WHERE pt.playlist_uuid = $2
+AND pt.music_uuid = tm.music_uuid
+AND is_user_allowed_playlist_edit($1, $2)
+AND v.all_exist
+AND v.count_matches
+`
+
+type ReorderPlaylistTracksParams struct {
+	UserUuid     pgtype.UUID   `json:"user_uuid"`
+	PlaylistUuid pgtype.UUID   `json:"playlist_uuid"`
+	Column3      []pgtype.UUID `json:"column_3"`
+}
+
+func (q *Queries) ReorderPlaylistTracks(ctx context.Context, arg ReorderPlaylistTracksParams) error {
+	_, err := q.db.Exec(ctx, reorderPlaylistTracks, arg.UserUuid, arg.PlaylistUuid, arg.Column3)
+	return err
+}
+
 const searchForPlaylist = `-- name: SearchForPlaylist :many
 SELECT
     p.uuid, p.from_user, p.original_name, p.description, p.is_public, p.image_path, p.created_at, p.updated_at,
@@ -413,32 +448,5 @@ type UpdatePlaylistImageParams struct {
 
 func (q *Queries) UpdatePlaylistImage(ctx context.Context, arg UpdatePlaylistImageParams) error {
 	_, err := q.db.Exec(ctx, updatePlaylistImage, arg.UserUuid, arg.Uuid, arg.ImagePath)
-	return err
-}
-
-const updateTrackPosition = `-- name: UpdateTrackPosition :exec
-    -- Requires validating position (ensure positive < max position)
-    -- Requires shifting other 
-UPDATE playlist_track
-SET position = $4
-WHERE uuid = $3
-AND is_user_allowed_playlist_edit($1, $2)
-`
-
-type UpdateTrackPositionParams struct {
-	UserUuid     pgtype.UUID `json:"user_uuid"`
-	PlaylistUuid pgtype.UUID `json:"playlist_uuid"`
-	Uuid         pgtype.UUID `json:"uuid"`
-	Position     int32       `json:"position"`
-}
-
-// TODO: Current implementation just doesn't work
-func (q *Queries) UpdateTrackPosition(ctx context.Context, arg UpdateTrackPositionParams) error {
-	_, err := q.db.Exec(ctx, updateTrackPosition,
-		arg.UserUuid,
-		arg.PlaylistUuid,
-		arg.Uuid,
-		arg.Position,
-	)
 	return err
 }

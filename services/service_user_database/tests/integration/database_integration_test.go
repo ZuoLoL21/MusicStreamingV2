@@ -392,7 +392,7 @@ func TestIntegration_DB_Playlist_ReorderTracks(t *testing.T) {
 	require.NoError(t, err)
 	playlistUUID := playlists[0].Uuid
 
-	// Add tracks (positions auto-calculated)
+	// Add tracks in order: music1, music2, music3 (positions 0, 1, 2)
 	err = db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
 		PlaylistUuid: playlistUUID,
 		MusicUuid:    music1UUID,
@@ -409,7 +409,83 @@ func TestIntegration_DB_Playlist_ReorderTracks(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Get tracks
+	// Get initial order
+	tracksBefore, err := db.GetPlaylistTracks(ctx, sqlhandler.GetPlaylistTracksParams{
+		PlaylistUuid: playlistUUID,
+		Limit:        10,
+		Column3:      -1,
+	})
+	require.NoError(t, err)
+	require.Len(t, tracksBefore, 3)
+	assert.Equal(t, music1UUID, tracksBefore[0].Uuid) // position 0
+	assert.Equal(t, music2UUID, tracksBefore[1].Uuid) // position 1
+	assert.Equal(t, music3UUID, tracksBefore[2].Uuid) // position 2
+
+	// Reorder tracks: music3, music1, music2 (reverse and swap)
+	err = db.ReorderPlaylistTracks(ctx, sqlhandler.ReorderPlaylistTracksParams{
+		UserUuid:     userUUID,
+		PlaylistUuid: playlistUUID,
+		Column3:      []pgtype.UUID{music3UUID, music1UUID, music2UUID},
+	})
+	require.NoError(t, err)
+
+	// Get reordered tracks
+	tracksAfter, err := db.GetPlaylistTracks(ctx, sqlhandler.GetPlaylistTracksParams{
+		PlaylistUuid: playlistUUID,
+		Limit:        10,
+		Column3:      -1,
+	})
+	require.NoError(t, err)
+	require.Len(t, tracksAfter, 3)
+	assert.Equal(t, music3UUID, tracksAfter[0].Uuid) // now position 0
+	assert.Equal(t, music1UUID, tracksAfter[1].Uuid) // now position 1
+	assert.Equal(t, music2UUID, tracksAfter[2].Uuid) // now position 2
+}
+
+func TestIntegration_DB_Playlist_ReorderTracks_CountMismatch(t *testing.T) {
+	pool, db := SetupTestDB(t)
+	defer CleanupTestData(t, pool)
+
+	ctx := context.Background()
+
+	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
+	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
+	music1UUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
+	music2UUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
+	music3UUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
+	builders.NewPlaylistBuilder(userUUID).Build(t, ctx, db)
+
+	playlists, err := db.GetPlaylistsForUser(ctx, sqlhandler.GetPlaylistsForUserParams{
+		FromUser: userUUID,
+		Limit:    1,
+	})
+	require.NoError(t, err)
+	playlistUUID := playlists[0].Uuid
+
+	// Add 3 tracks
+	db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
+		PlaylistUuid: playlistUUID,
+		MusicUuid:    music1UUID,
+	})
+	db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
+		PlaylistUuid: playlistUUID,
+		MusicUuid:    music2UUID,
+	})
+	db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
+		PlaylistUuid: playlistUUID,
+		MusicUuid:    music3UUID,
+	})
+
+	// Try to reorder with only 2 tracks (count mismatch) - should fail
+	err = db.ReorderPlaylistTracks(ctx, sqlhandler.ReorderPlaylistTracksParams{
+		UserUuid:     userUUID,
+		PlaylistUuid: playlistUUID,
+		Column3:      []pgtype.UUID{music1UUID, music2UUID},
+	})
+	// Validation should prevent update - no error but no changes
+	require.NoError(t, err)
+
+	// Verify order unchanged
 	tracks, err := db.GetPlaylistTracks(ctx, sqlhandler.GetPlaylistTracksParams{
 		PlaylistUuid: playlistUUID,
 		Limit:        10,
@@ -417,15 +493,66 @@ func TestIntegration_DB_Playlist_ReorderTracks(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, tracks, 3)
+	assert.Equal(t, music1UUID, tracks[0].Uuid)
+	assert.Equal(t, music2UUID, tracks[1].Uuid)
+	assert.Equal(t, music3UUID, tracks[2].Uuid)
+}
 
-	// Verify tracks are returned (order may vary based on query)
-	foundUUIDs := make(map[string]bool)
-	for _, track := range tracks {
-		foundUUIDs[builders.UUIDToString(track.Uuid)] = true
-	}
-	assert.True(t, foundUUIDs[builders.UUIDToString(music1UUID)])
-	assert.True(t, foundUUIDs[builders.UUIDToString(music2UUID)])
-	assert.True(t, foundUUIDs[builders.UUIDToString(music3UUID)])
+func TestIntegration_DB_Playlist_ReorderTracks_InvalidTrack(t *testing.T) {
+	pool, db := SetupTestDB(t)
+	defer CleanupTestData(t, pool)
+
+	ctx := context.Background()
+
+	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
+	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
+	music1UUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
+	music2UUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
+	music3UUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
+	musicNotInPlaylistUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
+	builders.NewPlaylistBuilder(userUUID).Build(t, ctx, db)
+
+	playlists, err := db.GetPlaylistsForUser(ctx, sqlhandler.GetPlaylistsForUserParams{
+		FromUser: userUUID,
+		Limit:    1,
+	})
+	require.NoError(t, err)
+	playlistUUID := playlists[0].Uuid
+
+	// Add 3 tracks
+	db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
+		PlaylistUuid: playlistUUID,
+		MusicUuid:    music1UUID,
+	})
+	db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
+		PlaylistUuid: playlistUUID,
+		MusicUuid:    music2UUID,
+	})
+	db.AddTrackToPlaylist(ctx, sqlhandler.AddTrackToPlaylistParams{
+		PlaylistUuid: playlistUUID,
+		MusicUuid:    music3UUID,
+	})
+
+	// Try to reorder with a track not in playlist - should fail
+	err = db.ReorderPlaylistTracks(ctx, sqlhandler.ReorderPlaylistTracksParams{
+		UserUuid:     userUUID,
+		PlaylistUuid: playlistUUID,
+		Column3:      []pgtype.UUID{music1UUID, music2UUID, musicNotInPlaylistUUID},
+	})
+	// Validation should prevent update
+	require.NoError(t, err)
+
+	// Verify order unchanged
+	tracks, err := db.GetPlaylistTracks(ctx, sqlhandler.GetPlaylistTracksParams{
+		PlaylistUuid: playlistUUID,
+		Limit:        10,
+		Column3:      -1,
+	})
+	require.NoError(t, err)
+	require.Len(t, tracks, 3)
+	assert.Equal(t, music1UUID, tracks[0].Uuid)
+	assert.Equal(t, music2UUID, tracks[1].Uuid)
+	assert.Equal(t, music3UUID, tracks[2].Uuid)
 }
 
 func TestIntegration_DB_Playlist_GetTracksWithPagination(t *testing.T) {

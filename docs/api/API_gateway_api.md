@@ -338,8 +338,8 @@ DELETE /playlists/*
 **Proxied Routes Include:**
 - Playlist creation and management (`/playlists`, `/playlists/{uuid}`)
 - Playlist image (`/playlists/{uuid}/image`)
-- Playlist tracks (`/playlists/{uuid}/tracks`, `/playlists/{uuid}/tracks/{trackUuid}/position`)
-- Track ordering
+- Playlist tracks (`/playlists/{uuid}/tracks`, `/playlists/{uuid}/reorder`)
+- Track management and reordering
 
 **File Upload Endpoints (multipart/form-data):**
 - `PUT /playlists` - Create new playlist

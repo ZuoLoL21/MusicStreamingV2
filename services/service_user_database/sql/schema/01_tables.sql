@@ -141,7 +141,7 @@ CREATE TABLE playlist_track (
     position INTEGER NOT NULL,
     playlist_uuid UUID NOT NULL REFERENCES playlist(uuid) ON DELETE CASCADE,
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (playlist_uuid, position)
+    UNIQUE (playlist_uuid, position) DEFERRABLE INITIALLY DEFERRED
 );
 
 CREATE INDEX idx_playlisttrack_playlist_position ON playlist_track(playlist_uuid, position);

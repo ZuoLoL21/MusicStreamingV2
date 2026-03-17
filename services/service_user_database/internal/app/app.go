@@ -211,7 +211,7 @@ func (a *App) registerPlaylistRoutes(r *mux.Router) {
 	r.HandleFunc("/playlists/{uuid}/tracks", a.handlers.Playlist.GetPlaylistTracks).Methods("GET")
 	r.HandleFunc("/playlists/{uuid}/tracks/{musicUuid}", a.handlers.Playlist.AddTrackToPlaylist).Methods("PUT")
 	r.HandleFunc("/playlists/{uuid}/tracks/{musicUuid}", a.handlers.Playlist.RemoveTrackFromPlaylist).Methods("DELETE")
-	r.HandleFunc("/playlists/{uuid}/tracks/{trackUuid}/position", a.handlers.Playlist.UpdateTrackPosition).Methods("POST")
+	r.HandleFunc("/playlists/{uuid}/reorder", a.handlers.Playlist.ReorderPlaylistTracks).Methods("POST")
 }
 
 func (a *App) registerHistoryRoutes(r *mux.Router) {

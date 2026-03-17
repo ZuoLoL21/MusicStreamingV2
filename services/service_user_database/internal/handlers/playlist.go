@@ -380,38 +380,40 @@ func (h *PlaylistHandler) UpdatePlaylistImage(w http.ResponseWriter, r *http.Req
 	h.returns.ReturnText(w, "playlist image updated", http.StatusOK)
 }
 
-type updateTrackPositionRequest struct {
-	Position int32 `json:"position" validate:"gte=0"`
+type reorderPlaylistTracksRequest struct {
+	TrackOrder []string `json:"track_order" validate:"required,min=1"`
 }
 
-func (h *PlaylistHandler) UpdateTrackPosition(w http.ResponseWriter, r *http.Request) {
+func (h *PlaylistHandler) ReorderPlaylistTracks(w http.ResponseWriter, r *http.Request) {
 	userUUID, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
 	}
 
-	// trackUuid is the playlist_track row UUID
-	trackUUID, ok := parseUUID(r, "trackUuid")
-	if !ok {
-		h.returns.ReturnError(w, "invalid track uuid", http.StatusBadRequest)
-		return
-	}
-
-	body, ok := decodeBody[updateTrackPositionRequest](w, r, h.returns)
+	body, ok := decodeBody[reorderPlaylistTracksRequest](w, r, h.returns)
 	if !ok {
 		return
 	}
 
-	if err := h.db.UpdateTrackPosition(r.Context(), sqlhandler.UpdateTrackPositionParams{
+	musicUUIDs := make([]pgtype.UUID, len(body.TrackOrder))
+	for i, uuidStr := range body.TrackOrder {
+		parsedUUID, err := uuidToPgtype(uuidStr)
+		if err != nil {
+			h.returns.ReturnError(w, "invalid track uuid in track_order", http.StatusBadRequest)
+			return
+		}
+		musicUUIDs[i] = parsedUUID
+	}
+
+	if err := h.db.ReorderPlaylistTracks(r.Context(), sqlhandler.ReorderPlaylistTracksParams{
 		UserUuid:     userUUID,
 		PlaylistUuid: playlistUUID,
-		Uuid:         trackUUID,
-		Position:     body.Position,
+		Column3:      musicUUIDs,
 	}); err != nil {
-		h.logger.Error("failed to update track position", zap.Error(err))
-		h.returns.ReturnError(w, "failed to update track position", http.StatusInternalServerError)
+		h.logger.Error("failed to reorder playlist tracks", zap.Error(err))
+		h.returns.ReturnError(w, "failed to reorder playlist tracks", http.StatusInternalServerError)
 		return
 	}
 
-	h.returns.ReturnText(w, "track position updated", http.StatusOK)
+	h.returns.ReturnText(w, "playlist tracks reordered", http.StatusOK)
 }

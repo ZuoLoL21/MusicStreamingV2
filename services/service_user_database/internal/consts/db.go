@@ -85,7 +85,7 @@ type DB interface {
 	DeletePlaylist(ctx context.Context, uuid sqlhandler.DeletePlaylistParams) error
 	AddTrackToPlaylist(ctx context.Context, arg sqlhandler.AddTrackToPlaylistParams) error
 	RemoveTrackFromPlaylist(ctx context.Context, arg sqlhandler.RemoveTrackFromPlaylistParams) error
-	UpdateTrackPosition(ctx context.Context, arg sqlhandler.UpdateTrackPositionParams) error
+	ReorderPlaylistTracks(ctx context.Context, arg sqlhandler.ReorderPlaylistTracksParams) error
 
 	GetListeningHistoryForUser(ctx context.Context, arg sqlhandler.GetListeningHistoryForUserParams) ([]sqlhandler.ListeningHistory, error)
 	GetTopMusicForUser(ctx context.Context, arg sqlhandler.GetTopMusicForUserParams) ([]sqlhandler.GetTopMusicForUserRow, error)

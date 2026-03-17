@@ -73,14 +73,29 @@ SET original_name = $3,
 WHERE uuid = $2
 AND is_user_allowed_playlist_edit($1, $2);
 
--- TODO: Current implementation just doesn't work
-    -- Requires validating position (ensure positive < max position)
-    -- Requires shifting other 
--- name: UpdateTrackPosition :exec
-UPDATE playlist_track
-SET position = $4
-WHERE uuid = $3
-AND is_user_allowed_playlist_edit($1, $2);
+-- name: ReorderPlaylistTracks :exec
+WITH track_mapping AS (
+    SELECT
+        unnest($3::uuid[]) AS music_uuid,
+        generate_series(0, array_length($3::uuid[], 1) - 1) AS new_position
+),
+validation AS (
+    SELECT
+        COUNT(DISTINCT pt.music_uuid) = array_length($3::uuid[], 1) AS all_exist,
+        COUNT(*) = array_length($3::uuid[], 1) AS count_matches
+
+    FROM playlist_track pt
+    WHERE pt.playlist_uuid = $2
+    AND pt.music_uuid = ANY($3::uuid[])
+)
+UPDATE playlist_track pt
+SET position = tm.new_position
+FROM track_mapping tm, validation v
+WHERE pt.playlist_uuid = $2
+AND pt.music_uuid = tm.music_uuid
+AND is_user_allowed_playlist_edit($1, $2)
+AND v.all_exist
+AND v.count_matches;
 
 -- name: UpdatePlaylistImage :exec
 UPDATE playlist

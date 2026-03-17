@@ -1310,11 +1310,11 @@ Remove a track from a playlist (Owner only).
 
 ---
 
-### Reorder Track Position
+### Reorder Playlist Tracks
 
-Change the position of a track in a playlist (Owner only).
+Reorder all tracks in a playlist by providing the desired order (Owner only).
 
-**Endpoint:** `POST /playlists/{uuid}/tracks/{trackUuid}/position`
+**Endpoint:** `POST /playlists/{uuid}/reorder`
 
 **Authentication:** Required (JWT + Owner)
 
@@ -1323,19 +1323,40 @@ Change the position of a track in a playlist (Owner only).
 **Request Body:**
 ```json
 {
-  "position": 5
+  "track_order": [
+    "music-uuid-3",
+    "music-uuid-1",
+    "music-uuid-2"
+  ]
 }
 ```
 
+
 **Path Parameters:**
 - `uuid`: Playlist's unique identifier
-- `trackUuid`: Track's unique identifier (in playlist)
+
+**Query Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| track_order | array of UUIDs | Yes | Complete ordered list of music UUIDs in desired sequence |
+
+**Validation:**
+- All UUIDs in `track_order` must be valid music UUIDs currently in the playlist
+- Array length must match the current number of tracks in the playlist
+- No duplicate UUIDs allowed
+- No missing or extra tracks allowed
 
 **Status Codes:**
-- `200 OK`: Position updated successfully
-- `400 Bad Request`: Invalid position
+- `200 OK`: Tracks reordered successfully
+- `400 Bad Request`: Invalid UUIDs, count mismatch, or validation failed
 - `401 Unauthorized`: Invalid or missing token
 - `403 Forbidden`: User is not the owner
+- `500 Internal Server Error`: Database error
+
+**Notes:**
+- This endpoint replaces the entire track order atomically
+- Frontend should send the complete list in the desired final order
+- Positions are automatically assigned as 0-indexed based on array order
 
 ---
 
