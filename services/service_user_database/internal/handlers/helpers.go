@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
@@ -79,6 +80,19 @@ func uuidToPgtype(uuidStr string) (pgtype.UUID, error) {
 		return pgtype.UUID{}, err
 	}
 	return id, nil
+}
+
+// convertUUIDs converts two UUID strings to pgtype.UUID in one call
+func convertUUIDs(uuid1Str, uuid2Str string) (pgtype.UUID, pgtype.UUID, error) {
+	uuid1, err := uuidToPgtype(uuid1Str)
+	if err != nil {
+		return pgtype.UUID{}, pgtype.UUID{}, err
+	}
+	uuid2, err := uuidToPgtype(uuid2Str)
+	if err != nil {
+		return pgtype.UUID{}, pgtype.UUID{}, err
+	}
+	return uuid1, uuid2, nil
 }
 
 // TODO remove config from this function everywhere
@@ -305,5 +319,63 @@ func handleDBError(w http.ResponseWriter, err error, notFoundMsg string, logger 
 
 	logger.Error("database operation failed", zap.Error(err), zap.String("context", notFoundMsg))
 	returns.ReturnError(w, "database operation failed", http.StatusInternalServerError)
+	return true
+}
+
+// optionalPointerToString converts *string to string (returns empty string if nil)
+func optionalPointerToString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
+}
+
+// optionalStringToPgtext converts string to pgtype.Text (valid if non-empty)
+func optionalStringToPgtext(s string) pgtype.Text {
+	if s != "" {
+		return pgtype.Text{String: s, Valid: true}
+	}
+	return pgtype.Text{}
+}
+
+// pgtextToString converts pgtype.Text to string (returns empty string if invalid)
+func pgtextToString(t pgtype.Text) string {
+	if t.Valid {
+		return t.String
+	}
+	return ""
+}
+
+// extractBearerToken extracts and validates Bearer token from Authorization header
+func extractBearerToken(r *http.Request, w http.ResponseWriter, returns *libsdi.ReturnManager) (string, bool) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		returns.ReturnError(w, "missing authorization header", http.StatusUnauthorized)
+		return "", false
+	}
+
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		returns.ReturnError(w, "invalid authorization header format", http.StatusUnauthorized)
+		return "", false
+	}
+
+	return parts[1], true
+}
+
+// verifyTokenMatch checks if the stored token matches the JWT claims
+func verifyTokenMatch(storedToken sqlhandler.RefreshToken, uuidStr, deviceID string, logger *zap.Logger) bool {
+	storedUUIDStr := uuid.UUID(storedToken.UserUuid.Bytes).String()
+	storedDeviceIDStr := uuid.UUID(storedToken.DeviceID.Bytes).String()
+
+	if storedUUIDStr != uuidStr || storedDeviceIDStr != deviceID {
+		logger.Warn("token mismatch between JWT and database",
+			zap.String("jwt_uuid", uuidStr),
+			zap.String("db_uuid", storedUUIDStr),
+			zap.String("jwt_device_id", deviceID),
+			zap.String("db_device_id", storedDeviceIDStr))
+		return false
+	}
+
 	return true
 }

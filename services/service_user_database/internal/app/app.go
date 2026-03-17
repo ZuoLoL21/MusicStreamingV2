@@ -1,6 +1,7 @@
 package app
 
 import (
+	"backend/internal/client"
 	"backend/internal/di"
 	"backend/internal/handlers"
 	"backend/internal/storage"
@@ -16,16 +17,19 @@ import (
 )
 
 type App struct {
-	logger      *zap.Logger
-	config      *di.Config
-	jwtHandler  *libsdi.JWTHandler
-	returns     *libsdi.ReturnManager
-	db          *sqlhandler.Queries
-	fileStorage storage.FileStorageClient
-	handlers    *HandlerRegistry
+	logger         *zap.Logger
+	config         *di.Config
+	jwtHandler     *libsdi.JWTHandler
+	returns        *libsdi.ReturnManager
+	db             *sqlhandler.Queries
+	fileStorage    storage.FileStorageClient
+	handlers       *HandlerRegistry
+	clickhouseSync *client.ClickHouseSync
 }
 
 type HandlerRegistry struct {
+	Auth     *handlers.AuthHandler
+	Device   *handlers.DeviceHandler
 	User     *handlers.UserHandler
 	Artist   *handlers.ArtistHandler
 	Album    *handlers.AlbumHandler
@@ -39,14 +43,23 @@ type HandlerRegistry struct {
 	File     *handlers.FileHandler
 }
 
-func New(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db *sqlhandler.Queries, fileStorage storage.FileStorageClient) *App {
+func New(
+	logger *zap.Logger,
+	config *di.Config,
+	jwtHandler *libsdi.JWTHandler,
+	returns *libsdi.ReturnManager,
+	db *sqlhandler.Queries,
+	fileStorage storage.FileStorageClient,
+	clickhouseSync *client.ClickHouseSync,
+) *App {
 	return &App{
-		logger:      logger,
-		config:      config,
-		jwtHandler:  jwtHandler,
-		returns:     returns,
-		db:          db,
-		fileStorage: fileStorage,
+		logger:         logger,
+		config:         config,
+		jwtHandler:     jwtHandler,
+		returns:        returns,
+		db:             db,
+		fileStorage:    fileStorage,
+		clickhouseSync: clickhouseSync,
 	}
 }
 
@@ -76,8 +89,11 @@ func (a *App) Router() *mux.Router {
 }
 
 func (a *App) initHandlers() {
+
 	a.handlers = &HandlerRegistry{
-		User:     handlers.NewUserHandler(a.logger, a.config, a.jwtHandler, a.returns, a.db, a.fileStorage),
+		Auth:     handlers.NewAuthHandler(a.logger, a.config, a.jwtHandler, a.returns, a.db, a.fileStorage, a.clickhouseSync),
+		Device:   handlers.NewDeviceHandler(a.logger, a.config, a.returns, a.db),
+		User:     handlers.NewUserHandler(a.logger, a.config, a.jwtHandler, a.returns, a.db, a.fileStorage, a.clickhouseSync),
 		Artist:   handlers.NewArtistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		Album:    handlers.NewAlbumHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
 		Music:    handlers.NewMusicHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
@@ -126,9 +142,9 @@ func (a *App) registerFileRoutes(r *mux.Router) {
 }
 
 func (a *App) registerAuthRoutes(r, protected *mux.Router) {
-	r.HandleFunc("/login", a.handlers.User.Login).Methods("POST")
-	r.HandleFunc("/login", a.handlers.User.Register).Methods("PUT")
-	protected.HandleFunc("/renew", a.handlers.User.Renew).Methods("POST")
+	r.HandleFunc("/login", a.handlers.Auth.Login).Methods("POST")
+	r.HandleFunc("/login", a.handlers.Auth.Register).Methods("PUT")
+	protected.HandleFunc("/renew", a.handlers.Auth.Renew).Methods("POST")
 }
 
 func (a *App) registerUserRoutes(r *mux.Router) {
@@ -138,6 +154,11 @@ func (a *App) registerUserRoutes(r *mux.Router) {
 	r.HandleFunc("/users/me/email", a.handlers.User.UpdateEmail).Methods("POST")
 	r.HandleFunc("/users/me/password", a.handlers.User.UpdatePassword).Methods("POST")
 	r.HandleFunc("/users/me/image", a.handlers.User.UpdateImage).Methods("POST")
+
+	// Device management routes
+	r.HandleFunc("/users/me/devices", a.handlers.Device.GetDevices).Methods("GET")
+	r.HandleFunc("/users/me/devices/{device_id}", a.handlers.Device.RevokeDevice).Methods("DELETE")
+	r.HandleFunc("/users/me/devices", a.handlers.Device.RevokeAllDevices).Methods("DELETE")
 
 	// User-specific routes
 	r.HandleFunc("/users/{uuid}", a.handlers.User.GetPublicUser).Methods("GET")

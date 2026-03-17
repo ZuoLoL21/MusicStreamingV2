@@ -69,8 +69,11 @@ func main() {
 		logger.Fatal("failed to create MinIO client", zap.Error(err))
 	}
 
+	// Clickhouse
+	clickhouseSync := client.NewClickHouseSync(logger, config, jwtHandler)
+
 	// Router
-	application := app.New(logger, config, jwtHandler, returns, db, fileStorage)
+	application := app.New(logger, config, jwtHandler, returns, db, fileStorage, clickhouseSync)
 	srv := &http.Server{
 		Handler:      application.Router(),
 		Addr:         ":8080",
