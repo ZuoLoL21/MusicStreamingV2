@@ -381,7 +381,7 @@ func (h *PlaylistHandler) UpdatePlaylistImage(w http.ResponseWriter, r *http.Req
 }
 
 type reorderPlaylistTracksRequest struct {
-	TrackOrder []string `json:"track_order" validate:"required,min=1"`
+	TrackOrder []string `json:"track_order" validate:"required"`
 }
 
 func (h *PlaylistHandler) ReorderPlaylistTracks(w http.ResponseWriter, r *http.Request) {
@@ -395,14 +395,56 @@ func (h *PlaylistHandler) ReorderPlaylistTracks(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	if len(body.TrackOrder) == 0 {
+		h.returns.ReturnError(w, "track_order cannot be empty", http.StatusBadRequest)
+		return
+	}
+
 	musicUUIDs := make([]pgtype.UUID, len(body.TrackOrder))
+	seenUUIDs := make(map[string]bool)
+
 	for i, uuidStr := range body.TrackOrder {
 		parsedUUID, err := uuidToPgtype(uuidStr)
 		if err != nil {
 			h.returns.ReturnError(w, "invalid track uuid in track_order", http.StatusBadRequest)
 			return
 		}
+
+		if seenUUIDs[uuidStr] {
+			h.returns.ReturnError(w, "duplicate track uuid in track_order", http.StatusBadRequest)
+			return
+		}
+		seenUUIDs[uuidStr] = true
+
 		musicUUIDs[i] = parsedUUID
+	}
+
+	existingTracks, err := h.db.GetPlaylistTracks(r.Context(), sqlhandler.GetPlaylistTracksParams{
+		PlaylistUuid: playlistUUID,
+		Limit:        10000,
+		Column3:      -1,
+	})
+	if err != nil {
+		h.logger.Error("failed to get playlist tracks for validation", zap.Error(err))
+		h.returns.ReturnError(w, "failed to reorder playlist tracks", http.StatusInternalServerError)
+		return
+	}
+
+	if len(existingTracks) != len(musicUUIDs) {
+		h.returns.ReturnError(w, "track_order count must match playlist track count", http.StatusBadRequest)
+		return
+	}
+
+	// Checks if all provided UUIDs exist in playlist
+	existingUUIDs := make(map[string]bool)
+	for _, track := range existingTracks {
+		existingUUIDs[uuid.UUID(track.Uuid.Bytes).String()] = true
+	}
+	for uuidStr := range seenUUIDs {
+		if !existingUUIDs[uuidStr] {
+			h.returns.ReturnError(w, "track uuid not found in playlist", http.StatusBadRequest)
+			return
+		}
 	}
 
 	if err := h.db.ReorderPlaylistTracks(r.Context(), sqlhandler.ReorderPlaylistTracksParams{
