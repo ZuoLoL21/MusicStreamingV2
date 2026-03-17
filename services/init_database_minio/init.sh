@@ -1,7 +1,8 @@
 #!/bin/sh
 set -e
 
-mc alias set myminio http://database-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+MINIO_HOST="${MINIO_HOST:-database-minio}"
+mc alias set myminio http://${MINIO_HOST}:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
 
 mc mb myminio/music-streaming --ignore-existing;
 
