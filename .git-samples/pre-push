@@ -2,61 +2,122 @@
 
 set -e
 
-COMPOSE_FILE="services/service_user_database/docker-compose.integration.yml"
-COMPOSE_FILE2="services/service_bandit_system/docker-compose.integration.yml"
+COMPOSE_USER_DB="services/service_user_database/docker-compose.integration.yml"
+COMPOSE_BANDIT="services/service_bandit_system/docker-compose.integration.yml"
+COMPOSE_EVENT="services/service_event_ingestion/docker-compose.integration.yml"
+COMPOSE_POPULARITY="services/service_popularity_system/docker-compose.integration.yml"
+COMPOSE_E2E="docker-compose.integration.yml"
 
 
 cleanup() {
   echo "Cleaning up containers..."
-  docker compose -f $COMPOSE_FILE down -v
-  docker compose -f $COMPOSE_FILE2 down -v
+  docker compose -f $COMPOSE_USER_DB down -v 2>/dev/null || true
+  docker compose -f $COMPOSE_BANDIT down -v 2>/dev/null || true
+  docker compose -f $COMPOSE_EVENT down -v 2>/dev/null || true
+  docker compose -f $COMPOSE_POPULARITY down -v 2>/dev/null || true
+  docker compose -f $COMPOSE_E2E down -v 2>/dev/null || true
 }
 trap cleanup EXIT
 
 
-echo "Running integration tests on user database before push..."
-echo "Building everything"
-docker compose -f $COMPOSE_FILE build --no-cache
-
-echo "Starting infrastructure..."
-docker compose -f $COMPOSE_FILE up -d postgres-test minio-test vault-test mock-event-ingestion
-
-echo "Running init containers..."
-docker compose -f $COMPOSE_FILE up --force-recreate minio-init-test vault-init-test
-
-echo "Running integration tests..."
-docker compose -f $COMPOSE_FILE run --rm --no-deps integration-tests
+# Service: User Database
+echo "========================================="
+echo "Running integration tests: service_user_database"
+echo "========================================="
+docker compose -f $COMPOSE_USER_DB build --no-cache
+docker compose -f $COMPOSE_USER_DB up -d postgres-test minio-test vault-test mock-event-ingestion
+docker compose -f $COMPOSE_USER_DB up --force-recreate minio-init-test vault-init-test
+docker compose -f $COMPOSE_USER_DB run --rm --no-deps integration-tests
 
 EXIT_CODE=$?
-if [ $EXIT_CODE -eq 0 ]; then
-    echo "Integration tests passed."
-else
-    echo "Integration tests failed!"
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "ERROR  service_user_database integration tests failed!"
     exit $EXIT_CODE
 fi
+echo "OK     service_user_database tests passed"
+docker compose -f $COMPOSE_USER_DB down -v
+echo ""
 
 
-echo "----"
-
-
-echo "Running integration tests on bandit system before push..."
-echo "Building everything"
-docker compose -f $COMPOSE_FILE2 build --no-cache
-
-
-echo "Starting infrastructure..."
-docker compose -f $COMPOSE_FILE2 up -d clickhouse-test postgres-test
-
-echo "Running integration tests..."
-docker compose -f $COMPOSE_FILE2 run --rm --no-deps integration-tests
+# Service: Bandit System
+echo "========================================="
+echo "Running integration tests: service_bandit_system"
+echo "========================================="
+docker compose -f $COMPOSE_BANDIT build --no-cache
+docker compose -f $COMPOSE_BANDIT up -d clickhouse-test postgres-test
+docker compose -f $COMPOSE_BANDIT run --rm --no-deps integration-tests
 
 EXIT_CODE=$?
-if [ $EXIT_CODE -eq 0 ]; then
-    echo "Integration tests passed."
-else
-    echo "Integration tests failed!"
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "ERROR  service_bandit_system integration tests failed!"
     exit $EXIT_CODE
 fi
+echo "OK     service_bandit_system tests passed"
+docker compose -f $COMPOSE_BANDIT down -v
+echo ""
 
-echo "--------"
-echo "Integration tests passed. Push allowed."
+
+# Service: Event Ingestion
+echo "========================================="
+echo "Running integration tests: service_event_ingestion"
+echo "========================================="
+docker compose -f $COMPOSE_EVENT build --no-cache
+docker compose -f $COMPOSE_EVENT up -d clickhouse-test vault-test
+docker compose -f $COMPOSE_EVENT up --force-recreate vault-init-test
+docker compose -f $COMPOSE_EVENT run --rm --no-deps integration-tests
+
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "ERROR  service_event_ingestion integration tests failed!"
+    exit $EXIT_CODE
+fi
+echo "OK     service_event_ingestion tests passed"
+docker compose -f $COMPOSE_EVENT down -v
+echo ""
+
+
+# Service: Popularity System
+echo "========================================="
+echo "Running integration tests: service_popularity_system"
+echo "========================================="
+docker compose -f $COMPOSE_POPULARITY build --no-cache
+docker compose -f $COMPOSE_POPULARITY up -d clickhouse-test vault-test
+docker compose -f $COMPOSE_POPULARITY up --force-recreate vault-init-test
+docker compose -f $COMPOSE_POPULARITY run --rm --no-deps integration-tests
+
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "ERROR  service_popularity_system integration tests failed!"
+    exit $EXIT_CODE
+fi
+echo "OK     service_popularity_system tests passed"
+docker compose -f $COMPOSE_POPULARITY down -v
+echo ""
+
+
+# Full E2E Tests
+echo "========================================="
+echo "Running E2E tests: full system"
+echo "========================================="
+docker compose -f $COMPOSE_E2E build --no-cache
+docker compose -f $COMPOSE_E2E up -d database-postgres-user-test database-postgres-bandit-test database-clickhouse-test database-minio-test vault-test
+docker compose -f $COMPOSE_E2E up --force-recreate init-minio-test init-vault-test
+docker compose -f $COMPOSE_E2E up --force-recreate init-music-data-test
+docker compose -f $COMPOSE_E2E up -d service-user-database-test service-bandit-test service-popularity-test service-event-ingestion-test
+docker compose -f $COMPOSE_E2E up -d gateway-recommendation-test gateway-api-test
+docker compose -f $COMPOSE_E2E run --rm --no-deps e2e-tests
+
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "ERROR  E2E tests failed!"
+    exit $EXIT_CODE
+fi
+echo "OK     E2E tests passed"
+docker compose -f $COMPOSE_E2E down -v
+echo ""
+
+
+echo "========================================"
+echo "OK     All integration tests passed!"
+echo "Push allowed."
+echo "========================================"
