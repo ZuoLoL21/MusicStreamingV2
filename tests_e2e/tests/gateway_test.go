@@ -275,11 +275,11 @@ func TestGateway_RefreshTokenRotation(t *testing.T) {
 	email := "refreshtest-" + NewTestUUID()[:8] + "@example.com"
 	password := "TestPass123!"
 
-	resp, err := client.RawRequest("PUT", "/login", map[string]interface{}{
-		"email":        email,
-		"password":     password,
-		"username":     "refreshtest" + NewTestUUID()[:8],
-		"display_name": "Refresh Test",
+	resp, err := client.RawMultipartRequest("PUT", "/login", map[string]string{
+		"email":    email,
+		"password": password,
+		"username": "refreshtest" + NewTestUUID()[:8],
+		"country":  "US",
 	})
 
 	require.NoError(t, err, "Register should not fail")
@@ -307,8 +307,8 @@ func TestGateway_RefreshTokenRotation(t *testing.T) {
 		body["user_uuid"].(string),
 	)
 
-	// Refresh token
-	resp, err = client.RawRequest("POST", "/renew", nil)
+	// Refresh token using refresh token authentication
+	resp, err = client.RequestWithRefreshToken("POST", "/renew", nil)
 	require.NoError(t, err, "Renew should not fail")
 	defer resp.Body.Close()
 

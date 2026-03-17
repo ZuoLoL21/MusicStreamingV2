@@ -36,11 +36,11 @@ func TestAuth_Login_Success(t *testing.T) {
 	email := fmt.Sprintf("logintest-%s@example.com", NewTestUUID()[:8])
 	password := "TestPass123!"
 
-	resp, err := client.RawRequest("PUT", "/login", map[string]interface{}{
-		"email":        email,
-		"password":     password,
-		"username":     "logintest" + NewTestUUID()[:8],
-		"display_name": "Login Test User",
+	resp, err := client.RawMultipartRequest("PUT", "/login", map[string]string{
+		"email":    email,
+		"password": password,
+		"username": "logintest" + NewTestUUID()[:8],
+		"country":  "US",
 	})
 
 	require.NoError(t, err, "Register request should not fail")
@@ -105,11 +105,11 @@ func TestAuth_Register_Success(t *testing.T) {
 	password := "TestPass123!"
 	username := "registertest" + NewTestUUID()[:8]
 
-	resp, err := client.RawRequest("PUT", "/login", map[string]interface{}{
-		"email":        email,
-		"password":     password,
-		"username":     username,
-		"display_name": "Register Test User",
+	resp, err := client.RawMultipartRequest("PUT", "/login", map[string]string{
+		"email":    email,
+		"password": password,
+		"username": username,
+		"country":  "US",
 	})
 
 	require.NoError(t, err, "Register request should not fail")
@@ -132,11 +132,11 @@ func TestAuth_Register_InvalidEmail(t *testing.T) {
 	config := GetTestConfig()
 	client := NewTestClient(config.GatewayBaseURL)
 
-	resp, err := client.RawRequest("PUT", "/login", map[string]interface{}{
-		"email":        "notanemail",
-		"password":     "TestPass123!",
-		"username":     "testuser",
-		"display_name": "Test User",
+	resp, err := client.RawMultipartRequest("PUT", "/login", map[string]string{
+		"email":    "notanemail",
+		"password": "TestPass123!",
+		"username": "testuser",
+		"country":  "US",
 	})
 
 	require.NoError(t, err, "Register request should not fail")
@@ -151,11 +151,11 @@ func TestAuth_Register_ShortPassword(t *testing.T) {
 	config := GetTestConfig()
 	client := NewTestClient(config.GatewayBaseURL)
 
-	resp, err := client.RawRequest("PUT", "/login", map[string]interface{}{
-		"email":        fmt.Sprintf("shortpw-%s@example.com", NewTestUUID()[:8]),
-		"password":     "123",
-		"username":     "testuser",
-		"display_name": "Test User",
+	resp, err := client.RawMultipartRequest("PUT", "/login", map[string]string{
+		"email":    fmt.Sprintf("shortpw-%s@example.com", NewTestUUID()[:8]),
+		"password": "123",
+		"username": "testuser",
+		"country":  "US",
 	})
 
 	require.NoError(t, err, "Register request should not fail")
@@ -174,22 +174,22 @@ func TestAuth_Register_DuplicateEmail(t *testing.T) {
 	password := "TestPass123!"
 
 	// First registration
-	resp, err := client.RawRequest("PUT", "/login", map[string]interface{}{
-		"email":        email,
-		"password":     password,
-		"username":     "user1" + NewTestUUID()[:8],
-		"display_name": "User One",
+	resp, err := client.RawMultipartRequest("PUT", "/login", map[string]string{
+		"email":    email,
+		"password": password,
+		"username": "user1" + NewTestUUID()[:8],
+		"country":  "US",
 	})
 
 	require.NoError(t, err, "First register request should not fail")
 	defer resp.Body.Close()
 
 	// Second registration with same email (different username)
-	resp, err = client.RawRequest("PUT", "/login", map[string]interface{}{
-		"email":        email,
-		"password":     password,
-		"username":     "user2" + NewTestUUID()[:8],
-		"display_name": "User Two",
+	resp, err = client.RawMultipartRequest("PUT", "/login", map[string]string{
+		"email":    email,
+		"password": password,
+		"username": "user2" + NewTestUUID()[:8],
+		"country":  "US",
 	})
 
 	require.NoError(t, err, "Second register request should not fail")
@@ -208,11 +208,11 @@ func TestAuth_Renew_Success(t *testing.T) {
 	email := fmt.Sprintf("renewtest-%s@example.com", NewTestUUID()[:8])
 	password := "TestPass123!"
 
-	resp, err := client.RawRequest("PUT", "/login", map[string]interface{}{
-		"email":        email,
-		"password":     password,
-		"username":     "renewtest" + NewTestUUID()[:8],
-		"display_name": "Renew Test User",
+	resp, err := client.RawMultipartRequest("PUT", "/login", map[string]string{
+		"email":    email,
+		"password": password,
+		"username": "renewtest" + NewTestUUID()[:8],
+		"country":  "US",
 	})
 
 	require.NoError(t, err, "Register request should not fail")
@@ -234,8 +234,8 @@ func TestAuth_Renew_Success(t *testing.T) {
 		body["user_uuid"].(string),
 	)
 
-	// Now renew the token
-	resp, err = client.RawRequest("POST", "/renew", nil)
+	// Now renew the token using refresh token
+	resp, err = client.RequestWithRefreshToken("POST", "/renew", nil)
 
 	require.NoError(t, err, "Renew request should not fail")
 	defer resp.Body.Close()
@@ -259,7 +259,7 @@ func TestAuth_Renew_InvalidToken(t *testing.T) {
 	// Set invalid token
 	client.SetTokens("invalid.token.here", "invalid.refresh", "")
 
-	resp, err := client.RawRequest("POST", "/renew", nil)
+	resp, err := client.RequestWithRefreshToken("POST", "/renew", nil)
 
 	require.NoError(t, err, "Renew request should not fail")
 	defer resp.Body.Close()
@@ -278,7 +278,7 @@ func TestAuth_Renew_ExpiredToken(t *testing.T) {
 		"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJub25lIiwiZXhwIjoxfQ.invalid",
 		"")
 
-	resp, err := client.RawRequest("POST", "/renew", nil)
+	resp, err := client.RequestWithRefreshToken("POST", "/renew", nil)
 
 	require.NoError(t, err, "Renew request should not fail")
 	defer resp.Body.Close()
@@ -326,37 +326,45 @@ func TestAuth_Register_MissingFields(t *testing.T) {
 
 	testCases := []struct {
 		name string
-		body map[string]interface{}
+		body map[string]string
 	}{
 		{
 			name: "missing_email",
-			body: map[string]interface{}{
-				"password":     "TestPass123!",
-				"username":     "testuser",
-				"display_name": "Test User",
+			body: map[string]string{
+				"password": "TestPass123!",
+				"username": "testuser",
+				"country":  "US",
 			},
 		},
 		{
 			name: "missing_password",
-			body: map[string]interface{}{
-				"email":        "test@example.com",
-				"username":     "testuser",
-				"display_name": "Test User",
+			body: map[string]string{
+				"email":    "test@example.com",
+				"username": "testuser",
+				"country":  "US",
 			},
 		},
 		{
 			name: "missing_username",
-			body: map[string]interface{}{
-				"email":        "test@example.com",
-				"password":     "TestPass123!",
-				"display_name": "Test User",
+			body: map[string]string{
+				"email":    "test@example.com",
+				"password": "TestPass123!",
+				"country":  "US",
+			},
+		},
+		{
+			name: "missing_country",
+			body: map[string]string{
+				"email":    "test@example.com",
+				"password": "TestPass123!",
+				"username": "testuser",
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			resp, err := client.RawRequest("PUT", "/login", tc.body)
+			resp, err := client.RawMultipartRequest("PUT", "/login", tc.body)
 			require.NoError(t, err, "Register request should not fail")
 			defer resp.Body.Close()
 
@@ -393,11 +401,11 @@ func TestAuth_AccessTokenFormat(t *testing.T) {
 	email := fmt.Sprintf("tokenformattest-%s@example.com", NewTestUUID()[:8])
 	password := "TestPass123!"
 
-	resp, err := client.RawRequest("PUT", "/login", map[string]interface{}{
-		"email":        email,
-		"password":     password,
-		"username":     "tokentest" + NewTestUUID()[:8],
-		"display_name": "Token Test",
+	resp, err := client.RawMultipartRequest("PUT", "/login", map[string]string{
+		"email":    email,
+		"password": password,
+		"username": "tokentest" + NewTestUUID()[:8],
+		"country":  "US",
 	})
 
 	require.NoError(t, err, "Register should not fail")
@@ -452,11 +460,11 @@ func TestAuth_GatewayProxiesAuth(t *testing.T) {
 	email := fmt.Sprintf("proxyauth-%s@example.com", NewTestUUID()[:8])
 	password := "TestPass123!"
 
-	resp, err := client.RawRequest("PUT", "/login", map[string]interface{}{
-		"email":        email,
-		"password":     password,
-		"username":     "proxyauth" + NewTestUUID()[:8],
-		"display_name": "Proxy Auth Test",
+	resp, err := client.RawMultipartRequest("PUT", "/login", map[string]string{
+		"email":    email,
+		"password": password,
+		"username": "proxyauth" + NewTestUUID()[:8],
+		"country":  "US",
 	})
 
 	require.NoError(t, err, "Register should not fail")

@@ -31,3 +31,18 @@ func NewHealthCheckHandler(serviceName string) http.HandlerFunc {
 		_ = json.NewEncoder(w).Encode(response)
 	}
 }
+
+// MethodNotAllowedHandler returns an HTTP handler that responds with 405 Method Not Allowed.
+// This handler is intended to be used with gorilla/mux's MethodNotAllowedHandler setting
+// to provide consistent error responses when a client uses an unsupported HTTP method.
+//
+// Example usage:
+//
+//	router.MethodNotAllowedHandler = handlers.MethodNotAllowedHandler()
+func MethodNotAllowedHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte(`{"error":"method not allowed"}`))
+	})
+}

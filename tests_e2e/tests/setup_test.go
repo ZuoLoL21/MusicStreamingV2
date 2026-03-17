@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -184,6 +185,64 @@ func (c *TestClient) RawRequest(method, path string, body interface{}) (*http.Re
 	return c.httpClient.Do(req)
 }
 
+// RawMultipartRequest makes a raw HTTP request with multipart/form-data
+func (c *TestClient) RawMultipartRequest(method, path string, formFields map[string]string) (*http.Response, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	// Add form fields
+	for key, val := range formFields {
+		if err := writer.WriteField(key, val); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(method, c.baseURL+path, body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	return c.httpClient.Do(req)
+}
+
+// RequestWithRefreshToken makes an HTTP request with refresh token authentication
+func (c *TestClient) RequestWithRefreshToken(method, path string, body interface{}) (*http.Response, error) {
+	var bodyReader io.Reader
+	if body != nil {
+		bodyBytes, err := json.Marshal(body)
+		if err != nil {
+			return nil, err
+		}
+		bodyReader = bytes.NewReader(bodyBytes)
+	}
+
+	req, err := http.NewRequest(method, c.baseURL+path, bodyReader)
+	if err != nil {
+		return nil, err
+	}
+
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	// Add refresh token header
+	c.mu.Lock()
+	refreshToken := c.refreshToken
+	c.mu.Unlock()
+
+	if refreshToken != "" {
+		req.Header.Set("Authorization", "Bearer "+refreshToken)
+	}
+
+	return c.httpClient.Do(req)
+}
+
 // Response represents a parsed API response
 type Response struct {
 	StatusCode int
@@ -225,11 +284,11 @@ func CreateTestUser(t *testing.T, client *TestClient, prefix string) (email, pas
 	password = "TestPass123!"
 
 	// Register the user
-	resp, err := client.RawRequest("PUT", "/login", map[string]interface{}{
-		"email":        email,
-		"password":     password,
-		"username":     prefix + NewTestUUID()[:8],
-		"display_name": "Test User",
+	resp, err := client.RawMultipartRequest("PUT", "/login", map[string]string{
+		"email":    email,
+		"password": password,
+		"username": prefix + NewTestUUID()[:8],
+		"country":  "US",
 	})
 
 	require.NoError(t, err, "Failed to create test user request")
@@ -273,7 +332,7 @@ func RefreshToken(t *testing.T, client *TestClient) string {
 	client.mu.Lock()
 	client.mu.Unlock()
 
-	resp, err := client.RawRequest("POST", "/renew", nil)
+	resp, err := client.RequestWithRefreshToken("POST", "/renew", nil)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
@@ -391,11 +450,11 @@ func SetupAuthenticatedClient(t *testing.T, config *TestConfig) *TestClient {
 
 	if err != nil || resp.StatusCode != http.StatusOK {
 		// Try to register
-		resp, err = client.RawRequest("PUT", "/login", map[string]interface{}{
-			"email":        email,
-			"password":     password,
-			"username":     "testuser",
-			"display_name": "Test User",
+		resp, err = client.RawMultipartRequest("PUT", "/login", map[string]string{
+			"email":    email,
+			"password": password,
+			"username": "testuser",
+			"country":  "US",
 		})
 		if err != nil {
 			t.Skipf("Cannot authenticate: %v", err)

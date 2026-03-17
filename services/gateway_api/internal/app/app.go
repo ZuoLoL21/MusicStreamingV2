@@ -26,6 +26,8 @@ type App struct {
 
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
+	r.MethodNotAllowedHandler = libshandlers.MethodNotAllowedHandler()
+
 	r.Use(libsmiddleware.CORSMiddleware)
 
 	// Create handlers
@@ -57,6 +59,9 @@ func (a *App) Router() *mux.Router {
 	publicRouter := r.PathPrefix("").Subrouter()
 	refreshRouter := r.PathPrefix("").Subrouter()
 	protectedRouter := r.PathPrefix("").Subrouter()
+	publicRouter.MethodNotAllowedHandler = libshandlers.MethodNotAllowedHandler()
+	refreshRouter.MethodNotAllowedHandler = libshandlers.MethodNotAllowedHandler()
+	protectedRouter.MethodNotAllowedHandler = libshandlers.MethodNotAllowedHandler()
 
 	publicRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
