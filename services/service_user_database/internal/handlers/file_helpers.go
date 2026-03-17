@@ -75,6 +75,7 @@ func uploadImageFromForm(
 		if errors.Is(err, http.ErrMissingFile) {
 			return pgtype.Text{}, true
 		}
+		logger.Warn("failed to read image file from form", zap.Error(err))
 		returns.ReturnError(w, "failed to read image file", http.StatusBadRequest)
 		return pgtype.Text{}, false
 	}

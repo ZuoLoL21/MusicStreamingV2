@@ -14,6 +14,7 @@ import (
 
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
+	libsmiddleware "libs/middleware"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -59,11 +60,12 @@ func (h *TagsHandler) GetAllTags(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TagsHandler) GetTag(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	name := mux.Vars(r)["name"]
 
 	tag, err := h.db.GetTag(r.Context(), name)
-	if err != nil {
-		h.returns.ReturnError(w, "tag not found", http.StatusNotFound)
+	if handleDBError(w, err, "tag not found", logger, h.returns) {
 		return
 	}
 
@@ -145,6 +147,8 @@ func (h *TagsHandler) CreateTag(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TagsHandler) checkTagMusicAccess(w http.ResponseWriter, r *http.Request) (musicUUID pgtype.UUID, ok bool) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	musicUUID, ok = parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -157,8 +161,7 @@ func (h *TagsHandler) checkTagMusicAccess(w http.ResponseWriter, r *http.Request
 	}
 
 	music, err := h.db.GetMusic(r.Context(), musicUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "music not found", http.StatusNotFound)
+	if handleDBError(w, err, "music not found", logger, h.returns) {
 		ok = false
 		return
 	}

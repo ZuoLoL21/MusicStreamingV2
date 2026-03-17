@@ -119,9 +119,10 @@ func (h *ArtistHandler) GetArtist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	artist, err := h.db.GetArtist(r.Context(), artistUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "artist not found", http.StatusNotFound)
+	if handleDBError(w, err, "artist not found", logger, h.returns) {
 		return
 	}
 

@@ -259,14 +259,15 @@ func (h *UserHandler) Renew(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
 	}
 
 	user, err := h.db.GetPublicUser(r.Context(), userUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "user not found", http.StatusNotFound)
+	if handleDBError(w, err, "user not found", logger, h.returns) {
 		return
 	}
 
@@ -275,6 +276,8 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetPublicUser(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -282,8 +285,7 @@ func (h *UserHandler) GetPublicUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := h.db.GetPublicUser(r.Context(), userUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "user not found", http.StatusNotFound)
+	if handleDBError(w, err, "user not found", logger, h.returns) {
 		return
 	}
 
@@ -338,6 +340,8 @@ type updateEmailRequest struct {
 }
 
 func (h *UserHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -349,8 +353,7 @@ func (h *UserHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hashedPassword, err := h.db.GetHashPassword(r.Context(), userUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "user not found", http.StatusNotFound)
+	if handleDBError(w, err, "user not found", logger, h.returns) {
 		return
 	}
 
@@ -377,6 +380,8 @@ type updatePasswordRequest struct {
 }
 
 func (h *UserHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -388,8 +393,7 @@ func (h *UserHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hashedPassword, err := h.db.GetHashPassword(r.Context(), userUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "user not found", http.StatusNotFound)
+	if handleDBError(w, err, "user not found", logger, h.returns) {
 		return
 	}
 

@@ -49,8 +49,7 @@ func (h *AlbumHandler) checkAlbumAccess(w http.ResponseWriter, r *http.Request, 
 	}
 
 	album, err := h.db.GetAlbum(r.Context(), albumUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "album not found", http.StatusNotFound)
+	if handleDBError(w, err, "album not found", h.logger, h.returns) {
 		ok = false
 		return
 	}
@@ -64,6 +63,8 @@ func (h *AlbumHandler) checkAlbumAccess(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h *AlbumHandler) GetAlbum(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	albumUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -71,8 +72,7 @@ func (h *AlbumHandler) GetAlbum(w http.ResponseWriter, r *http.Request) {
 	}
 
 	album, err := h.db.GetAlbum(r.Context(), albumUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "album not found", http.StatusNotFound)
+	if handleDBError(w, err, "album not found", logger, h.returns) {
 		return
 	}
 

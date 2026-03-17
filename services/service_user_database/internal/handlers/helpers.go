@@ -20,6 +20,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgtype"
+	"go.uber.org/zap"
 )
 
 var validate *validator.Validate
@@ -288,4 +289,21 @@ func isValidPassword(password string) bool {
 	}
 
 	return hasUpper && hasLower && hasNumber && hasSpecial
+}
+
+// handleDBError handles database errors consistently, differentiating between "not found" (404) and other errors (500)
+// Returns true if error was handled (response sent), false if no error
+func handleDBError(w http.ResponseWriter, err error, notFoundMsg string, logger *zap.Logger, returns *libsdi.ReturnManager) bool {
+	if err == nil {
+		return false
+	}
+
+	if errors.Is(err, errors.New("no rows in result set")) || strings.Contains(err.Error(), "no rows in result set") {
+		returns.ReturnError(w, notFoundMsg, http.StatusNotFound)
+		return true
+	}
+
+	logger.Error("database operation failed", zap.Error(err), zap.String("context", notFoundMsg))
+	returns.ReturnError(w, "database operation failed", http.StatusInternalServerError)
+	return true
 }

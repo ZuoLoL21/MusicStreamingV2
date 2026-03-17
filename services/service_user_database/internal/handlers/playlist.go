@@ -50,8 +50,7 @@ func (h *PlaylistHandler) checkPlaylistOwnership(w http.ResponseWriter, r *http.
 	}
 
 	playlist, err := h.db.GetPlaylist(r.Context(), playlistUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "playlist not found", http.StatusNotFound)
+	if handleDBError(w, err, "playlist not found", h.logger, h.returns) {
 		ok = false
 		return
 	}
@@ -72,8 +71,7 @@ func (h *PlaylistHandler) GetPlaylist(w http.ResponseWriter, r *http.Request) {
 	}
 
 	playlist, err := h.db.GetPlaylist(r.Context(), playlistUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "playlist not found", http.StatusNotFound)
+	if handleDBError(w, err, "playlist not found", h.logger, h.returns) {
 		return
 	}
 

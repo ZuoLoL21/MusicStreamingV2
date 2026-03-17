@@ -157,36 +157,73 @@ func TestIntegration_Error_NotFoundResponses(t *testing.T) {
 }
 
 // TestIntegration_Error_InvalidUUIDFormat tests handling of invalid UUID formats
+// All invalid UUIDs should consistently return 400 Bad Request
 func TestIntegration_Error_InvalidUUIDFormat(t *testing.T) {
 	logger := zap.NewNop()
 	config := &backenddi.Config{}
 	returns := di.NewReturnManager(logger)
 
-	t.Run("invalid_uuid_user_get", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, nil, nil)
-		req := createRequest(t, "GET", "/users/not-a-valid-uuid", nil)
+	testCases := []struct {
+		name        string
+		endpoint    string
+		handlerFunc func() http.HandlerFunc
+	}{
+		{
+			name:     "invalid_uuid_user_get",
+			endpoint: "/users/not-a-valid-uuid",
+			handlerFunc: func() http.HandlerFunc {
+				h := handlers.NewUserHandler(logger, config, nil, returns, nil, nil)
+				return h.GetPublicUser
+			},
+		},
+		{
+			name:     "invalid_uuid_artist_get",
+			endpoint: "/artists/invalid-uuid",
+			handlerFunc: func() http.HandlerFunc {
+				h := handlers.NewArtistHandler(logger, config, returns, nil, nil)
+				return h.GetArtist
+			},
+		},
+		{
+			name:     "invalid_uuid_music_get",
+			endpoint: "/music/not-uuid",
+			handlerFunc: func() http.HandlerFunc {
+				h := handlers.NewMusicHandler(logger, config, returns, nil, nil)
+				return h.GetMusic
+			},
+		},
+		{
+			name:     "invalid_uuid_album_get",
+			endpoint: "/albums/bad-uuid",
+			handlerFunc: func() http.HandlerFunc {
+				h := handlers.NewAlbumHandler(logger, config, returns, nil, nil)
+				return h.GetAlbum
+			},
+		},
+		{
+			name:     "invalid_uuid_playlist_get",
+			endpoint: "/playlists/xyz",
+			handlerFunc: func() http.HandlerFunc {
+				h := handlers.NewPlaylistHandler(logger, config, returns, nil, nil)
+				return h.GetPlaylist
+			},
+		},
+	}
 
-		router := mux.NewRouter()
-		router.HandleFunc("/users/{uuid}", handler.GetPublicUser).Methods("GET")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := createRequest(t, "GET", tc.endpoint, nil)
 
-		rr := httptest.NewRecorder()
-		router.ServeHTTP(rr, req)
+			router := mux.NewRouter()
+			router.HandleFunc(strings.Replace(tc.endpoint, strings.Split(tc.endpoint, "/")[len(strings.Split(tc.endpoint, "/"))-1], "{uuid}", 1), tc.handlerFunc()).Methods("GET")
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
+			rr := httptest.NewRecorder()
+			router.ServeHTTP(rr, req)
 
-	t.Run("invalid_uuid_artist_get", func(t *testing.T) {
-		handler := handlers.NewArtistHandler(logger, config, returns, nil, nil)
-		req := createRequest(t, "GET", "/artists/invalid-uuid", nil)
-
-		router := mux.NewRouter()
-		router.HandleFunc("/artists/{uuid}", handler.GetArtist).Methods("GET")
-
-		rr := httptest.NewRecorder()
-		router.ServeHTTP(rr, req)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
+			// All invalid UUIDs should return 400 Bad Request
+			assert.Equal(t, http.StatusBadRequest, rr.Code, "Invalid UUID should return 400 for %s", tc.name)
+		})
+	}
 }
 
 // TestIntegration_Error_MissingRequiredFields tests handling of missing required fields
@@ -430,6 +467,82 @@ func TestIntegration_Error_BadRequestBody(t *testing.T) {
 		router.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusUnsupportedMediaType, rr.Code)
+	})
+}
+
+// TestIntegration_Error_DatabaseVsNotFound tests that actual "not found" returns 404
+// while database errors return 500
+func TestIntegration_Error_DatabaseVsNotFound(t *testing.T) {
+	pool, db := SetupTestDB(t)
+	defer CleanupTestData(t, pool)
+
+	logger := zap.NewNop()
+	config := &backenddi.Config{}
+	returns := di.NewReturnManager(logger)
+
+	t.Run("user_not_found_returns_404", func(t *testing.T) {
+		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+
+		// Use a valid UUID that doesn't exist
+		nonExistentUUID := "00000000-0000-0000-0000-000000000001"
+		req := createRequest(t, "GET", "/users/"+nonExistentUUID, nil)
+
+		router := mux.NewRouter()
+		router.HandleFunc("/users/{uuid}", handler.GetPublicUser).Methods("GET")
+
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+
+		// Should return 404 for actual "not found"
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("music_not_found_returns_404", func(t *testing.T) {
+		handler := handlers.NewMusicHandler(logger, config, returns, db, nil)
+
+		nonExistentUUID := "00000000-0000-0000-0000-000000000002"
+		req := createRequest(t, "GET", "/music/"+nonExistentUUID, nil)
+
+		router := mux.NewRouter()
+		router.HandleFunc("/music/{uuid}", handler.GetMusic).Methods("GET")
+
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+
+		// Should return 404 for actual "not found"
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("album_not_found_returns_404", func(t *testing.T) {
+		handler := handlers.NewAlbumHandler(logger, config, returns, db, nil)
+
+		nonExistentUUID := "00000000-0000-0000-0000-000000000003"
+		req := createRequest(t, "GET", "/albums/"+nonExistentUUID, nil)
+
+		router := mux.NewRouter()
+		router.HandleFunc("/albums/{uuid}", handler.GetAlbum).Methods("GET")
+
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+
+		// Should return 404 for actual "not found"
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("playlist_not_found_returns_404", func(t *testing.T) {
+		handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
+
+		nonExistentUUID := "00000000-0000-0000-0000-000000000004"
+		req := createRequest(t, "GET", "/playlists/"+nonExistentUUID, nil)
+
+		router := mux.NewRouter()
+		router.HandleFunc("/playlists/{uuid}", handler.GetPlaylist).Methods("GET")
+
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+
+		// Should return 404 for actual "not found"
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 }
 

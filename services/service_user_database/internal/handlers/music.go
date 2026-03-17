@@ -50,8 +50,7 @@ func (h *MusicHandler) checkMusicAccess(w http.ResponseWriter, r *http.Request, 
 	}
 
 	music, err := h.db.GetMusic(r.Context(), musicUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "music not found", http.StatusNotFound)
+	if handleDBError(w, err, "music not found", h.logger, h.returns) {
 		ok = false
 		return
 	}
@@ -75,11 +74,7 @@ func (h *MusicHandler) GetMusic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	music, err := h.db.GetMusic(r.Context(), musicUUID)
-	if err != nil {
-		logger.Warn("music not found",
-			zap.String("music_uuid", uuidToString(musicUUID)),
-			zap.Error(err))
-		h.returns.ReturnError(w, "unable to retrieve music", http.StatusNotFound)
+	if handleDBError(w, err, "music not found", logger, h.returns) {
 		return
 	}
 

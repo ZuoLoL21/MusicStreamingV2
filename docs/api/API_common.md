@@ -333,89 +333,169 @@ Returns `400 Bad Request` with error message.
 
 ### HTTP Status Codes
 
-| Code | Name | Description |
-|------|------|-------------|
-| `200 OK` | Success | Successful GET, PUT, PATCH, DELETE operations |
-| `201 Created` | Created | Successful resource creation (POST resulting in new entity) |
-| `202 Accepted` | Accepted | Request accepted for async processing |
-| `400 Bad Request` | Bad Request | Invalid input, malformed JSON, validation failure, invalid parameters |
-| `401 Unauthorized` | Unauthorized | Invalid/missing/expired JWT token |
-| `403 Forbidden` | Forbidden | Valid JWT but insufficient permissions (role-based or ownership) |
-| `404 Not Found` | Not Found | Resource does not exist |
-| `409 Conflict` | Conflict | Resource already exists, duplicate entry, constraint violation |
-| `415 Unsupported Media Type` | Unsupported Media Type | Wrong Content-Type header (e.g., not multipart/form-data for file uploads) |
-| `422 Unprocessable Entity` | Validation Error | FastAPI validation errors (Python services) |
-| `500 Internal Server Error` | Server Error | Database error, file system error, unexpected failure |
-| `502 Bad Gateway` | Bad Gateway | Backend service unavailable or returned error |
+| Code | Name | Description | When Used |
+|------|------|-------------|-----------|
+| `200 OK` | Success | Successful GET, PUT, PATCH, DELETE operations | Resource retrieved/updated/deleted successfully |
+| `201 Created` | Created | Successful resource creation (POST resulting in new entity) | New user, artist, music, album, playlist created |
+| `202 Accepted` | Accepted | Request accepted for async processing | Background job started |
+| `400 Bad Request` | Bad Request | Invalid input, malformed JSON, validation failure, invalid parameters | Invalid UUID format, missing required fields, validation errors, malformed multipart form |
+| `401 Unauthorized` | Unauthorized | Invalid/missing/expired JWT token | Missing/invalid/expired authentication token |
+| `403 Forbidden` | Forbidden | Valid JWT but insufficient permissions (role-based or ownership) | User not member of artist, not playlist owner, insufficient role |
+| `404 Not Found` | Not Found | Resource does not exist | User/artist/music/album/playlist/tag not found in database |
+| `409 Conflict` | Conflict | Resource already exists, duplicate entry, constraint violation | Duplicate email/username, track already in playlist |
+| `413 Request Entity Too Large` | Payload Too Large | File size exceeds limits | Audio/image file exceeds max size |
+| `415 Unsupported Media Type` | Unsupported Media Type | Wrong Content-Type header | Request to multipart endpoint without multipart/form-data |
+| `422 Unprocessable Entity` | Validation Error | FastAPI validation errors (Python services only) | Invalid request schema in Python services |
+| `500 Internal Server Error` | Server Error | Database error, file system error, unexpected failure | Database connection failure, query error (not "not found"), internal logic errors |
+| `502 Bad Gateway` | Bad Gateway | Backend service unavailable or returned error | Gateway cannot reach backend service |
+| `503 Service Unavailable` | Service Unavailable | External service temporarily unavailable | File storage service unavailable |
 
-### Common Errors
+### Error Code Consistency Rules
 
-**Invalid JWT:**
+**service_user_database** implements strict error code differentiation:
+
+1. **Database Errors are Differentiated:**
+   - **404 Not Found**: Returned ONLY when a resource genuinely doesn't exist (`no rows in result set`)
+   - **500 Internal Server Error**: Returned for ALL other database errors (connection failures, query errors, etc.)
+
+2. **Invalid UUIDs Always Return 400:**
+   - Malformed UUID in path parameter → `400 Bad Request`
+   - Valid UUID but resource doesn't exist → `404 Not Found`
+
+3. **Permission Errors:**
+   - Missing/invalid authentication → `401 Unauthorized`
+   - Valid authentication but insufficient role/ownership → `403 Forbidden`
+
+4. **File Uploads:**
+   - Missing required file → `400 Bad Request`
+   - Invalid file format/validation → `400 Bad Request`
+   - File too large → `413 Request Entity Too Large`
+   - Wrong Content-Type header → `415 Unsupported Media Type`
+   - File storage service error → `503 Service Unavailable`
+
+### Common Error Examples
+
+#### Client Errors (4xx)
+
+**Invalid UUID Format:**
 ```json
 {
-  "error": "Unauthorized",
-  "detail": "Invalid or expired token"
-}
-```
-Status: `401 Unauthorized`
-
-**Resource Not Found:**
-```json
-{
-  "error": "Music not found"
-}
-```
-Status: `404 Not Found`
-
-**Validation Error:**
-```json
-{
-  "error": "Invalid input",
-  "detail": "Email format is invalid"
+  "error": "invalid uuid"
 }
 ```
 Status: `400 Bad Request`
 
-**Permission Denied (Role-Based):**
+**Invalid Request Body:**
 ```json
 {
-  "error": "Forbidden",
-  "detail": "You are not authorized to modify this resource"
+  "error": "invalid request body"
+}
+```
+Status: `400 Bad Request`
+
+**Validation Error:**
+```json
+{
+  "error": "username: required"
+}
+```
+Status: `400 Bad Request`
+
+**Unauthorized (Missing/Invalid Token):**
+```json
+{
+  "error": "unauthorized"
+}
+```
+Status: `401 Unauthorized`
+
+**Forbidden (Insufficient Role):**
+```json
+{
+  "error": "forbidden"
 }
 ```
 Status: `403 Forbidden`
 
-**Permission Denied (Not Owner):**
+**Resource Not Found:**
 ```json
 {
-  "error": "Forbidden",
-  "detail": "Not owner of this playlist"
+  "error": "music not found"
 }
 ```
-Status: `403 Forbidden`
-
-**Resource Conflict:**
 ```json
 {
-  "error": "Conflict",
-  "detail": "Artist name already exists"
+  "error": "user not found"
+}
+```
+```json
+{
+  "error": "artist not found"
+}
+```
+```json
+{
+  "error": "album not found"
+}
+```
+```json
+{
+  "error": "playlist not found"
+}
+```
+Status: `404 Not Found`
+
+**Duplicate Resource:**
+```json
+{
+  "error": "email already in use"
+}
+```
+```json
+{
+  "error": "username already in use"
 }
 ```
 Status: `409 Conflict`
 
+**File Too Large:**
+```json
+{
+  "error": "file size exceeds limit"
+}
+```
+Status: `413 Request Entity Too Large`
+
 **Wrong Content-Type:**
 ```json
 {
-  "error": "Unsupported Media Type",
-  "detail": "Content-Type must be multipart/form-data"
+  "error": "request must be multipart/form-data"
 }
 ```
 Status: `415 Unsupported Media Type`
 
-**Service Unavailable:**
+#### Server Errors (5xx)
+
+**Database Operation Failed:**
 ```json
 {
-  "error": "Backend service unavailable"
+  "error": "database operation failed"
+}
+```
+Status: `500 Internal Server Error`
+
+**File Storage Service Unavailable:**
+```json
+{
+  "error": "file storage service unavailable"
+}
+```
+Status: `503 Service Unavailable`
+
+**Backend Service Unavailable (Gateway only):**
+```json
+{
+  "error": "backend service unavailable"
 }
 ```
 Status: `502 Bad Gateway`
@@ -434,6 +514,9 @@ Status: `502 Bad Gateway`
 
 ---
 
-**Document Version:** 1.2
-**Last Updated:** 2026-03-16
+**Document Version:** 1.3
+**Last Updated:** 2026-03-17
 **Maintained By:** Development Team
+
+**Changelog:**
+- **v1.3 (2026-03-17)**: Standardized error code handling - differentiated 404 (not found) from 500 (database errors), documented error code consistency rules
