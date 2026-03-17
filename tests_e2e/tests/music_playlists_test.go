@@ -24,6 +24,30 @@ func TestMusic_List(t *testing.T) {
 	}
 
 	AssertResponseStatus(t, resp, http.StatusOK)
+
+	body := AssertResponseBody(t, resp)
+
+	// Validate response structure
+	_, hasMusic := body["music"]
+	hasData := len(body) > 0
+	assert.True(t, hasMusic || hasData, "Response should contain music data or be non-empty")
+
+	// If music array exists, validate structure
+	if hasMusic {
+		music, ok := body["music"].([]interface{})
+		require.True(t, ok, "music field should be an array")
+
+		// If there are tracks, validate the first one has expected fields
+		if len(music) > 0 {
+			track, ok := music[0].(map[string]interface{})
+			require.True(t, ok, "First track should be an object")
+
+			// Validate required fields in track object
+			_, hasUUID := track["uuid"]
+			_, hasTitle := track["title"]
+			assert.True(t, hasUUID || hasTitle, "Track should have uuid or title field")
+		}
+	}
 }
 
 // TestMusic_Create tests creating a new music track
@@ -47,8 +71,23 @@ func TestMusic_Create(t *testing.T) {
 
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
 		body := AssertResponseBody(t, resp)
+
+		// Validate required fields in response
 		AssertContainsField(t, body, "uuid")
 		AssertContainsField(t, body, "title")
+
+		// Validate field types
+		AssertFieldType(t, body, "uuid", "string")
+		AssertFieldType(t, body, "title", "string")
+
+		// Validate UUID format
+		uuid, ok := body["uuid"].(string)
+		require.True(t, ok && len(uuid) == 36, "UUID should be a valid UUID string")
+
+		// Validate title matches
+		title, ok := body["title"].(string)
+		require.True(t, ok, "Title should be a string")
+		assert.Equal(t, musicData["title"], title, "Title should match the input")
 	}
 }
 
@@ -410,6 +449,30 @@ func TestPlaylists_List(t *testing.T) {
 	}
 
 	AssertResponseStatus(t, resp, http.StatusOK)
+
+	body := AssertResponseBody(t, resp)
+
+	// Validate response structure
+	_, hasPlaylists := body["playlists"]
+	hasData := len(body) > 0
+	assert.True(t, hasPlaylists || hasData, "Response should contain playlists data or be non-empty")
+
+	// If playlists array exists, validate structure
+	if hasPlaylists {
+		playlists, ok := body["playlists"].([]interface{})
+		require.True(t, ok, "playlists field should be an array")
+
+		// If there are playlists, validate the first one has expected fields
+		if len(playlists) > 0 {
+			playlist, ok := playlists[0].(map[string]interface{})
+			require.True(t, ok, "First playlist should be an object")
+
+			// Validate required fields in playlist object
+			_, hasUUID := playlist["uuid"]
+			_, hasName := playlist["name"]
+			assert.True(t, hasUUID || hasName, "Playlist should have uuid or name field")
+		}
+	}
 }
 
 // TestPlaylists_Create tests creating a new playlist
@@ -432,8 +495,23 @@ func TestPlaylists_Create(t *testing.T) {
 
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
 		body := AssertResponseBody(t, resp)
+
+		// Validate required fields in response
 		AssertContainsField(t, body, "uuid")
 		AssertContainsField(t, body, "name")
+
+		// Validate field types
+		AssertFieldType(t, body, "uuid", "string")
+		AssertFieldType(t, body, "name", "string")
+
+		// Validate UUID format
+		uuid, ok := body["uuid"].(string)
+		require.True(t, ok && len(uuid) == 36, "UUID should be a valid UUID string")
+
+		// Validate name matches
+		name, ok := body["name"].(string)
+		require.True(t, ok, "Name should be a string")
+		assert.Equal(t, playlistData["name"], name, "Name should match the input")
 	}
 }
 
@@ -625,6 +703,30 @@ func TestPlaylists_GetTracks(t *testing.T) {
 				defer resp.Body.Close()
 
 				AssertResponseStatus(t, resp, http.StatusOK)
+
+				tracksBody := AssertResponseBody(t, resp)
+
+				// Validate response structure - should have tracks array
+				_, hasTracks := tracksBody["tracks"]
+				hasData := len(tracksBody) > 0
+				assert.True(t, hasTracks || hasData, "Response should contain tracks data or be non-empty")
+
+				// If tracks array exists, validate structure
+				if hasTracks {
+					tracks, ok := tracksBody["tracks"].([]interface{})
+					require.True(t, ok, "tracks field should be an array")
+
+					// If there are tracks, validate the first one has expected fields
+					if len(tracks) > 0 {
+						track, ok := tracks[0].(map[string]interface{})
+						require.True(t, ok, "First track should be an object")
+
+						// Validate required fields in track object
+						_, hasUUID := track["uuid"]
+						_, hasMusicUUID := track["music_uuid"]
+						assert.True(t, hasUUID || hasMusicUUID, "Track should have uuid or music_uuid field")
+					}
+				}
 			}
 		}
 	}
@@ -724,6 +826,36 @@ func TestMusic_UpdateImage(t *testing.T) {
 	}
 }
 
+// TestMusic_GetImage tests getting music cover art
+func TestMusic_GetImage(t *testing.T) {
+	config := GetTestConfig()
+	client := SetupAuthenticatedClient(t, config)
+
+	// Get a music track
+	resp, err := client.Request("GET", "/music?limit=1", nil)
+	require.NoError(t, err, "List music request should not fail")
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusBadGateway {
+		t.Skip("Backend service not available")
+	}
+
+	body := AssertResponseBody(t, resp)
+	if music, ok := body["music"].([]interface{}); ok && len(music) > 0 {
+		if track, ok := music[0].(map[string]interface{}); ok {
+			if musicUUID, ok := track["uuid"].(string); ok {
+				resp, err = client.Request("GET", "/music/"+musicUUID+"/image", nil)
+				require.NoError(t, err, "Get music image request should not fail")
+				defer resp.Body.Close()
+
+				// Should return OK, Not Found, or redirect to default image
+				assert.True(t, resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusFound,
+					"Get music image should be handled")
+			}
+		}
+	}
+}
+
 // TestPlaylists_GetTracksWithOrdering tests getting tracks in playlist with specific ordering
 func TestPlaylists_GetTracksWithOrdering(t *testing.T) {
 	config := GetTestConfig()
@@ -750,5 +882,123 @@ func TestPlaylists_GetTracksWithOrdering(t *testing.T) {
 				AssertResponseStatus(t, resp, http.StatusOK)
 			}
 		}
+	}
+}
+
+// TestMusic_UpdateStorage tests updating storage info for a music track (Manager role required)
+func TestMusic_UpdateStorage(t *testing.T) {
+	config := GetTestConfig()
+	client := SetupAuthenticatedClient(t, config)
+
+	// Get a music track first
+	resp, err := client.Request("GET", "/music?limit=1", nil)
+	require.NoError(t, err, "List music request should not fail")
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusBadGateway {
+		t.Skip("Backend service not available")
+	}
+
+	body := AssertResponseBody(t, resp)
+	if music, ok := body["music"].([]interface{}); ok && len(music) > 0 {
+		if track, ok := music[0].(map[string]interface{}); ok {
+			if uuid, ok := track["uuid"].(string); ok {
+				// Test updating storage - may require Manager role
+				storageData := map[string]interface{}{
+					"storage_path": "/storage/test-path",
+				}
+				resp, err = client.Request("POST", "/music/"+uuid+"/storage", storageData)
+				require.NoError(t, err, "Update storage request should not fail")
+				defer resp.Body.Close()
+
+				// Should not return 404 (endpoint exists)
+				assert.NotEqual(t, http.StatusNotFound, resp.StatusCode)
+			}
+		}
+	}
+}
+
+// TestMusic_Listen tests recording listening history for a music track
+func TestMusic_Listen(t *testing.T) {
+	config := GetTestConfig()
+	client := SetupAuthenticatedClient(t, config)
+
+	// Get a music track first
+	resp, err := client.Request("GET", "/music?limit=1", nil)
+	require.NoError(t, err, "List music request should not fail")
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusBadGateway {
+		t.Skip("Backend service not available")
+	}
+
+	body := AssertResponseBody(t, resp)
+	if music, ok := body["music"].([]interface{}); ok && len(music) > 0 {
+		if track, ok := music[0].(map[string]interface{}); ok {
+			if uuid, ok := track["uuid"].(string); ok {
+				resp, err = client.Request("POST", "/music/"+uuid+"/listen", nil)
+				require.NoError(t, err, "Listen request should not fail")
+				defer resp.Body.Close()
+
+				// Should succeed or return appropriate status
+				assert.True(t, resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusForbidden,
+					"Listen tracking should be handled")
+			}
+		}
+	}
+}
+
+// TestPlaylists_Reorder tests reordering all tracks in a playlist
+func TestPlaylists_Reorder(t *testing.T) {
+	config := GetTestConfig()
+	client := SetupAuthenticatedClient(t, config)
+
+	// Create a playlist first
+	playlistData := GenerateTestPlaylistData()
+	resp, err := client.Request("POST", "/playlists", playlistData)
+	require.NoError(t, err, "Create playlist request should not fail")
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusBadGateway {
+		t.Skip("Backend service not available")
+	}
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		t.Skip("Cannot create playlist for reorder test")
+	}
+
+	body := AssertResponseBody(t, resp)
+	playlistUUID := body["uuid"].(string)
+
+	// Get tracks to reorder
+	resp, err = client.Request("GET", "/playlists/"+playlistUUID+"/tracks", nil)
+	require.NoError(t, err, "Get playlist tracks request should not fail")
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusBadGateway {
+		t.Skip("Backend service not available")
+	}
+
+	tracksBody := AssertResponseBody(t, resp)
+	if tracks, ok := tracksBody["tracks"].([]interface{}); ok && len(tracks) > 1 {
+		// Try to reorder tracks with new positions
+		reorderData := map[string]interface{}{
+			"track_uuids": []string{},
+		}
+		// Add track UUIDs in reverse order
+		for i := len(tracks) - 1; i >= 0; i-- {
+			if track, ok := tracks[i].(map[string]interface{}); ok {
+				if trackUUID, ok := track["uuid"].(string); ok {
+					reorderData["track_uuids"] = append(reorderData["track_uuids"].([]string), trackUUID)
+				}
+			}
+		}
+
+		resp, err = client.Request("POST", "/playlists/"+playlistUUID+"/reorder", reorderData)
+		require.NoError(t, err, "Reorder request should not fail")
+		defer resp.Body.Close()
+
+		// Should not return 404
+		assert.NotEqual(t, http.StatusNotFound, resp.StatusCode)
 	}
 }

@@ -24,6 +24,30 @@ func TestAlbums_List(t *testing.T) {
 	}
 
 	AssertResponseStatus(t, resp, http.StatusOK)
+
+	body := AssertResponseBody(t, resp)
+
+	// Validate response structure - should have albums array or pagination wrapper
+	_, hasAlbums := body["albums"]
+	hasData := len(body) > 0
+	assert.True(t, hasAlbums || hasData, "Response should contain albums data or be non-empty")
+
+	// If albums array exists, validate structure
+	if hasAlbums {
+		albums, ok := body["albums"].([]interface{})
+		require.True(t, ok, "albums field should be an array")
+
+		// If there are albums, validate the first one has expected fields
+		if len(albums) > 0 {
+			album, ok := albums[0].(map[string]interface{})
+			require.True(t, ok, "First album should be an object")
+
+			// Validate required fields in album object
+			_, hasUUID := album["uuid"]
+			_, hasName := album["name"]
+			assert.True(t, hasUUID || hasName, "Album should have uuid or name field")
+		}
+	}
 }
 
 // TestAlbums_GetByUUID tests getting an album by UUID
@@ -219,4 +243,35 @@ func TestAlbums_InvalidUUID(t *testing.T) {
 
 	assert.True(t, resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusNotFound,
 		"Invalid UUID should return error")
+}
+
+// TestAlbums_UpdateImage tests updating album cover image (Manager role required)
+func TestAlbums_UpdateImage(t *testing.T) {
+	config := GetTestConfig()
+	client := SetupAuthenticatedClient(t, config)
+
+	// Get an album
+	resp, err := client.Request("GET", "/albums?limit=1", nil)
+	require.NoError(t, err, "List albums request should not fail")
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusBadGateway {
+		t.Skip("Backend service not available")
+	}
+
+	body := AssertResponseBody(t, resp)
+	if albums, ok := body["albums"].([]interface{}); ok && len(albums) > 0 {
+		if album, ok := albums[0].(map[string]interface{}); ok {
+			if albumUUID, ok := album["uuid"].(string); ok {
+				// Test the image upload endpoint (multipart form)
+				// This will return an error for missing file but should not be 404
+				resp, err = client.Request("POST", "/albums/"+albumUUID+"/image", nil)
+				require.NoError(t, err, "Update album image request should not fail")
+				defer resp.Body.Close()
+
+				// Should not return 404 (endpoint exists)
+				assert.NotEqual(t, http.StatusNotFound, resp.StatusCode)
+			}
+		}
+	}
 }

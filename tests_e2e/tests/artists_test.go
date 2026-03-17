@@ -26,9 +26,28 @@ func TestArtists_List(t *testing.T) {
 	AssertResponseStatus(t, resp, http.StatusOK)
 
 	body := AssertResponseBody(t, resp)
-	// Response should contain artists array or pagination wrapper
+
+	// Validate response structure
 	_, hasArtists := body["artists"]
-	assert.True(t, hasArtists || len(body) > 0, "Response should contain artists data")
+	hasData := len(body) > 0
+	assert.True(t, hasArtists || hasData, "Response should contain artists data or be non-empty")
+
+	// If artists array exists, validate structure
+	if hasArtists {
+		artists, ok := body["artists"].([]interface{})
+		require.True(t, ok, "artists field should be an array")
+
+		// If there are artists, validate the first one has expected fields
+		if len(artists) > 0 {
+			artist, ok := artists[0].(map[string]interface{})
+			require.True(t, ok, "First artist should be an object")
+
+			// Validate required fields in artist object
+			_, hasUUID := artist["uuid"]
+			_, hasName := artist["name"]
+			assert.True(t, hasUUID || hasName, "Artist should have uuid or name field")
+		}
+	}
 }
 
 // TestArtists_GetByUUID tests getting an artist by UUID
@@ -519,6 +538,36 @@ func TestArtists_RemoveMember(t *testing.T) {
 				// Should return OK, Not Found, or Bad Request
 				assert.True(t, resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusBadRequest,
 					"Remove member should be handled")
+			}
+		}
+	}
+}
+
+// TestArtists_GetImage tests getting artist profile image
+func TestArtists_GetImage(t *testing.T) {
+	config := GetTestConfig()
+	client := SetupAuthenticatedClient(t, config)
+
+	// Get list of artists first
+	resp, err := client.Request("GET", "/artists?limit=1", nil)
+	require.NoError(t, err, "List artists request should not fail")
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusBadGateway {
+		t.Skip("Backend service not available")
+	}
+
+	body := AssertResponseBody(t, resp)
+	if artists, ok := body["artists"].([]interface{}); ok && len(artists) > 0 {
+		if artist, ok := artists[0].(map[string]interface{}); ok {
+			if artistUUID, ok := artist["uuid"].(string); ok {
+				resp, err = client.Request("GET", "/artists/"+artistUUID+"/image", nil)
+				require.NoError(t, err, "Get artist image request should not fail")
+				defer resp.Body.Close()
+
+				// Should return OK, Not Found, or redirect to default image
+				assert.True(t, resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusFound,
+					"Get artist image should be handled")
 			}
 		}
 	}

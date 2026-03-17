@@ -27,10 +27,22 @@ func TestUsers_GetCurrentUser(t *testing.T) {
 	AssertResponseStatus(t, resp, http.StatusOK)
 
 	body := AssertResponseBody(t, resp)
+
+	// Validate required fields exist
 	AssertContainsField(t, body, "uuid")
 	AssertContainsField(t, body, "username")
 	AssertContainsField(t, body, "display_name")
 	AssertContainsField(t, body, "email")
+
+	// Validate field types
+	AssertFieldType(t, body, "uuid", "string")
+	AssertFieldType(t, body, "username", "string")
+	AssertFieldType(t, body, "display_name", "string")
+	AssertFieldType(t, body, "email", "string")
+
+	// Validate UUID format (should be a valid UUID)
+	uuid, ok := body["uuid"].(string)
+	require.True(t, ok && len(uuid) == 36, "UUID should be a valid UUID string")
 }
 
 // TestUsers_UpdateProfile tests updating the current user's profile

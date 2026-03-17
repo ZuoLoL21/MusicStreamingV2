@@ -321,6 +321,41 @@ func AssertContainsField(t *testing.T, body map[string]interface{}, fieldName st
 	assert.True(t, exists, fmt.Sprintf("Response should contain field: %s", fieldName))
 }
 
+// AssertFieldType asserts that the field has the expected type
+func AssertFieldType(t *testing.T, body map[string]interface{}, fieldName string, expectedType string) {
+	value, exists := body[fieldName]
+	assert.True(t, exists, fmt.Sprintf("Response should contain field: %s", fieldName))
+
+	switch expectedType {
+	case "string":
+		_, isString := value.(string)
+		assert.True(t, isString, fmt.Sprintf("Field %s should be a string", fieldName))
+	case "int", "int64":
+		_, isInt := value.(int64)
+		_, isInt2 := value.(int)
+		assert.True(t, isInt || isInt2, fmt.Sprintf("Field %s should be an integer", fieldName))
+	case "float64":
+		_, isFloat := value.(float64)
+		assert.True(t, isFloat, fmt.Sprintf("Field %s should be a float64", fieldName))
+	case "bool":
+		_, isBool := value.(bool)
+		assert.True(t, isBool, fmt.Sprintf("Field %s should be a bool", fieldName))
+	case "array":
+		_, isArray := value.([]interface{})
+		assert.True(t, isArray, fmt.Sprintf("Field %s should be an array", fieldName))
+	case "object":
+		_, isMap := value.(map[string]interface{})
+		assert.True(t, isMap, fmt.Sprintf("Field %s should be an object", fieldName))
+	}
+}
+
+// AssertFieldValue asserts that a field has a specific value
+func AssertFieldValue(t *testing.T, body map[string]interface{}, fieldName string, expectedValue interface{}) {
+	value, exists := body[fieldName]
+	assert.True(t, exists, fmt.Sprintf("Response should contain field: %s", fieldName))
+	assert.Equal(t, expectedValue, value, fmt.Sprintf("Field %s should have expected value", fieldName))
+}
+
 // AssertNoError checks for error field in response
 func AssertNoError(t *testing.T, body map[string]interface{}) {
 	if err, exists := body["error"]; exists {
