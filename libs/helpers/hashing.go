@@ -1,6 +1,9 @@
 package helpers
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+
 	"github.com/matthewhartstonge/argon2"
 )
 
@@ -31,4 +34,11 @@ func Verify(password string, encodedPassword string) bool {
 	}
 
 	return ok
+}
+
+// HashToken hashes a token using SHA-256 and returns a 64-character hex string.
+// This is used for storing refresh tokens securely in the database.
+func HashToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
 }

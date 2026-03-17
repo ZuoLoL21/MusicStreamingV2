@@ -16,6 +16,8 @@ const (
 	ErrInvalidTransitKey = "invalid transit key"
 	ErrInvalidFormat     = "invalid format"
 	ErrInvalidKey        = "invalid key: must be of type *SigningKey"
+	ErrMissingUuid       = "uuid missing from token claims"
+	ErrMissingDeviceID   = "device_id missing from token claims"
 )
 
 // HTTP Client Error Messages

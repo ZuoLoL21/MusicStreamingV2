@@ -29,9 +29,11 @@ func registerVaultSigningMethod() {
 
 // MyCustomClaims represents the custom JWT claims used in the music streaming application.
 // It includes a Uuid field for the user's unique identifier along with the standard
+// Also includes an optional DeviceID for refresh tokens
 // JWT registered claims (Subject, IssuedAt, ExpiresAt).
 type MyCustomClaims struct {
-	Uuid string `json:"uuid"`
+	Uuid     string `json:"uuid"`
+	DeviceID string `json:"device_id,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -114,6 +116,45 @@ func (h *JWTHandler) GenerateJwt(subject, uuid string, duration time.Duration) (
 	return tokenString, nil
 }
 
+// GenerateJwtWithDevice generates a new JWT token with device_id claim for refresh tokens.
+//
+//   - The subject identifies the token type (should be "refresh" for device-tracked tokens).
+//   - The UUID is stored in the token claims for user identification.
+//   - The deviceID is stored in the token claims for device tracking.
+//   - The duration determines when the token expires.
+//
+// Returns the signed token string and any error that occurred.
+func (h *JWTHandler) GenerateJwtWithDevice(subject, uuid, deviceID string, duration time.Duration) (string, error) {
+	claims := MyCustomClaims{
+		Uuid:     uuid,
+		DeviceID: deviceID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   subject,
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
+		},
+	}
+	token := jwt.NewWithClaims(
+		jwt.GetSigningMethod(consts.HeaderAlgorithm),
+		claims,
+	)
+
+	keyID := vault.GetVersion()
+	token.Header[consts.HeaderKeyID] = keyID
+	token.Header[consts.HeaderAppName] = h.ApplicationName
+
+	signingKey := vault.SigningKey{
+		VaultHandler:    h.VaultHandler,
+		ApplicationName: h.ApplicationName,
+		Version:         keyID,
+	}
+	tokenString, err := token.SignedString(&signingKey)
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
+}
+
 // ValidateJwt validates a JWT token and returns the UUID from the claims if valid.
 // It takes the expected subject and the token string as parameters.
 //
@@ -164,7 +205,71 @@ func (h *JWTHandler) ValidateJwt(
 		if claims.Subject != subject {
 			return "", fmt.Errorf(consts.ErrInvalidSubject, subject, claims.Subject)
 		}
+		if claims.Uuid == "" {
+			return "", fmt.Errorf(consts.ErrMissingUuid)
+		}
 		return claims.Uuid, nil
 	}
 	return "", fmt.Errorf(consts.ErrInvalidToken)
+}
+
+// ValidateJwtWithDevice validates a JWT token and returns the UUID and device_id from the claims.
+// It takes the expected subject and the token string as parameters.
+//
+// Returns the UUID and device_id from the token claims if validation succeeds.
+// Returns an error if the token is invalid, expired, has an unexpected subject, or missing device_id.
+func (h *JWTHandler) ValidateJwtWithDevice(
+	subject string,
+	tokenStr string,
+) (string, string, error) {
+	claims := &MyCustomClaims{}
+	token, err := jwt.ParseWithClaims(
+		tokenStr,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			kid, ok := token.Header[consts.HeaderKeyID]
+			if !ok {
+				return nil, fmt.Errorf(consts.ErrKIDMissing)
+			}
+
+			var kidI int64
+			if kidStr, ok := kid.(string); ok {
+				var err error
+				kidI, err = strconv.ParseInt(kidStr, 10, 32)
+				if err != nil {
+					return nil, fmt.Errorf(consts.ErrKIDNotInt, err)
+				}
+			} else {
+				kidI = int64(kid.(float64))
+			}
+
+			appName, ok := token.Header[consts.HeaderAppName]
+			if !ok {
+				return nil, fmt.Errorf(consts.ErrAppNameMissing)
+			}
+
+			return &vault.SigningKey{
+				VaultHandler:    h.VaultHandler,
+				ApplicationName: appName.(string),
+				Version:         int32(kidI),
+			}, nil
+		},
+	)
+	if err != nil {
+		return "", "", err
+	}
+
+	if claims, ok := token.Claims.(*MyCustomClaims); ok && token.Valid {
+		if claims.Subject != subject {
+			return "", "", fmt.Errorf(consts.ErrInvalidSubject, subject, claims.Subject)
+		}
+		if claims.DeviceID == "" {
+			return "", "", fmt.Errorf(consts.ErrMissingDeviceID)
+		}
+		if claims.Uuid == "" {
+			return "", "", fmt.Errorf(consts.ErrMissingUuid)
+		}
+		return claims.Uuid, claims.DeviceID, nil
+	}
+	return "", "", fmt.Errorf(consts.ErrInvalidToken)
 }
