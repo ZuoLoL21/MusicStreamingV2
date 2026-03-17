@@ -1,0 +1,18 @@
+# Dockerfile for running E2E tests
+FROM golang:1.24-alpine
+
+RUN apk add --no-cache git curl
+
+WORKDIR /app/tests_e2e/tests
+
+# Copy go.mod and go.sum
+COPY tests_e2e/tests/go.mod tests_e2e/tests/go.sum* ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy test files
+COPY tests_e2e/tests/ ./
+
+# Run e2e tests with build tag
+CMD ["go", "test", "-tags=e2e", "-count=1", "./..."]
