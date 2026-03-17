@@ -305,6 +305,7 @@ validation AS (
     SELECT
         COUNT(DISTINCT pt.music_uuid) = array_length($3::uuid[], 1) AS all_exist,
         COUNT(*) = array_length($3::uuid[], 1) AS count_matches
+
     FROM playlist_track pt
     WHERE pt.playlist_uuid = $2
     AND pt.music_uuid = ANY($3::uuid[])

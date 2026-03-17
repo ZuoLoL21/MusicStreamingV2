@@ -95,4 +95,12 @@ type DB interface {
 	SearchForArtist(ctx context.Context, arg sqlhandler.SearchForArtistParams) ([]sqlhandler.SearchForArtistRow, error)
 	SearchForUser(ctx context.Context, arg sqlhandler.SearchForUserParams) ([]sqlhandler.SearchForUserRow, error)
 	SearchForPlaylist(ctx context.Context, arg sqlhandler.SearchForPlaylistParams) ([]sqlhandler.SearchForPlaylistRow, error)
+
+	UpsertRefreshToken(ctx context.Context, arg sqlhandler.UpsertRefreshTokenParams) (sqlhandler.RefreshToken, error)
+	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (sqlhandler.RefreshToken, error)
+	ValidateAndUpdateRefreshToken(ctx context.Context, tokenHash string) (sqlhandler.RefreshToken, error)
+	GetDevicesForUser(ctx context.Context, userUuid pgtype.UUID) ([]sqlhandler.GetDevicesForUserRow, error)
+	RevokeDevice(ctx context.Context, arg sqlhandler.RevokeDeviceParams) error
+	RevokeAllDevicesForUser(ctx context.Context, userUuid pgtype.UUID) error
+	DeleteExpiredTokens(ctx context.Context) error
 }

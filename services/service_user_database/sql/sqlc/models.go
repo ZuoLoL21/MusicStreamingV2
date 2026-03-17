@@ -156,6 +156,17 @@ type PublicUser struct {
 	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
 }
 
+type RefreshToken struct {
+	Uuid       pgtype.UUID      `json:"uuid"`
+	UserUuid   pgtype.UUID      `json:"user_uuid"`
+	DeviceID   pgtype.UUID      `json:"device_id"`
+	TokenHash  string           `json:"token_hash"`
+	DeviceName pgtype.Text      `json:"device_name"`
+	ExpiresAt  pgtype.Timestamp `json:"expires_at"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
+	LastUsedAt pgtype.Timestamp `json:"last_used_at"`
+}
+
 type TagAssignment struct {
 	Uuid      pgtype.UUID      `json:"uuid"`
 	MusicUuid pgtype.UUID      `json:"music_uuid"`
