@@ -8,6 +8,7 @@ import (
 	sqlhandler "backend/sql/sqlc"
 	"context"
 	"errors"
+	"fmt"
 	libsconsts "libs/consts"
 	"net/http"
 	"strings"
@@ -287,6 +288,12 @@ func (h *AuthHandler) Renew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err := h.validateRenewToken(r, uuidStr, deviceID, logger)
+	if err != nil {
+		logger.Warn("failed to get renew token", zap.Error(err))
+		h.returns.ReturnError(w, "invalid token", http.StatusUnauthorized)
+	}
+
 	tokens, err := h.issueTokenPair(uuidStr, deviceID, "")
 	if err != nil {
 		logger.Error("failed to generate tokens", zap.Error(err))
@@ -299,4 +306,35 @@ func (h *AuthHandler) Renew(w http.ResponseWriter, r *http.Request) {
 		zap.String("device_id", deviceID))
 
 	h.returns.ReturnJSON(w, tokens, http.StatusOK)
+}
+
+func (h *AuthHandler) getRenewToken(r *http.Request) (string, error) {
+	refreshTokenHeader := r.Header.Get("X-Refresh-Token")
+	if refreshTokenHeader == "" {
+		return "", fmt.Errorf("missing X-Refresh-Token header")
+	}
+	refreshToken := strings.TrimPrefix(refreshTokenHeader, "Bearer ")
+	if refreshToken == "" {
+		return "", fmt.Errorf("empty refresh token after trimming")
+	}
+
+	return refreshToken, nil
+}
+
+func (h *AuthHandler) validateRenewToken(r *http.Request, uuidStr, deviceID string, logger *zap.Logger) error {
+	refreshToken, err := h.getRenewToken(r)
+	if err != nil {
+		return err
+	}
+
+	tokenHash := libshelpers.HashToken(refreshToken)
+	storedToken, err := h.db.GetRefreshTokenByHash(r.Context(), tokenHash)
+	if err != nil {
+		return fmt.Errorf("invalid or expired token")
+	}
+	if !verifyTokenMatch(storedToken, uuidStr, deviceID, logger) {
+		return fmt.Errorf("invalid token")
+	}
+
+	return nil
 }
