@@ -34,7 +34,7 @@ func TestIntegration_UpdatePassword_Success(t *testing.T) {
 		WithPassword("OldPassword123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Update password request
 	updateReq := map[string]string{
@@ -79,7 +79,7 @@ func TestIntegration_UpdatePassword_WrongOldPassword(t *testing.T) {
 		WithPassword("CorrectPassword123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Attempt to update with wrong old password
 	updateReq := map[string]string{
@@ -119,7 +119,7 @@ func TestIntegration_UpdatePassword_SameAsOld(t *testing.T) {
 		WithPassword("SamePassword123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Update to same password
 	updateReq := map[string]string{
@@ -154,7 +154,7 @@ func TestIntegration_UpdatePassword_WeakNewPassword(t *testing.T) {
 		WithPassword("OldPassword123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	testCases := []struct {
 		name        string
@@ -195,7 +195,7 @@ func TestIntegration_UpdatePassword_Unauthorized(t *testing.T) {
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, jwtHandler, returns, db, nil, nil)
 
 	// Attempt to update password without authentication
 	updateReq := map[string]string{
@@ -229,7 +229,7 @@ func TestIntegration_UpdatePassword_VerifyNewPassword(t *testing.T) {
 		WithPassword("OldPassword123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, jwtHandler, returns, db, nil, nil)
 
 	// Update password
 	updateReq := map[string]string{
@@ -246,7 +246,7 @@ func TestIntegration_UpdatePassword_VerifyNewPassword(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 
 	// Create AuthHandler for login verification
-	authHandler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
+	authHandler := handlers.NewAuthHandler(config, jwtHandler, returns, db, nil, nil)
 
 	// Verify can login with new password
 	loginReq := map[string]string{

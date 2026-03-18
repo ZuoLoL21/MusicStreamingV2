@@ -163,14 +163,13 @@ func runMigrations(t *testing.T, config *TestConfig) {
 func SetupMinIOClient(t *testing.T) *client.MinIOFileStorageClient {
 	t.Helper()
 	config := GetTestConfig()
-	logger := zap.NewNop()
 
 	minioClient, err := client.NewMinIOFileStorageClient(
 		config.MinIOEndpoint,
 		config.MinIOAccessKey,
 		config.MinIOSecretKey,
 		config.MinIOBucket,
-		logger,
+		&zap.Logger{},
 	)
 	require.NoError(t, err, "failed to create MinIO test client")
 	require.NotNil(t, minioClient, "MinIO client should not be nil")

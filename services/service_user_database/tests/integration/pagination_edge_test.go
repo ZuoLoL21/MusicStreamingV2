@@ -69,7 +69,7 @@ func TestIntegration_Pagination_EdgeCases(t *testing.T) {
 				builders.NewAlbumBuilder(artistUUID).Build(t, ctx, db)
 			}
 
-			handler := handlers.NewAlbumHandler(logger, config, returns, db, nil)
+			handler := handlers.NewAlbumHandler(config, returns, db, nil)
 
 			req := createRequest(t, "GET", "/artists/"+builders.UUIDToString(artistUUID)+"/albums?"+tt.queryParams, nil)
 			router := mux.NewRouter()
@@ -98,7 +98,7 @@ func TestIntegration_Pagination_EmptyResultSet(t *testing.T) {
 
 	// No albums created
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, nil)
+	handler := handlers.NewAlbumHandler(config, returns, db, nil)
 
 	req := createRequest(t, "GET", "/artists/"+builders.UUIDToString(artistUUID)+"/albums?limit=10", nil)
 	router := mux.NewRouter()
@@ -127,7 +127,7 @@ func TestIntegration_Pagination_SingleItem(t *testing.T) {
 	// Create exactly one album
 	builders.NewAlbumBuilder(artistUUID).Build(t, ctx, db)
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, nil)
+	handler := handlers.NewAlbumHandler(config, returns, db, nil)
 
 	req := createRequest(t, "GET", "/artists/"+builders.UUIDToString(artistUUID)+"/albums?limit=10", nil)
 	router := mux.NewRouter()
@@ -159,7 +159,7 @@ func TestIntegration_Pagination_ExactPageBoundary(t *testing.T) {
 		ensureTimestampDistinct()
 	}
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, nil)
+	handler := handlers.NewAlbumHandler(config, returns, db, nil)
 
 	req := createRequest(t, "GET", "/artists/"+builders.UUIDToString(artistUUID)+"/albums?limit=10", nil)
 	router := mux.NewRouter()

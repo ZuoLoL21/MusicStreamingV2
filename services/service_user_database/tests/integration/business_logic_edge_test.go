@@ -30,7 +30,7 @@ func TestIntegration_BusinessLogic_SelfFollow(t *testing.T) {
 
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	// Try to follow self
 	req := createRequest(t, "POST", "/users/"+builders.UUIDToString(userUUID)+"/follow", nil)
@@ -65,7 +65,7 @@ func TestIntegration_BusinessLogic_DuplicateMemberAdd(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Try to add again
 	requestBody := map[string]string{
@@ -95,7 +95,7 @@ func TestIntegration_BusinessLogic_RemoveNonMember(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(ownerUUID).Build(t, ctx, db)
 	nonMemberUUID := builders.NewUserBuilder().WithEmail("nonmember@test.com").Build(t, ctx, db)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Try to remove someone who isn't a member
 	req := createRequest(t, "DELETE", "/artists/"+builders.UUIDToString(artistUUID)+"/members/"+builders.UUIDToString(nonMemberUUID), nil)
@@ -121,7 +121,7 @@ func TestIntegration_BusinessLogic_RemoveOnlyOwner(t *testing.T) {
 	ownerUUID := builders.NewUserBuilder().WithEmail("owner@test.com").Build(t, ctx, db)
 	artistUUID := builders.NewArtistBuilder(ownerUUID).Build(t, ctx, db)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Try to remove the only owner (should fail)
 	req := createRequest(t, "DELETE", "/artists/"+builders.UUIDToString(artistUUID)+"/members/"+builders.UUIDToString(ownerUUID), nil)
@@ -150,7 +150,7 @@ func TestIntegration_BusinessLogic_DuplicateTrackInPlaylist(t *testing.T) {
 	musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 	playlistUUID := builders.NewPlaylistBuilder(userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewPlaylistHandler(config, returns, db, nil)
 
 	// Add track first time
 	requestBody := map[string]string{
@@ -187,7 +187,7 @@ func TestIntegration_BusinessLogic_RemoveNonExistentTrack(t *testing.T) {
 	musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 	playlistUUID := builders.NewPlaylistBuilder(userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewPlaylistHandler(config, returns, db, nil)
 
 	// Try to remove track that was never added
 	req := createRequest(t, "DELETE", "/playlists/"+builders.UUIDToString(playlistUUID)+"/tracks/"+builders.UUIDToString(musicUUID), nil)
@@ -214,7 +214,7 @@ func TestIntegration_BusinessLogic_IncrementPlayCountMultipleTimes(t *testing.T)
 	artistUUID := builders.NewArtistBuilder(artistOwner).Build(t, ctx, db)
 	musicUUID := builders.NewMusicBuilder(artistUUID, artistOwner).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, nil)
+	handler := handlers.NewMusicHandler(config, returns, db, nil)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/music/{uuid}/play", handler.IncrementPlayCount).Methods("POST")

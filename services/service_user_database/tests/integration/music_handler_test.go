@@ -32,7 +32,7 @@ func TestIntegration_MusicHandler_CreateMusic_WithAudio(t *testing.T) {
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	audioData := []byte("fake audio data")
 	formFields := map[string]string{
@@ -81,7 +81,7 @@ func TestIntegration_MusicHandler_CreateMusic_WithAlbum(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	albumUUID := builders.NewAlbumBuilder(artistUUID).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	audioData := []byte("fake audio data")
 	formFields := map[string]string{
@@ -123,7 +123,7 @@ func TestIntegration_MusicHandler_CreateMusic_WithoutAlbum(t *testing.T) {
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	audioData := []byte("fake audio data")
 	formFields := map[string]string{
@@ -156,7 +156,7 @@ func TestIntegration_MusicHandler_CreateMusic_Unauthorized(t *testing.T) {
 	nonMemberUUID := builders.NewUserBuilder().WithEmail("nonmember@test.com").Build(t, ctx, db)
 	artistUUID := builders.NewArtistBuilder(ownerUUID).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	audioData := []byte("fake audio data")
 	formFields := map[string]string{
@@ -189,7 +189,7 @@ func TestIntegration_MusicHandler_UpdateMusicDetails_Success(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	updateBody := map[string]interface{}{
 		"song_name": "Updated Song Title",
@@ -225,7 +225,7 @@ func TestIntegration_MusicHandler_UpdateMusicDetails_WithAlbum(t *testing.T) {
 	albumUUID := builders.NewAlbumBuilder(artistUUID).Build(t, ctx, db)
 	musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	albumStr := builders.UUIDToString(albumUUID)
 	updateBody := map[string]interface{}{
@@ -263,7 +263,7 @@ func TestIntegration_MusicHandler_UpdateMusicImage_Success(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	imageData := createTestImage(1024, 1024)
 	req := createMultipartRequest(t, "PUT", "/music/"+builders.UUIDToString(musicUUID)+"/image",
@@ -297,7 +297,7 @@ func TestIntegration_MusicHandler_UpdateMusicStorage_Success(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	newAudioData := []byte("updated audio data")
 	formFields := map[string]string{
@@ -334,7 +334,7 @@ func TestIntegration_MusicHandler_DeleteMusic_Success(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "DELETE", "/music/"+builders.UUIDToString(musicUUID), nil)
 
@@ -374,7 +374,7 @@ func TestIntegration_MusicHandler_DeleteMusic_RequiresOwnerRole(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "DELETE", "/music/"+builders.UUIDToString(musicUUID), nil)
 
@@ -401,7 +401,7 @@ func TestIntegration_MusicHandler_IncrementPlayCount_Success(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "POST", "/music/"+builders.UUIDToString(musicUUID)+"/play", nil)
 
@@ -440,7 +440,7 @@ func TestIntegration_MusicHandler_GetMusic_Success(t *testing.T) {
 		WithSongName("Get Test Song").
 		Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "GET", "/music/"+builders.UUIDToString(musicUUID), nil)
 
@@ -475,7 +475,7 @@ func TestIntegration_MusicHandler_SearchForMusic_Success(t *testing.T) {
 	builders.NewMusicBuilder(artistUUID, userUUID).WithSongName("Stairway to Heaven").Build(t, ctx, db)
 	builders.NewMusicBuilder(artistUUID, userUUID).WithSongName("Hotel California").Build(t, ctx, db)
 
-	handler := handlers.NewSearchHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewSearchHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "GET", "/search/music?q=Bohemian", nil)
 

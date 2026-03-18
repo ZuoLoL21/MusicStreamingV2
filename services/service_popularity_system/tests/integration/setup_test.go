@@ -336,7 +336,9 @@ func CreateTestPopularityHandler(t *testing.T) *handlers.PopularityHandler {
 
 	returns := libsdi.NewReturnManager(logger)
 
-	return handlers.NewPopularityHandler(logger, testConfig, returns)
+	handler, err := handlers.NewPopularityHandler(testConfig, returns)
+	require.NoError(t, err, "Failed to create PopularityHandler")
+	return handler
 }
 
 // InsertTestListenEvent inserts a test listen event into ClickHouse

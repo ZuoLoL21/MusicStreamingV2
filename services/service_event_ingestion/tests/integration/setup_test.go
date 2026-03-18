@@ -172,7 +172,7 @@ func CreateTestHandler(t *testing.T) *handlers.EventHandler {
 
 	returns := libsdi.NewReturnManager(logger)
 
-	return handlers.NewEventHandler(logger, testConfig, returns, clickhouse)
+	return handlers.NewEventHandler(testConfig, returns, clickhouse)
 }
 
 // createJSONRequest creates an HTTP request with JSON body

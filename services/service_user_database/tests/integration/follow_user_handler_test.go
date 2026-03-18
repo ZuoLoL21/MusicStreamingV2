@@ -31,7 +31,7 @@ func TestIntegration_FollowUserHandler_Follow(t *testing.T) {
 	userA := builders.NewUserBuilder().WithEmail("usera@test.com").Build(t, ctx, db)
 	userB := builders.NewUserBuilder().WithEmail("userb@test.com").Build(t, ctx, db)
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	req := createRequest(t, "POST", "/users/"+builders.UUIDToString(userB)+"/follow", nil)
 	router := mux.NewRouter()
@@ -70,7 +70,7 @@ func TestIntegration_FollowUserHandler_Follow_AlreadyFollowing(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	// Try to follow again
 	req := createRequest(t, "POST", "/users/"+builders.UUIDToString(userB)+"/follow", nil)
@@ -95,7 +95,7 @@ func TestIntegration_FollowUserHandler_Follow_Self(t *testing.T) {
 
 	userA := builders.NewUserBuilder().WithEmail("usera@test.com").Build(t, ctx, db)
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	// Try to follow self
 	req := createRequest(t, "POST", "/users/"+builders.UUIDToString(userA)+"/follow", nil)
@@ -128,7 +128,7 @@ func TestIntegration_FollowUserHandler_Unfollow(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	// Unfollow
 	req := createRequest(t, "DELETE", "/users/"+builders.UUIDToString(userB)+"/follow", nil)
@@ -161,7 +161,7 @@ func TestIntegration_FollowUserHandler_Unfollow_NotFollowing(t *testing.T) {
 	userA := builders.NewUserBuilder().WithEmail("usera@test.com").Build(t, ctx, db)
 	userB := builders.NewUserBuilder().WithEmail("userb@test.com").Build(t, ctx, db)
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	// Try to unfollow when not following
 	req := createRequest(t, "DELETE", "/users/"+builders.UUIDToString(userB)+"/follow", nil)
@@ -194,7 +194,7 @@ func TestIntegration_FollowUserHandler_CheckIfFollowing(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	req := createRequest(t, "GET", "/users/"+builders.UUIDToString(userB)+"/following", nil)
 	router := mux.NewRouter()
@@ -225,7 +225,7 @@ func TestIntegration_FollowUserHandler_GetFollowersForUser(t *testing.T) {
 	db.FollowUser(ctx, sqlhandler.FollowUserParams{FromUser: follower1, ToUser: targetUser})
 	db.FollowUser(ctx, sqlhandler.FollowUserParams{FromUser: follower2, ToUser: targetUser})
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	req := createRequest(t, "GET", "/users/"+builders.UUIDToString(targetUser)+"/followers?limit=10", nil)
 	router := mux.NewRouter()
@@ -255,7 +255,7 @@ func TestIntegration_FollowUserHandler_GetFollowingUsersForUser(t *testing.T) {
 	db.FollowUser(ctx, sqlhandler.FollowUserParams{FromUser: userA, ToUser: userB})
 	db.FollowUser(ctx, sqlhandler.FollowUserParams{FromUser: userA, ToUser: userC})
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	req := createRequest(t, "GET", "/users/"+builders.UUIDToString(userA)+"/following?limit=10", nil)
 	router := mux.NewRouter()

@@ -107,7 +107,7 @@ func TestIntegration_HistoryHandler_GetListeningHistory(t *testing.T) {
 		MusicUuid: music2,
 	})
 
-	handler := handlers.NewHistoryHandler(logger, config, returns, db)
+	handler := handlers.NewHistoryHandler(config, returns, db)
 
 	req := createRequest(t, "GET", "/history?limit=10", nil)
 	router := mux.NewRouter()
@@ -157,7 +157,7 @@ func TestIntegration_HistoryHandler_GetTopMusicForUser(t *testing.T) {
 		MusicUuid: music2,
 	})
 
-	handler := handlers.NewHistoryHandler(logger, config, returns, db)
+	handler := handlers.NewHistoryHandler(config, returns, db)
 
 	req := createRequest(t, "GET", "/history/top?limit=10", nil)
 	router := mux.NewRouter()

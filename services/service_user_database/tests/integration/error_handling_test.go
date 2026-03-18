@@ -36,7 +36,7 @@ func TestIntegration_Error_DatabaseConstraintViolations(t *testing.T) {
 			Build(t, ctx, db)
 
 		// Try to create second user with same email
-		handler := handlers.NewAuthHandler(logger, config, nil, returns, db, nil, nil)
+		handler := handlers.NewAuthHandler(config, nil, returns, db, nil, nil)
 		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
 			"username":    "user2",
 			"email":       "duplicate@test.com",
@@ -64,7 +64,7 @@ func TestIntegration_Error_DatabaseConstraintViolations(t *testing.T) {
 			Build(t, ctx, db)
 
 		// Try to create second user with same username
-		handler := handlers.NewAuthHandler(logger, config, nil, returns, db, nil, nil)
+		handler := handlers.NewAuthHandler(config, nil, returns, db, nil, nil)
 		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
 			"username":    "samename",
 			"email":       "user2@test.com",
@@ -95,7 +95,7 @@ func TestIntegration_Error_NotFoundResponses(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 
 	t.Run("user_not_found", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+		handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 		req := createRequest(t, "GET", "/users/00000000-0000-0000-0000-000000000001", nil)
 
 		router := mux.NewRouter()
@@ -108,7 +108,7 @@ func TestIntegration_Error_NotFoundResponses(t *testing.T) {
 	})
 
 	t.Run("artist_not_found", func(t *testing.T) {
-		handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+		handler := handlers.NewArtistHandler(config, returns, db, nil)
 		req := createRequest(t, "GET", "/artists/00000000-0000-0000-0000-000000000001", nil)
 
 		router := mux.NewRouter()
@@ -121,7 +121,7 @@ func TestIntegration_Error_NotFoundResponses(t *testing.T) {
 	})
 
 	t.Run("music_not_found", func(t *testing.T) {
-		handler := handlers.NewMusicHandler(logger, config, returns, db, nil)
+		handler := handlers.NewMusicHandler(config, returns, db, nil)
 		req := createRequest(t, "GET", "/music/00000000-0000-0000-0000-000000000001", nil)
 
 		router := mux.NewRouter()
@@ -134,7 +134,7 @@ func TestIntegration_Error_NotFoundResponses(t *testing.T) {
 	})
 
 	t.Run("album_not_found", func(t *testing.T) {
-		handler := handlers.NewAlbumHandler(logger, config, returns, db, nil)
+		handler := handlers.NewAlbumHandler(config, returns, db, nil)
 		req := createRequest(t, "GET", "/albums/00000000-0000-0000-0000-000000000001", nil)
 
 		router := mux.NewRouter()
@@ -147,7 +147,7 @@ func TestIntegration_Error_NotFoundResponses(t *testing.T) {
 	})
 
 	t.Run("playlist_not_found", func(t *testing.T) {
-		handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
+		handler := handlers.NewPlaylistHandler(config, returns, db, nil)
 		req := createRequest(t, "GET", "/playlists/00000000-0000-0000-0000-000000000001", nil)
 
 		router := mux.NewRouter()
@@ -176,7 +176,7 @@ func TestIntegration_Error_InvalidUUIDFormat(t *testing.T) {
 			name:     "invalid_uuid_user_get",
 			endpoint: "/users/not-a-valid-uuid",
 			handlerFunc: func() http.HandlerFunc {
-				h := handlers.NewUserHandler(logger, config, nil, returns, nil, nil, nil)
+				h := handlers.NewUserHandler(config, nil, returns, nil, nil, nil)
 				return h.GetPublicUser
 			},
 		},
@@ -184,7 +184,7 @@ func TestIntegration_Error_InvalidUUIDFormat(t *testing.T) {
 			name:     "invalid_uuid_artist_get",
 			endpoint: "/artists/invalid-uuid",
 			handlerFunc: func() http.HandlerFunc {
-				h := handlers.NewArtistHandler(logger, config, returns, nil, nil)
+				h := handlers.NewArtistHandler(config, returns, nil, nil)
 				return h.GetArtist
 			},
 		},
@@ -192,7 +192,7 @@ func TestIntegration_Error_InvalidUUIDFormat(t *testing.T) {
 			name:     "invalid_uuid_music_get",
 			endpoint: "/music/not-uuid",
 			handlerFunc: func() http.HandlerFunc {
-				h := handlers.NewMusicHandler(logger, config, returns, nil, nil)
+				h := handlers.NewMusicHandler(config, returns, nil, nil)
 				return h.GetMusic
 			},
 		},
@@ -200,7 +200,7 @@ func TestIntegration_Error_InvalidUUIDFormat(t *testing.T) {
 			name:     "invalid_uuid_album_get",
 			endpoint: "/albums/bad-uuid",
 			handlerFunc: func() http.HandlerFunc {
-				h := handlers.NewAlbumHandler(logger, config, returns, nil, nil)
+				h := handlers.NewAlbumHandler(config, returns, nil, nil)
 				return h.GetAlbum
 			},
 		},
@@ -208,7 +208,7 @@ func TestIntegration_Error_InvalidUUIDFormat(t *testing.T) {
 			name:     "invalid_uuid_playlist_get",
 			endpoint: "/playlists/xyz",
 			handlerFunc: func() http.HandlerFunc {
-				h := handlers.NewPlaylistHandler(logger, config, returns, nil, nil)
+				h := handlers.NewPlaylistHandler(config, returns, nil, nil)
 				return h.GetPlaylist
 			},
 		},
@@ -245,7 +245,7 @@ func TestIntegration_Error_MissingRequiredFields(t *testing.T) {
 		Build(t, ctx, db)
 
 	t.Run("register_missing_username", func(t *testing.T) {
-		handler := handlers.NewAuthHandler(logger, config, nil, returns, db, nil, nil)
+		handler := handlers.NewAuthHandler(config, nil, returns, db, nil, nil)
 		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
 			"email":       "test@test.com",
 			"password":    "TestPassword123!",
@@ -264,7 +264,7 @@ func TestIntegration_Error_MissingRequiredFields(t *testing.T) {
 	})
 
 	t.Run("register_missing_email", func(t *testing.T) {
-		handler := handlers.NewAuthHandler(logger, config, nil, returns, db, nil, nil)
+		handler := handlers.NewAuthHandler(config, nil, returns, db, nil, nil)
 		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
 			"username":    "testuser",
 			"password":    "TestPassword123!",
@@ -283,7 +283,7 @@ func TestIntegration_Error_MissingRequiredFields(t *testing.T) {
 	})
 
 	t.Run("register_missing_password", func(t *testing.T) {
-		handler := handlers.NewAuthHandler(logger, config, nil, returns, db, nil, nil)
+		handler := handlers.NewAuthHandler(config, nil, returns, db, nil, nil)
 		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
 			"username":    "testuser",
 			"email":       "test@test.com",
@@ -302,7 +302,7 @@ func TestIntegration_Error_MissingRequiredFields(t *testing.T) {
 	})
 
 	t.Run("playlist_missing_name", func(t *testing.T) {
-		handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
+		handler := handlers.NewPlaylistHandler(config, returns, db, nil)
 		req := createMultipartRequest(t, "POST", "/playlists", "", "", nil, map[string]string{
 			"description": "Test playlist",
 			"device_id":   "00000000-0000-0000-0000-000000000001",
@@ -348,7 +348,7 @@ func TestIntegration_Error_UnauthorizedAccess(t *testing.T) {
 		Build(t, ctx, db)
 
 	t.Run("update_other_user_profile", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+		handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 		// Try to update non-owner's profile
 		req := createJSONRequest(t, "POST", "/users/me", map[string]interface{}{
@@ -372,7 +372,7 @@ func TestIntegration_Error_UnauthorizedAccess(t *testing.T) {
 			WithName("Private Playlist").
 			Build(t, ctx, db)
 
-		handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
+		handler := handlers.NewPlaylistHandler(config, returns, db, nil)
 
 		// Try to delete as different user (owner)
 		req := createRequest(t, "DELETE", "/playlists/"+builders.UUIDToString(playlist), nil)
@@ -388,7 +388,7 @@ func TestIntegration_Error_UnauthorizedAccess(t *testing.T) {
 	})
 
 	t.Run("update_other_artist", func(t *testing.T) {
-		handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+		handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 		// Try to update as non-member
 		req := createJSONRequest(t, "POST", "/artists/"+builders.UUIDToString(artist), map[string]interface{}{
@@ -413,7 +413,7 @@ func TestIntegration_Error_MethodNotAllowed(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 
 	t.Run("get_on_post_endpoint", func(t *testing.T) {
-		handler := handlers.NewAuthHandler(logger, config, nil, returns, nil, nil, nil)
+		handler := handlers.NewAuthHandler(config, nil, returns, nil, nil, nil)
 
 		// Try GET on register endpoint (should be POST)
 		req := createRequest(t, "GET", "/register", nil)
@@ -428,7 +428,7 @@ func TestIntegration_Error_MethodNotAllowed(t *testing.T) {
 	})
 
 	t.Run("post_on_get_endpoint", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, nil, nil, nil)
+		handler := handlers.NewUserHandler(config, nil, returns, nil, nil, nil)
 
 		// Try POST on user endpoint (should be GET)
 		req := createJSONRequest(t, "POST", "/users/me", map[string]interface{}{})
@@ -450,7 +450,7 @@ func TestIntegration_Error_BadRequestBody(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 
 	t.Run("invalid_json", func(t *testing.T) {
-		handler := handlers.NewAuthHandler(logger, config, nil, returns, nil, nil, nil)
+		handler := handlers.NewAuthHandler(config, nil, returns, nil, nil, nil)
 
 		// Create request with invalid JSON body
 		req := httptest.NewRequest("POST", "/register", strings.NewReader("{invalid json"))
@@ -466,7 +466,7 @@ func TestIntegration_Error_BadRequestBody(t *testing.T) {
 	})
 
 	t.Run("wrong_content_type", func(t *testing.T) {
-		handler := handlers.NewAuthHandler(logger, config, nil, returns, nil, nil, nil)
+		handler := handlers.NewAuthHandler(config, nil, returns, nil, nil, nil)
 
 		// Create request with wrong content type
 		req := httptest.NewRequest("POST", "/register", strings.NewReader("plain text"))
@@ -493,7 +493,7 @@ func TestIntegration_Error_DatabaseVsNotFound(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 
 	t.Run("user_not_found_returns_404", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+		handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 		// Use a valid UUID that doesn't exist
 		nonExistentUUID := "00000000-0000-0000-0000-000000000001"
@@ -510,7 +510,7 @@ func TestIntegration_Error_DatabaseVsNotFound(t *testing.T) {
 	})
 
 	t.Run("music_not_found_returns_404", func(t *testing.T) {
-		handler := handlers.NewMusicHandler(logger, config, returns, db, nil)
+		handler := handlers.NewMusicHandler(config, returns, db, nil)
 
 		nonExistentUUID := "00000000-0000-0000-0000-000000000002"
 		req := createRequest(t, "GET", "/music/"+nonExistentUUID, nil)
@@ -526,7 +526,7 @@ func TestIntegration_Error_DatabaseVsNotFound(t *testing.T) {
 	})
 
 	t.Run("album_not_found_returns_404", func(t *testing.T) {
-		handler := handlers.NewAlbumHandler(logger, config, returns, db, nil)
+		handler := handlers.NewAlbumHandler(config, returns, db, nil)
 
 		nonExistentUUID := "00000000-0000-0000-0000-000000000003"
 		req := createRequest(t, "GET", "/albums/"+nonExistentUUID, nil)
@@ -542,7 +542,7 @@ func TestIntegration_Error_DatabaseVsNotFound(t *testing.T) {
 	})
 
 	t.Run("playlist_not_found_returns_404", func(t *testing.T) {
-		handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
+		handler := handlers.NewPlaylistHandler(config, returns, db, nil)
 
 		nonExistentUUID := "00000000-0000-0000-0000-000000000004"
 		req := createRequest(t, "GET", "/playlists/"+nonExistentUUID, nil)

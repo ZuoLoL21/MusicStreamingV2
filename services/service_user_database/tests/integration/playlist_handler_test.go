@@ -58,7 +58,7 @@ func TestIntegration_PlaylistHandler_ReorderTracks_Success(t *testing.T) {
 		MusicUuid:    music3UUID,
 	})
 
-	handler := handlers.NewPlaylistHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewPlaylistHandler(config, returns, db, fileStorage)
 
 	// Reorder: music3, music1, music2
 	requestBody := map[string]interface{}{
@@ -118,7 +118,7 @@ func TestIntegration_PlaylistHandler_ReorderTracks_EmptyArray(t *testing.T) {
 		MusicUuid:    music1UUID,
 	})
 
-	handler := handlers.NewPlaylistHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewPlaylistHandler(config, returns, db, fileStorage)
 
 	// Try empty array
 	requestBody := map[string]interface{}{
@@ -176,7 +176,7 @@ func TestIntegration_PlaylistHandler_ReorderTracks_DuplicateUUIDs(t *testing.T) 
 		MusicUuid:    music3UUID,
 	})
 
-	handler := handlers.NewPlaylistHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewPlaylistHandler(config, returns, db, fileStorage)
 
 	// Try with duplicate UUID (music1 appears twice)
 	music1Str := builders.UUIDToString(music1UUID)
@@ -235,7 +235,7 @@ func TestIntegration_PlaylistHandler_ReorderTracks_CountMismatch(t *testing.T) {
 		MusicUuid:    music3UUID,
 	})
 
-	handler := handlers.NewPlaylistHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewPlaylistHandler(config, returns, db, fileStorage)
 
 	// Try with only 2 tracks (playlist has 3)
 	requestBody := map[string]interface{}{
@@ -292,7 +292,7 @@ func TestIntegration_PlaylistHandler_ReorderTracks_InvalidTrack(t *testing.T) {
 		MusicUuid:    music2UUID,
 	})
 
-	handler := handlers.NewPlaylistHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewPlaylistHandler(config, returns, db, fileStorage)
 
 	// Try with a track not in the playlist
 	requestBody := map[string]interface{}{
@@ -343,7 +343,7 @@ func TestIntegration_PlaylistHandler_ReorderTracks_InvalidUUID(t *testing.T) {
 		MusicUuid:    music1UUID,
 	})
 
-	handler := handlers.NewPlaylistHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewPlaylistHandler(config, returns, db, fileStorage)
 
 	// Try with invalid UUID format
 	requestBody := map[string]interface{}{

@@ -35,7 +35,7 @@ func TestIntegration_UserHandler_GetMe(t *testing.T) {
 		WithCountry("US").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Create request
 	req := createRequest(t, "GET", "/users/me", nil)
@@ -72,7 +72,7 @@ func TestIntegration_UserHandler_GetPublicUser(t *testing.T) {
 		WithEmail("public@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Get public user profile (no auth required)
 	req := createRequest(t, "GET", "/users/"+builders.UUIDToString(userUUID), nil)
@@ -99,7 +99,7 @@ func TestIntegration_UserHandler_GetPublicUser_NotFound(t *testing.T) {
 	config := &backenddi.Config{}
 	returns := di.NewReturnManager(logger)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Try to get non-existent user
 	fakeUUID := "00000000-0000-0000-0000-000000000000"
@@ -131,7 +131,7 @@ func TestIntegration_UserHandler_UpdateProfile_AllFields(t *testing.T) {
 		WithCountry("US").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Update all fields
 	bio := "Updated bio text"
@@ -175,7 +175,7 @@ func TestIntegration_UserHandler_UpdateProfile_PartialFields(t *testing.T) {
 		WithCountry("US").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Update only bio
 	bio := "Only bio updated"
@@ -219,7 +219,7 @@ func TestIntegration_UserHandler_UpdateProfile_ClearOptionalFields(t *testing.T)
 		WithCountry("US").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Clear bio by setting to null
 	updateReq := map[string]interface{}{
@@ -261,7 +261,7 @@ func TestIntegration_UserHandler_UpdateEmail(t *testing.T) {
 		WithPassword(password).
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Update email
 	updateReq := map[string]string{
@@ -304,7 +304,7 @@ func TestIntegration_UserHandler_UpdateEmail_DuplicateEmail(t *testing.T) {
 		WithPassword("Password123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Try to update to existing email
 	updateReq := map[string]string{
@@ -339,7 +339,7 @@ func TestIntegration_UserHandler_UpdateImage(t *testing.T) {
 		WithEmail("imagetest@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, fileStorage, nil)
 
 	// Upload image
 	imageData := createTestImage(512, 512) // Profile images require 512x512
@@ -377,7 +377,7 @@ func TestIntegration_UserHandler_UpdateImage_InvalidMimeType(t *testing.T) {
 		WithEmail("imagetest@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, fileStorage, nil)
 
 	// Try to upload non-image file
 	textData := []byte("This is not an image")

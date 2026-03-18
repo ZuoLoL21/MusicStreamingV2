@@ -33,7 +33,7 @@ func TestIntegration_AlbumHandler_CreateAlbum_Success(t *testing.T) {
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewAlbumHandler(config, returns, db, fileStorage)
 
 	// Create album with image
 	imageData := createTestImage(1024, 1024) // Album images require 1024x1024
@@ -77,7 +77,7 @@ func TestIntegration_AlbumHandler_CreateAlbum_WithoutImage(t *testing.T) {
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewAlbumHandler(config, returns, db, fileStorage)
 
 	// Create album without image
 	formFields := map[string]string{
@@ -111,7 +111,7 @@ func TestIntegration_AlbumHandler_CreateAlbum_Unauthorized(t *testing.T) {
 	nonMemberUUID := builders.NewUserBuilder().WithEmail("nonmember@test.com").Build(t, ctx, db)
 	artistUUID := builders.NewArtistBuilder(ownerUUID).Build(t, ctx, db)
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewAlbumHandler(config, returns, db, fileStorage)
 
 	formFields := map[string]string{
 		"artist_uuid":   builders.UUIDToString(artistUUID),
@@ -142,7 +142,7 @@ func TestIntegration_AlbumHandler_UpdateAlbum_Success(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	albumUUID := builders.NewAlbumBuilder(artistUUID).Build(t, ctx, db)
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewAlbumHandler(config, returns, db, fileStorage)
 
 	updateBody := map[string]interface{}{
 		"original_name": "Updated Album Name",
@@ -188,7 +188,7 @@ func TestIntegration_AlbumHandler_UpdateAlbum_RequiresManagerRole(t *testing.T) 
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewAlbumHandler(config, returns, db, fileStorage)
 
 	updateBody := map[string]interface{}{
 		"original_name": "Trying to Update",
@@ -218,7 +218,7 @@ func TestIntegration_AlbumHandler_UpdateAlbumImage_Success(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	albumUUID := builders.NewAlbumBuilder(artistUUID).Build(t, ctx, db)
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewAlbumHandler(config, returns, db, fileStorage)
 
 	imageData := createTestImage(1024, 1024)
 	req := createMultipartRequest(t, "PUT", "/albums/"+builders.UUIDToString(albumUUID)+"/image",
@@ -252,7 +252,7 @@ func TestIntegration_AlbumHandler_DeleteAlbum_Success(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	albumUUID := builders.NewAlbumBuilder(artistUUID).Build(t, ctx, db)
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewAlbumHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "DELETE", "/albums/"+builders.UUIDToString(albumUUID), nil)
 
@@ -292,7 +292,7 @@ func TestIntegration_AlbumHandler_DeleteAlbum_RequiresOwnerRole(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewAlbumHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "DELETE", "/albums/"+builders.UUIDToString(albumUUID), nil)
 
@@ -319,7 +319,7 @@ func TestIntegration_AlbumHandler_GetAlbum_Success(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	albumUUID := builders.NewAlbumBuilder(artistUUID).WithName("Get Test Album").Build(t, ctx, db)
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewAlbumHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "GET", "/albums/"+builders.UUIDToString(albumUUID), nil)
 
@@ -356,7 +356,7 @@ func TestIntegration_AlbumHandler_GetAlbumsForArtist_Success(t *testing.T) {
 	ensureTimestampDistinct()
 	builders.NewAlbumBuilder(artistUUID).WithName("Album 3").Build(t, ctx, db)
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewAlbumHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "GET", "/artists/"+builders.UUIDToString(artistUUID)+"/albums", nil)
 
@@ -391,7 +391,7 @@ func TestIntegration_AlbumHandler_SearchForAlbum_Success(t *testing.T) {
 	builders.NewAlbumBuilder(artistUUID).WithName("The Wall").Build(t, ctx, db)
 	builders.NewAlbumBuilder(artistUUID).WithName("Wish You Were Here").Build(t, ctx, db)
 
-	handler := handlers.NewSearchHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewSearchHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "GET", "/search/albums?q=Dark%20Side", nil)
 

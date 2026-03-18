@@ -33,7 +33,7 @@ func TestIntegration_ArtistHandler_Create(t *testing.T) {
 		WithEmail("artist@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewArtistHandler(config, returns, db, fileStorage)
 
 	// Create artist with image
 	imageData := createTestImage(512, 512) // Artist images require 512x512
@@ -76,7 +76,7 @@ func TestIntegration_ArtistHandler_Create_GeneratesSlug(t *testing.T) {
 		WithEmail("slugtest@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewArtistHandler(config, returns, db, fileStorage)
 
 	// Create artist with name that needs slug generation
 	imageData := createTestImage(512, 512)
@@ -121,7 +121,7 @@ func TestIntegration_ArtistHandler_UpdateProfile(t *testing.T) {
 		WithBio("Old bio").
 		Build(t, ctx, db)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Update artist profile
 	bio := "Updated bio for artist"
@@ -170,7 +170,7 @@ func TestIntegration_ArtistHandler_UpdateProfile_Unauthorized(t *testing.T) {
 		WithEmail("nonmember@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Try to update as non-member
 	bio := "Unauthorized update"
@@ -214,7 +214,7 @@ func TestIntegration_ArtistHandler_UpdatePicture(t *testing.T) {
 		WithName("Picture Test Artist").
 		Build(t, ctx, db)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewArtistHandler(config, returns, db, fileStorage)
 
 	// Upload new picture
 	imageData := createTestImage(512, 512)
@@ -256,7 +256,7 @@ func TestIntegration_ArtistHandler_GetArtist(t *testing.T) {
 		WithBio("Test bio").
 		Build(t, ctx, db)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Get artist (no auth required)
 	req := createRequest(t, "GET", "/artists/"+builders.UUIDToString(artistUUID), nil)
@@ -294,7 +294,7 @@ func TestIntegration_ArtistHandler_GetArtistsAlphabetically(t *testing.T) {
 	builders.NewArtistBuilder(userUUID).WithName("Alpha Band").Build(t, ctx, db)
 	builders.NewArtistBuilder(userUUID).WithName("Middle Band").Build(t, ctx, db)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Get artists alphabetically
 	req := createRequest(t, "GET", "/artists?limit=10", nil)
@@ -333,7 +333,7 @@ func TestIntegration_ArtistHandler_SearchForArtist(t *testing.T) {
 	builders.NewArtistBuilder(userUUID).WithName("Beach Boys").Build(t, ctx, db)
 	builders.NewArtistBuilder(userUUID).WithName("Rolling Stones").Build(t, ctx, db)
 
-	handler := handlers.NewSearchHandler(logger, config, returns, db, nil)
+	handler := handlers.NewSearchHandler(config, returns, db, nil)
 
 	// Search for artists with "bea" (should match Beatles and Beach Boys)
 	req := createRequest(t, "GET", "/search/artists?q=bea&limit=10", nil)
@@ -371,7 +371,7 @@ func TestIntegration_ArtistHandler_SearchForArtist_NoResults(t *testing.T) {
 
 	builders.NewArtistBuilder(userUUID).WithName("The Beatles").Build(t, ctx, db)
 
-	handler := handlers.NewSearchHandler(logger, config, returns, db, nil)
+	handler := handlers.NewSearchHandler(config, returns, db, nil)
 
 	// Search for non-existent artist
 	req := createRequest(t, "GET", "/search/artists?q=NonExistentArtistXYZ&limit=10", nil)

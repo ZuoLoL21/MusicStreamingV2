@@ -39,7 +39,7 @@ func TestIntegration_Login_Success(t *testing.T) {
 		WithPassword("CorrectPassword123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, nil, nil)
 
 	// Create login request
 	loginReq := map[string]string{
@@ -83,7 +83,7 @@ func TestIntegration_Login_WrongPassword(t *testing.T) {
 		WithPassword("CorrectPassword123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, nil, nil)
 
 	// Attempt login with wrong password
 	loginReq := map[string]string{
@@ -113,7 +113,7 @@ func TestIntegration_Login_NonExistentUser(t *testing.T) {
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, nil, nil)
 
 	// Attempt login with non-existent email
 	loginReq := map[string]string{
@@ -150,7 +150,7 @@ func TestIntegration_Login_CaseInsensitiveEmail(t *testing.T) {
 		WithPassword("Password123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, nil, nil)
 
 	// Login with different case variations
 	testCases := []string{
@@ -199,7 +199,7 @@ func TestIntegration_Login_EmptyPassword(t *testing.T) {
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, nil, nil)
 
 	// Attempt login with empty password
 	loginReq := map[string]string{
@@ -229,7 +229,7 @@ func TestIntegration_Login_EmptyEmail(t *testing.T) {
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, nil, nil)
 
 	// Attempt login with empty email
 	loginReq := map[string]string{
@@ -266,7 +266,7 @@ func TestIntegration_Login_ReturnsJWT(t *testing.T) {
 		WithPassword("Password123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, nil, nil)
 
 	// Login
 	loginReq := map[string]string{
@@ -323,7 +323,7 @@ func TestIntegration_Login_JWTContainsUserUUID(t *testing.T) {
 		WithPassword("Password123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, nil, nil)
 
 	// Login
 	loginReq := map[string]string{
@@ -383,7 +383,7 @@ func TestIntegration_Login_PasswordHashing(t *testing.T) {
 	// Verify the hash can be verified using helpers.Verify
 	assert.True(t, helpers.Verify(password, hashedPassword), "password verification should work")
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, nil, nil)
 
 	// Login should succeed with correct password
 	loginReq := map[string]string{

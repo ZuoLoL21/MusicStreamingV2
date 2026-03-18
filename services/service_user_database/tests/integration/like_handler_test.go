@@ -33,7 +33,7 @@ func TestIntegration_LikesHandler_LikeMusic_Success(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewLikesHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewLikesHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "POST", "/music/"+builders.UUIDToString(musicUUID)+"/like", nil)
 
@@ -75,7 +75,7 @@ func TestIntegration_LikesHandler_UnlikeMusic_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewLikesHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewLikesHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "DELETE", "/music/"+builders.UUIDToString(musicUUID)+"/like", nil)
 
@@ -117,7 +117,7 @@ func TestIntegration_LikesHandler_IsLiked_True(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewLikesHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewLikesHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "GET", "/music/"+builders.UUIDToString(musicUUID)+"/liked", nil)
 
@@ -148,7 +148,7 @@ func TestIntegration_LikesHandler_IsLiked_False(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewLikesHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewLikesHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "GET", "/music/"+builders.UUIDToString(musicUUID)+"/liked", nil)
 
@@ -194,7 +194,7 @@ func TestIntegration_LikesHandler_GetLikesForUser_Success(t *testing.T) {
 	err = db.LikeMusic(ctx, sqlhandler.LikeMusicParams{FromUser: userUUID, ToMusic: music3UUID})
 	require.NoError(t, err)
 
-	handler := handlers.NewLikesHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewLikesHandler(config, returns, db, fileStorage)
 
 	req := createRequest(t, "GET", "/users/"+builders.UUIDToString(userUUID)+"/likes", nil)
 
@@ -281,7 +281,7 @@ func TestIntegration_LikesHandler_LikeDuplicateIdempotent(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 	musicUUID := builders.NewMusicBuilder(artistUUID, userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewLikesHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewLikesHandler(config, returns, db, fileStorage)
 
 	req1 := createRequest(t, "POST", "/music/"+builders.UUIDToString(musicUUID)+"/like", nil)
 	router := mux.NewRouter()

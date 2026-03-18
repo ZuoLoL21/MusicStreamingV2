@@ -197,7 +197,7 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 
 			switch tc.handler {
 			case "user":
-				handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+				handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 				req = createJSONRequest(t, "POST", tc.endpoint, tc.requestBody)
 				router := mux.NewRouter()
 				router.HandleFunc(tc.endpoint, wrapWithAuth(t, handler.UpdateProfile, testUser)).Methods("POST")
@@ -205,7 +205,7 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 				router.ServeHTTP(rr, req)
 
 			case "artist":
-				handler := handlers.NewArtistHandler(logger, config, returns, db, fileStorage)
+				handler := handlers.NewArtistHandler(config, returns, db, fileStorage)
 				req = createMultipartRequest(t, "POST", tc.endpoint, "", "", nil, tc.formFields)
 				router := mux.NewRouter()
 				router.HandleFunc(tc.endpoint, wrapWithAuth(t, handler.CreateArtist, testUser)).Methods("POST")
@@ -213,7 +213,7 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 				router.ServeHTTP(rr, req)
 
 			case "music":
-				handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+				handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 				audioData := []byte("fake audio")
 				req = createMultipartRequest(t, "POST", tc.endpoint, "audio", "test.mp3", audioData, tc.formFields)
 				router := mux.NewRouter()
@@ -222,7 +222,7 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 				router.ServeHTTP(rr, req)
 
 			case "album":
-				handler := handlers.NewAlbumHandler(logger, config, returns, db, nil)
+				handler := handlers.NewAlbumHandler(config, returns, db, nil)
 				req = createMultipartRequest(t, "POST", tc.endpoint, "", "", nil, tc.formFields)
 				router := mux.NewRouter()
 				router.HandleFunc("/artists/{artist_uuid}/albums", wrapWithAuth(t, handler.CreateAlbum, testUser)).Methods("POST")
@@ -230,7 +230,7 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 				router.ServeHTTP(rr, req)
 
 			case "playlist":
-				handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
+				handler := handlers.NewPlaylistHandler(config, returns, db, nil)
 				req = createMultipartRequest(t, "POST", tc.endpoint, "", "", nil, tc.formFields)
 				router := mux.NewRouter()
 				router.HandleFunc(tc.endpoint, wrapWithAuth(t, handler.CreatePlaylist, testUser)).Methods("POST")
@@ -256,7 +256,7 @@ func TestIntegration_Validation_NullBytes(t *testing.T) {
 		WithEmail("testuser@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Attempt to inject null byte in username
 	updateReq := map[string]interface{}{
@@ -288,7 +288,7 @@ func TestIntegration_Validation_LeadingTrailingWhitespace(t *testing.T) {
 		WithEmail("testuser@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Username with leading/trailing whitespace
 	updateReq := map[string]interface{}{
@@ -326,7 +326,7 @@ func TestIntegration_Validation_VeryLongDescription(t *testing.T) {
 		WithEmail("testuser@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewPlaylistHandler(config, returns, db, nil)
 
 	// Create playlist with very long description (>5000 chars)
 	longDesc := strings.Repeat("This is a very long description. ", 200) // ~6600 chars
@@ -370,7 +370,7 @@ func TestIntegration_Validation_NumericFields(t *testing.T) {
 		WithName("Test Artist").
 		Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	testCases := []struct {
 		name           string
@@ -417,7 +417,7 @@ func TestIntegration_Validation_EmailFormat(t *testing.T) {
 	fileStorage := SetupMinIOClient(t)
 	config := &backenddi.Config{}
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name           string
@@ -467,7 +467,7 @@ func TestIntegration_Validation_PasswordStrength(t *testing.T) {
 	fileStorage := SetupMinIOClient(t)
 	config := &backenddi.Config{}
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name           string
@@ -520,7 +520,7 @@ func TestIntegration_Validation_SecurityInput(t *testing.T) {
 		WithEmail("securitytest@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	testCases := []struct {
 		name           string

@@ -38,7 +38,7 @@ func TestIntegration_Auth_UpdateOtherUserProfile(t *testing.T) {
 		WithUsername("userB").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// User A tries to update their profile (should succeed)
 	updateReq := map[string]interface{}{
@@ -102,7 +102,7 @@ func TestIntegration_Auth_DeleteOtherUserPlaylist(t *testing.T) {
 		WithName("User A's Playlist").
 		Build(t, ctx, db)
 
-	handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewPlaylistHandler(config, returns, db, nil)
 
 	// User B tries to delete User A's playlist
 	req := createRequest(t, "DELETE", "/playlists/"+builders.UUIDToString(playlistUUID), nil)
@@ -150,7 +150,7 @@ func TestIntegration_Auth_NonMemberUpdateAlbum(t *testing.T) {
 		WithName("Original Album Name").
 		Build(t, ctx, db)
 
-	handler := handlers.NewAlbumHandler(logger, config, returns, db, nil)
+	handler := handlers.NewAlbumHandler(config, returns, db, nil)
 
 	// Non-member tries to update album
 	updateReq := map[string]string{
@@ -198,7 +198,7 @@ func TestIntegration_Auth_NonMemberCreateMusic(t *testing.T) {
 		WithName("Test Artist").
 		Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(logger, config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
 
 	// Non-member tries to create music for artist
 	formFields := map[string]string{
@@ -251,7 +251,7 @@ func TestIntegration_Auth_NonOwnerRemoveMember(t *testing.T) {
 	// For this test, we'll skip adding members and just verify the owner check works
 	// The important part is that a non-owner cannot remove members
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Member A (non-owner) tries to remove Member B (even though B isn't added yet)
 	req := createRequest(t, "DELETE", "/artists/"+builders.UUIDToString(artistUUID)+"/members/"+builders.UUIDToString(memberB), nil)
@@ -275,7 +275,7 @@ func TestIntegration_Auth_MissingJWT(t *testing.T) {
 	config := &backenddi.Config{}
 	returns := di.NewReturnManager(logger)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
+	handler := handlers.NewUserHandler(config, nil, returns, db, nil, nil)
 
 	// Attempt to access protected endpoint without JWT (no auth wrapper)
 	updateReq := map[string]interface{}{

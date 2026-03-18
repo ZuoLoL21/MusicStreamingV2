@@ -42,7 +42,7 @@ func TestIntegration_ArtistMembership_AddUser_AsOwner(t *testing.T) {
 		WithEmail("newmember@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Add new member as MEMBER
 	addReq := map[string]string{
@@ -104,7 +104,7 @@ func TestIntegration_ArtistMembership_AddUser_AsNonOwner(t *testing.T) {
 		WithEmail("target@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Try to add member as non-owner
 	addReq := map[string]string{
@@ -157,7 +157,7 @@ func TestIntegration_ArtistMembership_AddUser_AlreadyMember(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Try to add same member again
 	addReq := map[string]string{
@@ -206,7 +206,7 @@ func TestIntegration_ArtistMembership_RemoveUser_AsOwner(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Remove member as owner
 	req := createRequest(t, "DELETE", "/artists/"+builders.UUIDToString(artistUUID)+"/members/"+builders.UUIDToString(memberUUID), nil)
@@ -272,7 +272,7 @@ func TestIntegration_ArtistMembership_RemoveUser_AsNonOwner(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Try to remove member2 as member1 (non-owner)
 	req := createRequest(t, "DELETE", "/artists/"+builders.UUIDToString(artistUUID)+"/members/"+builders.UUIDToString(member2UUID), nil)
@@ -315,7 +315,7 @@ func TestIntegration_ArtistMembership_RemoveUser_NotMember(t *testing.T) {
 		WithEmail("nonmember@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Try to remove non-member
 	req := createRequest(t, "DELETE", "/artists/"+builders.UUIDToString(artistUUID)+"/members/"+builders.UUIDToString(nonMemberUUID), nil)
@@ -362,7 +362,7 @@ func TestIntegration_ArtistMembership_ChangeRole(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Change role to MANAGER
 	changeReq := map[string]string{
@@ -423,7 +423,7 @@ func TestIntegration_ArtistMembership_ChangeRole_ToOwner(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Try to change role to OWNER (may or may not be allowed)
 	changeReq := map[string]string{
@@ -487,7 +487,7 @@ func TestIntegration_ArtistMembership_GetUsersRepresentingArtist(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Get all members
 	req := createRequest(t, "GET", "/artists/"+builders.UUIDToString(artistUUID)+"/members", nil)

@@ -42,7 +42,7 @@ func TestIntegration_Concurrency_MultipleLikes(t *testing.T) {
 		ensureTimestampDistinct()
 	}
 
-	handler := handlers.NewLikesHandler(logger, config, returns, db, nil)
+	handler := handlers.NewLikesHandler(config, returns, db, nil)
 
 	// Like concurrently
 	var wg sync.WaitGroup
@@ -101,7 +101,7 @@ func TestIntegration_Concurrency_MultipleFollows(t *testing.T) {
 		ensureTimestampDistinct()
 	}
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	// Follow concurrently
 	var wg sync.WaitGroup
@@ -155,7 +155,7 @@ func TestIntegration_Concurrency_PlaylistTrackAdditions(t *testing.T) {
 		ensureTimestampDistinct()
 	}
 
-	handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewPlaylistHandler(config, returns, db, nil)
 
 	// Add tracks concurrently
 	var wg sync.WaitGroup
@@ -243,7 +243,7 @@ func TestIntegration_Concurrency_RoleChanges(t *testing.T) {
 		Role:       sqlhandler.ArtistMemberRoleMember,
 	})
 
-	handler := handlers.NewArtistHandler(logger, config, returns, db, nil)
+	handler := handlers.NewArtistHandler(config, returns, db, nil)
 
 	// Try to change role concurrently (stress test)
 	var wg sync.WaitGroup

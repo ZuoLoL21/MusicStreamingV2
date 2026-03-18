@@ -32,7 +32,7 @@ func TestIntegration_FollowArtistHandler_Follow(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(artistOwner).Build(t, ctx, db)
 	fan := builders.NewUserBuilder().WithEmail("fan@test.com").Build(t, ctx, db)
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	req := createRequest(t, "POST", "/artists/"+builders.UUIDToString(artistUUID)+"/follow", nil)
 	router := mux.NewRouter()
@@ -68,7 +68,7 @@ func TestIntegration_FollowArtistHandler_Follow_AlreadyFollowing(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	// Try again
 	req := createRequest(t, "POST", "/artists/"+builders.UUIDToString(artistUUID)+"/follow", nil)
@@ -102,7 +102,7 @@ func TestIntegration_FollowArtistHandler_Unfollow(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	// Unfollow
 	req := createRequest(t, "DELETE", "/artists/"+builders.UUIDToString(artistUUID)+"/follow", nil)
@@ -136,7 +136,7 @@ func TestIntegration_FollowArtistHandler_Unfollow_NotFollowing(t *testing.T) {
 	artistUUID := builders.NewArtistBuilder(artistOwner).Build(t, ctx, db)
 	fan := builders.NewUserBuilder().WithEmail("fan@test.com").Build(t, ctx, db)
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	// Unfollow without following
 	req := createRequest(t, "DELETE", "/artists/"+builders.UUIDToString(artistUUID)+"/follow", nil)
@@ -198,7 +198,7 @@ func TestIntegration_FollowArtistHandler_GetFollowersForArtist(t *testing.T) {
 	db.FollowArtist(ctx, sqlhandler.FollowArtistParams{FromUser: fan1, ToArtist: artistUUID})
 	db.FollowArtist(ctx, sqlhandler.FollowArtistParams{FromUser: fan2, ToArtist: artistUUID})
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	req := createRequest(t, "GET", "/artists/"+builders.UUIDToString(artistUUID)+"/followers?limit=10", nil)
 	router := mux.NewRouter()
@@ -230,7 +230,7 @@ func TestIntegration_FollowArtistHandler_GetFollowedArtistsForUser(t *testing.T)
 	db.FollowArtist(ctx, sqlhandler.FollowArtistParams{FromUser: fan, ToArtist: artist1})
 	db.FollowArtist(ctx, sqlhandler.FollowArtistParams{FromUser: fan, ToArtist: artist2})
 
-	handler := handlers.NewFollowsHandler(logger, config, returns, db)
+	handler := handlers.NewFollowsHandler(config, returns, db)
 
 	req := createRequest(t, "GET", "/users/"+builders.UUIDToString(fan)+"/following/artists?limit=10", nil)
 	router := mux.NewRouter()

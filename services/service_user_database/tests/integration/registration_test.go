@@ -27,7 +27,7 @@ func TestIntegration_Register_Success(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, fileStorage, nil)
 
 	// Create registration request with valid data
 	formFields := map[string]string{
@@ -70,7 +70,7 @@ func TestIntegration_Register_DuplicateEmail(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, fileStorage, nil)
 
 	// Create first user
 	formFields1 := map[string]string{
@@ -119,7 +119,7 @@ func TestIntegration_Register_InvalidEmail(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name  string
@@ -162,7 +162,7 @@ func TestIntegration_Register_WeakPassword(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name     string
@@ -204,7 +204,7 @@ func TestIntegration_Register_ShortUsername(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name     string
@@ -247,7 +247,7 @@ func TestIntegration_Register_MissingFields(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name        string
@@ -323,7 +323,7 @@ func TestIntegration_Register_EmptyStrings(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name       string
@@ -387,7 +387,7 @@ func TestIntegration_Register_VeryLongStrings(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
+	handler := handlers.NewAuthHandler(config, jwtHandler, returns, db, fileStorage, nil)
 
 	// Create a very long string (>1000 chars)
 	longString := string(make([]byte, 1001))
