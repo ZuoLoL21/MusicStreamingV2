@@ -27,7 +27,7 @@ echo "========================================="
 docker compose -f $COMPOSE_USER_DB build --no-cache
 docker compose -f $COMPOSE_USER_DB up -d postgres-test minio-test vault-test mock-event-ingestion
 docker compose -f $COMPOSE_USER_DB up --force-recreate minio-init-test vault-init-test
-docker compose -f $COMPOSE_USER_DB run --rm --no-deps integration-tests
+docker compose -f $COMPOSE_USER_DB run --rm integration-tests
 
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
@@ -45,7 +45,7 @@ echo "Running integration tests: service_bandit_system"
 echo "========================================="
 docker compose -f $COMPOSE_BANDIT build --no-cache
 docker compose -f $COMPOSE_BANDIT up -d clickhouse-test postgres-test
-docker compose -f $COMPOSE_BANDIT run --rm --no-deps integration-tests
+docker compose -f $COMPOSE_BANDIT run --rm integration-tests
 
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
@@ -64,7 +64,7 @@ echo "========================================="
 docker compose -f $COMPOSE_EVENT build --no-cache
 docker compose -f $COMPOSE_EVENT up -d clickhouse-test vault-test
 docker compose -f $COMPOSE_EVENT up --force-recreate vault-init-test
-docker compose -f $COMPOSE_EVENT run --rm --no-deps integration-tests
+docker compose -f $COMPOSE_EVENT run --rm integration-tests
 
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
@@ -83,7 +83,7 @@ echo "========================================="
 docker compose -f $COMPOSE_POPULARITY build --no-cache
 docker compose -f $COMPOSE_POPULARITY up -d clickhouse-test vault-test
 docker compose -f $COMPOSE_POPULARITY up --force-recreate vault-init-test
-docker compose -f $COMPOSE_POPULARITY run --rm --no-deps integration-tests
+docker compose -f $COMPOSE_POPULARITY run --rm integration-tests
 
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
@@ -105,7 +105,7 @@ docker compose -f $COMPOSE_E2E up --force-recreate init-minio-test init-vault-te
 docker compose -f $COMPOSE_E2E up --force-recreate init-music-data-test
 docker compose -f $COMPOSE_E2E up -d service-user-database-test service-bandit-test service-popularity-test service-event-ingestion-test
 docker compose -f $COMPOSE_E2E up -d gateway-recommendation-test gateway-api-test
-docker compose -f $COMPOSE_E2E run --rm --no-deps e2e-tests
+docker compose -f $COMPOSE_E2E run --rm e2e-tests
 
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
