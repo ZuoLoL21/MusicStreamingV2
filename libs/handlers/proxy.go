@@ -108,6 +108,69 @@ func ProxyWithServiceJWT(
 	WriteProxyResponse(w, respBody, statusCode, respHeaders)
 }
 
+// ProxyRenewWithServiceJWT handles token renewal by forwarding both the service JWT
+// (in Authorization header) and the original refresh token (in X-Refresh-Token header).
+// This allows the backend to authenticate via service JWT while validating the refresh token hash.
+//
+// It returns 401 Unauthorized if the service JWT is missing from context.
+func ProxyRenewWithServiceJWT(
+	w http.ResponseWriter,
+	r *http.Request,
+	logger *zap.Logger,
+	forwardFunc func(ctx context.Context, method, path, query string, body io.Reader, headers http.Header, serviceJWT, requestID string) ([]byte, int, http.Header, error),
+) {
+	requestID := helpers.GetRequestIDFromContext(r.Context())
+	serviceJWT := helpers.GetServiceJWTFromContext(r.Context())
+
+	if serviceJWT == "" {
+		logger.Error("service JWT not found in context",
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
+		http.Error(w, consts.ErrUnauthorized, http.StatusUnauthorized)
+		return
+	}
+
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		logger.Error("failed to read request body",
+			zap.Error(err),
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	_ = r.Body.Close()
+
+	headers := CopyHeaders(r.Header, true)
+	if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+		headers.Set("X-Refresh-Token", authHeader)
+	}
+
+	respBody, statusCode, respHeaders, err := forwardFunc(
+		r.Context(),
+		r.Method,
+		r.URL.Path,
+		r.URL.RawQuery,
+		bytes.NewReader(bodyBytes),
+		headers,
+		serviceJWT,
+		requestID,
+	)
+
+	if err != nil {
+		logger.Error("failed to forward request",
+			zap.Error(err),
+			zap.String("request_id", requestID),
+			zap.String("method", r.Method))
+		http.Error(w, "bad gateway", http.StatusBadGateway)
+		return
+	}
+
+	WriteProxyResponse(w, respBody, statusCode, respHeaders)
+}
+
 // ProxyPublic handles public proxy requests with no JWT processing.
 //
 // This handler forwards all headers (including Authorization) to the backend service

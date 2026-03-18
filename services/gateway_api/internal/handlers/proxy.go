@@ -51,8 +51,9 @@ func (h *ProxyHandler) ProxyPrivateFiles(w http.ResponseWriter, r *http.Request)
 
 // ProxyRenew handles token renewal requests (POST /renew)
 // Requires refresh token validation (handled by middleware)
+// Forwards both service JWT (for auth) and original refresh token (for DB validation)
 func (h *ProxyHandler) ProxyRenew(w http.ResponseWriter, r *http.Request) {
-	libshandlers.ProxyWithServiceJWT(w, r, h.logger, h.userDBClient.ForwardWithServiceJWT)
+	libshandlers.ProxyRenewWithServiceJWT(w, r, h.logger, h.userDBClient.ForwardWithServiceJWT)
 }
 
 // ProxyUserDatabase handles all user database service routes
