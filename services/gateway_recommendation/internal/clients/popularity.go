@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	libsclients "libs/clients"
+	libsmiddleware "libs/middleware"
 
 	"go.uber.org/zap"
 )
@@ -21,16 +22,14 @@ type ThemePopularity struct {
 	DecayListenSeconds float64 `json:"decay_listen_seconds"`
 }
 
-func NewPopularityClient(baseURL string, logger *zap.Logger) *PopularityClient {
+func NewPopularityClient(baseURL string) *PopularityClient {
 	return &PopularityClient{
-		ProxyClient: libsclients.NewProxyClient(baseURL, logger),
+		ProxyClient: libsclients.NewProxyClient(baseURL),
 	}
 }
 
 func (c *PopularityClient) GetThemePopularity(ctx context.Context, requestID string, serviceJWT string, limit int) ([]ThemePopularity, error) {
-	c.Logger.Info("Fetching theme popularity",
-		zap.String("request_id", requestID),
-		zap.Int("limit", limit))
+	logger := libsmiddleware.GetLogger(ctx)
 
 	var themes []ThemePopularity
 	path := "/popular/themes/all-time"
@@ -50,15 +49,12 @@ func (c *PopularityClient) GetThemePopularity(ctx context.Context, requestID str
 		requestID,
 	)
 	if err != nil {
-		c.Logger.Error("Theme popularity fetch failed",
-			zap.String("request_id", requestID),
-			zap.Error(err))
+		logger.Error("Theme popularity fetch failed", zap.Error(err))
 		return nil, fmt.Errorf("fetch theme popularity: %w", err)
 	}
 
 	if statusCode != http.StatusOK {
-		c.Logger.Error("Theme popularity fetch failed with non-200 status",
-			zap.String("request_id", requestID),
+		logger.Error("Theme popularity fetch failed with non-200 status",
 			zap.Int("status_code", statusCode),
 			zap.String("response", string(respBody)))
 		return nil, fmt.Errorf("unexpected status code: %d", statusCode)
@@ -68,9 +64,7 @@ func (c *PopularityClient) GetThemePopularity(ctx context.Context, requestID str
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
-	c.Logger.Info("Theme popularity fetched",
-		zap.String("request_id", requestID),
-		zap.Int("count", len(themes)))
+	logger.Info("Theme popularity fetched", zap.Int("count", len(themes)))
 
 	return themes, nil
 }

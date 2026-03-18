@@ -31,11 +31,9 @@ func (a *App) Router() *mux.Router {
 		a.banditClient,
 		a.popularityClient,
 		a.returnManager,
-		a.logger,
 	)
 	proxyHandler := handlers.NewProxyHandler(
 		a.popularityClient,
-		a.logger,
 	)
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.logger,
@@ -88,8 +86,8 @@ func (a *App) Router() *mux.Router {
 }
 
 func NewApp(config *di.Config, logger *zap.Logger, jwtHandler *libsdi.JWTHandler, returnManager *libsdi.ReturnManager) *App {
-	banditClient := clients.NewBanditClient(config.BanditServiceURL, logger)
-	popularityClient := clients.NewPopularityClient(config.PopularityServiceURL, logger)
+	banditClient := clients.NewBanditClient(config.BanditServiceURL)
+	popularityClient := clients.NewPopularityClient(config.PopularityServiceURL)
 
 	return &App{
 		config:           config,
