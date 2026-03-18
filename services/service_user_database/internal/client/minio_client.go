@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 
+	libsmiddleware "libs/middleware"
+
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"go.uber.org/zap"
@@ -16,7 +18,6 @@ type MinIOFileStorageClient struct {
 	client     *minio.Client
 	bucketName string
 	endpoint   string
-	logger     *zap.Logger
 }
 
 // NewMinIOFileStorageClient creates a new MinIO file storage client
@@ -38,26 +39,27 @@ func NewMinIOFileStorageClient(endpoint, accessKey, secretKey, bucketName string
 		client:     minioClient,
 		bucketName: bucketName,
 		endpoint:   endpoint,
-		logger:     logger,
 	}, nil
 }
 
 // SaveAudio uploads audio file and returns the object path (not full URL)
 func (m *MinIOFileStorageClient) SaveAudio(ctx context.Context, musicID string, audioData io.Reader) (string, error) {
+	logger := libsmiddleware.GetLogger(ctx)
+
 	objectName := fmt.Sprintf("%s/%s.mp3", consts.AudioFolder, musicID)
 
 	_, err := m.client.PutObject(ctx, m.bucketName, objectName, audioData, -1, minio.PutObjectOptions{
 		ContentType: "audio/mpeg",
 	})
 	if err != nil {
-		m.logger.Error("failed to upload audio",
+		logger.Error("failed to upload audio",
 			zap.String("musicID", musicID),
 			zap.Error(err),
 		)
 		return "", fmt.Errorf("failed to upload audio: %w", err)
 	}
 
-	m.logger.Info("audio uploaded successfully",
+	logger.Info("audio uploaded successfully",
 		zap.String("musicID", musicID),
 		zap.String("objectPath", objectName),
 	)
@@ -72,18 +74,20 @@ func (m *MinIOFileStorageClient) UpdateAudio(ctx context.Context, musicID string
 
 // DeleteAudio removes audio file from storage
 func (m *MinIOFileStorageClient) DeleteAudio(ctx context.Context, musicID string) error {
+	logger := libsmiddleware.GetLogger(ctx)
+
 	objectName := fmt.Sprintf("%s/%s.mp3", consts.AudioFolder, musicID)
 
 	err := m.client.RemoveObject(ctx, m.bucketName, objectName, minio.RemoveObjectOptions{})
 	if err != nil {
-		m.logger.Warn("failed to delete audio (file may not exist)",
+		logger.Warn("failed to delete audio (file may not exist)",
 			zap.String("musicID", musicID),
 			zap.Error(err),
 		)
 		return nil
 	}
 
-	m.logger.Info("audio deleted successfully",
+	logger.Info("audio deleted successfully",
 		zap.String("musicID", musicID),
 	)
 
@@ -92,13 +96,15 @@ func (m *MinIOFileStorageClient) DeleteAudio(ctx context.Context, musicID string
 
 // SaveImage uploads image to specified folder and returns the object path (not full URL)
 func (m *MinIOFileStorageClient) SaveImage(ctx context.Context, folder, imageID string, imageData io.Reader) (string, error) {
+	logger := libsmiddleware.GetLogger(ctx)
+
 	objectName := fmt.Sprintf("%s/%s.jpg", folder, imageID)
 
 	_, err := m.client.PutObject(ctx, m.bucketName, objectName, imageData, -1, minio.PutObjectOptions{
 		ContentType: "image/jpeg",
 	})
 	if err != nil {
-		m.logger.Error("failed to upload image",
+		logger.Error("failed to upload image",
 			zap.String("folder", folder),
 			zap.String("imageID", imageID),
 			zap.Error(err),
@@ -106,7 +112,7 @@ func (m *MinIOFileStorageClient) SaveImage(ctx context.Context, folder, imageID 
 		return "", fmt.Errorf("failed to upload image: %w", err)
 	}
 
-	m.logger.Info("image uploaded successfully",
+	logger.Info("image uploaded successfully",
 		zap.String("folder", folder),
 		zap.String("imageID", imageID),
 		zap.String("objectPath", objectName),
@@ -117,6 +123,8 @@ func (m *MinIOFileStorageClient) SaveImage(ctx context.Context, folder, imageID 
 
 // DeleteImage removes image from storage (tries multiple extensions)
 func (m *MinIOFileStorageClient) DeleteImage(ctx context.Context, folder, imageID string) error {
+	logger := libsmiddleware.GetLogger(ctx)
+
 	extensions := []string{".jpg", ".jpeg", ".png", ".webp"}
 
 	for _, ext := range extensions {
@@ -127,7 +135,7 @@ func (m *MinIOFileStorageClient) DeleteImage(ctx context.Context, folder, imageI
 			continue
 		}
 
-		m.logger.Info("image deleted successfully",
+		logger.Info("image deleted successfully",
 			zap.String("folder", folder),
 			zap.String("imageID", imageID),
 			zap.String("extension", ext),
@@ -135,7 +143,7 @@ func (m *MinIOFileStorageClient) DeleteImage(ctx context.Context, folder, imageI
 		return nil
 	}
 
-	m.logger.Warn("failed to delete image with any extension (file may not exist)",
+	logger.Warn("failed to delete image with any extension (file may not exist)",
 		zap.String("folder", folder),
 		zap.String("imageID", imageID),
 	)
@@ -145,9 +153,11 @@ func (m *MinIOFileStorageClient) DeleteImage(ctx context.Context, folder, imageI
 
 // GetObject retrieves an object from storage by its full path
 func (m *MinIOFileStorageClient) GetObject(ctx context.Context, objectPath string) (io.ReadCloser, string, int64, error) {
+	logger := libsmiddleware.GetLogger(ctx)
+
 	object, err := m.client.GetObject(ctx, m.bucketName, objectPath, minio.GetObjectOptions{})
 	if err != nil {
-		m.logger.Error("failed to get object from MinIO",
+		logger.Error("failed to get object from MinIO",
 			zap.String("objectPath", objectPath),
 			zap.Error(err))
 		return nil, "", 0, fmt.Errorf("failed to get object: %w", err)
@@ -156,7 +166,7 @@ func (m *MinIOFileStorageClient) GetObject(ctx context.Context, objectPath strin
 	stat, err := object.Stat()
 	if err != nil {
 		_ = object.Close()
-		m.logger.Error("failed to stat object",
+		logger.Error("failed to stat object",
 			zap.String("objectPath", objectPath),
 			zap.Error(err))
 		return nil, "", 0, fmt.Errorf("failed to stat object: %w", err)

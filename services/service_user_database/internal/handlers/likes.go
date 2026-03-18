@@ -15,16 +15,14 @@ import (
 )
 
 type LikesHandler struct {
-	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
 	db          consts.DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewLikesHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *LikesHandler {
+func NewLikesHandler(config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *LikesHandler {
 	return &LikesHandler{
-		logger:      logger,
 		config:      config,
 		returns:     returns,
 		db:          db,

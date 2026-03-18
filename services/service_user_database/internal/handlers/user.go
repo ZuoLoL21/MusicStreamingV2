@@ -18,7 +18,6 @@ import (
 )
 
 type UserHandler struct {
-	logger         *zap.Logger
 	config         *di.Config
 	jwtHandler     *libsdi.JWTHandler
 	returns        *libsdi.ReturnManager
@@ -27,9 +26,8 @@ type UserHandler struct {
 	clickhouseSync *client.ClickHouseSync
 }
 
-func NewUserHandler(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient, clickhouseSync *client.ClickHouseSync) *UserHandler {
+func NewUserHandler(config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient, clickhouseSync *client.ClickHouseSync) *UserHandler {
 	return &UserHandler{
-		logger:         logger,
 		config:         config,
 		jwtHandler:     jwtHandler,
 		returns:        returns,
@@ -81,6 +79,8 @@ type updateProfileRequest struct {
 }
 
 func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -105,7 +105,7 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		Bio:      bio,
 		Country:  body.Country,
 	}); err != nil {
-		h.logger.Error("failed to update profile", zap.Error(err))
+		logger.Error("failed to update profile", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update profile", http.StatusInternalServerError)
 		return
 	}
@@ -147,7 +147,7 @@ func (h *UserHandler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 		Uuid:  userUUID,
 		Email: body.Email,
 	}); err != nil {
-		h.logger.Error("failed to update email", zap.Error(err))
+		logger.Error("failed to update email", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update email", http.StatusInternalServerError)
 		return
 	}
@@ -188,7 +188,7 @@ func (h *UserHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		Uuid:           userUUID,
 		HashedPassword: newHashed,
 	}); err != nil {
-		h.logger.Error("failed to update password", zap.Error(err))
+		logger.Error("failed to update password", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update password", http.StatusInternalServerError)
 		return
 	}
@@ -197,20 +197,22 @@ func (h *UserHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
+	if !parseMultipartForm(w, r, 10, h.returns) {
 		return
 	}
 
 	imageID := uuid.UUID(userUUID.Bytes).String()
 
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		consts.PicturesProfileFolder, imageID, "image", h.logger, h.returns)
+		consts.PicturesProfileFolder, imageID, "image", h.returns)
 	if !ok {
 		return
 	}
@@ -225,7 +227,7 @@ func (h *UserHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 		Uuid:             userUUID,
 		ProfileImagePath: profileImagePath,
 	}); err != nil {
-		h.logger.Error("failed to update image", zap.Error(err))
+		logger.Error("failed to update image", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update image", http.StatusInternalServerError)
 		return
 	}
@@ -234,6 +236,8 @@ func (h *UserHandler) UpdateImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetArtistForUser(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -242,7 +246,7 @@ func (h *UserHandler) GetArtistForUser(w http.ResponseWriter, r *http.Request) {
 
 	artists, err := h.db.GetArtistForUser(r.Context(), userUUID)
 	if err != nil {
-		h.logger.Error("failed to get artists for user", zap.Error(err))
+		logger.Error("failed to get artists for user", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get artists", http.StatusInternalServerError)
 		return
 	}

@@ -17,16 +17,14 @@ import (
 )
 
 type AlbumHandler struct {
-	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
 	db          consts.DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewAlbumHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *AlbumHandler {
+func NewAlbumHandler(config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *AlbumHandler {
 	return &AlbumHandler{
-		logger:      logger,
 		config:      config,
 		returns:     returns,
 		db:          db,
@@ -37,6 +35,8 @@ func NewAlbumHandler(logger *zap.Logger, config *di.Config, returns *libsdi.Retu
 // checkAlbumAccess parses the album UUID from the route, fetches the album to
 // resolve its artist, and verifies the calling user has at least the given role.
 func (h *AlbumHandler) checkAlbumAccess(w http.ResponseWriter, r *http.Request, role sqlhandler.ArtistMemberRole) (albumUUID pgtype.UUID, ok bool) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -49,7 +49,7 @@ func (h *AlbumHandler) checkAlbumAccess(w http.ResponseWriter, r *http.Request, 
 	}
 
 	album, err := h.db.GetAlbum(r.Context(), albumUUID)
-	if handleDBError(w, err, "album not found", h.logger, h.returns) {
+	if handleDBError(w, err, "album not found", logger, h.returns) {
 		ok = false
 		return
 	}
@@ -123,7 +123,7 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
+	if !parseMultipartForm(w, r, 10, h.returns) {
 		return
 	}
 
@@ -150,7 +150,7 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 
 	// Optional image upload
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		consts.PicturesAlbumFolder, albumID, "image", h.logger, h.returns)
+		consts.PicturesAlbumFolder, albumID, "image", h.returns)
 	if !ok {
 		return
 	}
@@ -177,7 +177,7 @@ func (h *AlbumHandler) CreateAlbum(w http.ResponseWriter, r *http.Request) {
 		logger.Error("failed to create album", zap.Error(err))
 
 		if imagePath.Valid {
-			cleanupImage(r.Context(), h.fileStorage, consts.PicturesAlbumFolder, albumID, h.logger)
+			cleanupImage(r.Context(), h.fileStorage, consts.PicturesAlbumFolder, albumID)
 		}
 		h.returns.ReturnError(w, "failed to create album", http.StatusInternalServerError)
 		return
@@ -242,7 +242,7 @@ func (h *AlbumHandler) UpdateAlbumImage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
+	if !parseMultipartForm(w, r, 10, h.returns) {
 		return
 	}
 
@@ -251,7 +251,7 @@ func (h *AlbumHandler) UpdateAlbumImage(w http.ResponseWriter, r *http.Request) 
 
 	// Update
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		consts.PicturesAlbumFolder, imageID, "image", h.logger, h.returns)
+		consts.PicturesAlbumFolder, imageID, "image", h.returns)
 	if !ok {
 		return
 	}

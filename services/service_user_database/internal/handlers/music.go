@@ -18,16 +18,14 @@ import (
 )
 
 type MusicHandler struct {
-	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
 	db          consts.DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewMusicHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *MusicHandler {
+func NewMusicHandler(config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *MusicHandler {
 	return &MusicHandler{
-		logger:      logger,
 		config:      config,
 		returns:     returns,
 		db:          db,
@@ -38,6 +36,8 @@ func NewMusicHandler(logger *zap.Logger, config *di.Config, returns *libsdi.Retu
 // checkMusicAccess parses the music UUID from the route, fetches the track to
 // resolve its artist, and verifies the calling user has at least the given role.
 func (h *MusicHandler) checkMusicAccess(w http.ResponseWriter, r *http.Request, role sqlhandler.ArtistMemberRole) (musicUUID pgtype.UUID, ok bool) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -50,7 +50,7 @@ func (h *MusicHandler) checkMusicAccess(w http.ResponseWriter, r *http.Request, 
 	}
 
 	music, err := h.db.GetMusic(r.Context(), musicUUID)
-	if handleDBError(w, err, "music not found", h.logger, h.returns) {
+	if handleDBError(w, err, "music not found", logger, h.returns) {
 		ok = false
 		return
 	}
@@ -123,6 +123,8 @@ func (h *MusicHandler) GetMusicForArtist(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *MusicHandler) GetMusicForAlbum(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	albumUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -137,7 +139,7 @@ func (h *MusicHandler) GetMusicForAlbum(w http.ResponseWriter, r *http.Request) 
 		Uuid:    cursorID,
 	})
 	if err != nil {
-		h.logger.Error("failed to get music for album", zap.Error(err))
+		logger.Error("failed to get music for album", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get music", http.StatusInternalServerError)
 		return
 	}
@@ -193,7 +195,7 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 100, h.returns, h.logger) {
+	if !parseMultipartForm(w, r, 100, h.returns) {
 		return
 	}
 
@@ -247,14 +249,14 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 	musicID := uuid.New().String()
 
 	// Upload audio
-	audioURL, ok := uploadAudioFromForm(r.Context(), w, r, h.fileStorage, musicID, "audio", h.logger, h.returns)
+	audioURL, ok := uploadAudioFromForm(r.Context(), w, r, h.fileStorage, musicID, "audio", h.returns)
 	if !ok {
 		return
 	}
 
 	// Optional image upload
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		consts.PicturesMusicFolder, musicID, "image", h.logger, h.returns)
+		consts.PicturesMusicFolder, musicID, "image", h.returns)
 	if !ok {
 		return
 	}
@@ -277,9 +279,9 @@ func (h *MusicHandler) CreateMusic(w http.ResponseWriter, r *http.Request) {
 			zap.String("artist_uuid", uuidToString(artistUUID)),
 			zap.String("song_name", songName))
 
-		cleanupAudio(r.Context(), h.fileStorage, musicID, h.logger)
+		cleanupAudio(r.Context(), h.fileStorage, musicID)
 		if imagePath.Valid {
-			cleanupImage(r.Context(), h.fileStorage, consts.PicturesMusicFolder, musicID, h.logger)
+			cleanupImage(r.Context(), h.fileStorage, consts.PicturesMusicFolder, musicID)
 		}
 
 		h.returns.ReturnError(w, "unable to create music", http.StatusInternalServerError)
@@ -299,6 +301,8 @@ type updateMusicDetailsRequest struct {
 }
 
 func (h *MusicHandler) UpdateMusicDetails(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	musicUUID, ok := h.checkMusicAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
 		return
@@ -322,7 +326,7 @@ func (h *MusicHandler) UpdateMusicDetails(w http.ResponseWriter, r *http.Request
 		SongName: body.SongName,
 		InAlbum:  inAlbum,
 	}); err != nil {
-		h.logger.Error("failed to update music details", zap.Error(err))
+		logger.Error("failed to update music details", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update music details", http.StatusInternalServerError)
 		return
 	}
@@ -331,13 +335,15 @@ func (h *MusicHandler) UpdateMusicDetails(w http.ResponseWriter, r *http.Request
 }
 
 func (h *MusicHandler) UpdateMusicStorage(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	musicUUID, ok := h.checkMusicAccess(w, r, sqlhandler.ArtistMemberRoleManager)
 	if !ok {
 		return
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 100, h.returns, h.logger) {
+	if !parseMultipartForm(w, r, 100, h.returns) {
 		return
 	}
 
@@ -357,7 +363,7 @@ func (h *MusicHandler) UpdateMusicStorage(w http.ResponseWriter, r *http.Request
 	musicID := uuid.UUID(musicUUID.Bytes).String()
 
 	// Update
-	audioURL, ok := uploadAudioFromForm(r.Context(), w, r, h.fileStorage, musicID, "audio", h.logger, h.returns)
+	audioURL, ok := uploadAudioFromForm(r.Context(), w, r, h.fileStorage, musicID, "audio", h.returns)
 	if !ok {
 		return
 	}
@@ -367,7 +373,7 @@ func (h *MusicHandler) UpdateMusicStorage(w http.ResponseWriter, r *http.Request
 		PathInFileStorage: audioURL,
 		DurationSeconds:   int32(durationSeconds),
 	}); err != nil {
-		h.logger.Error("failed to update music storage", zap.Error(err))
+		logger.Error("failed to update music storage", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update music storage", http.StatusInternalServerError)
 		return
 	}
@@ -376,13 +382,15 @@ func (h *MusicHandler) UpdateMusicStorage(w http.ResponseWriter, r *http.Request
 }
 
 func (h *MusicHandler) DeleteMusic(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	musicUUID, ok := h.checkMusicAccess(w, r, sqlhandler.ArtistMemberRoleOwner)
 	if !ok {
 		return
 	}
 
 	if err := h.db.DeleteMusic(r.Context(), musicUUID); err != nil {
-		h.logger.Error("failed to delete music", zap.Error(err))
+		logger.Error("failed to delete music", zap.Error(err))
 		h.returns.ReturnError(w, "failed to delete music", http.StatusInternalServerError)
 		return
 	}
@@ -399,7 +407,7 @@ func (h *MusicHandler) UpdateMusicImage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
+	if !parseMultipartForm(w, r, 10, h.returns) {
 		return
 	}
 
@@ -407,7 +415,7 @@ func (h *MusicHandler) UpdateMusicImage(w http.ResponseWriter, r *http.Request) 
 
 	// Upload
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		consts.PicturesMusicFolder, imageID, "image", h.logger, h.returns)
+		consts.PicturesMusicFolder, imageID, "image", h.returns)
 	if !ok {
 		return
 	}
@@ -431,6 +439,8 @@ func (h *MusicHandler) UpdateMusicImage(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *MusicHandler) IncrementPlayCount(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	musicUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -438,7 +448,7 @@ func (h *MusicHandler) IncrementPlayCount(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := h.db.IncrementPlayCount(r.Context(), musicUUID); err != nil {
-		h.logger.Error("failed to increment play count", zap.Error(err))
+		logger.Error("failed to increment play count", zap.Error(err))
 		h.returns.ReturnError(w, "failed to increment play count", http.StatusInternalServerError)
 		return
 	}
@@ -452,6 +462,8 @@ type addListeningHistoryRequest struct {
 }
 
 func (h *MusicHandler) AddListeningHistoryEntry(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -484,7 +496,7 @@ func (h *MusicHandler) AddListeningHistoryEntry(w http.ResponseWriter, r *http.R
 		ListenDurationSeconds: duration,
 		CompletionPercentage:  completion,
 	}); err != nil {
-		h.logger.Error("failed to add listening history", zap.Error(err))
+		logger.Error("failed to add listening history", zap.Error(err))
 		h.returns.ReturnError(w, "failed to add listening history", http.StatusInternalServerError)
 		return
 	}

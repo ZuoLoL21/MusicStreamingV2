@@ -11,6 +11,7 @@ import (
 
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
+	libsmiddleware "libs/middleware"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -18,16 +19,14 @@ import (
 )
 
 type PlaylistHandler struct {
-	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
 	db          consts.DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewPlaylistHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *PlaylistHandler {
+func NewPlaylistHandler(config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *PlaylistHandler {
 	return &PlaylistHandler{
-		logger:      logger,
 		config:      config,
 		returns:     returns,
 		db:          db,
@@ -38,6 +37,8 @@ func NewPlaylistHandler(logger *zap.Logger, config *di.Config, returns *libsdi.R
 // checkPlaylistOwnership parses the playlist UUID from the route, fetches the
 // playlist, and verifies the calling user is its owner.
 func (h *PlaylistHandler) checkPlaylistOwnership(w http.ResponseWriter, r *http.Request) (userUUID, playlistUUID pgtype.UUID, ok bool) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok = userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -50,7 +51,7 @@ func (h *PlaylistHandler) checkPlaylistOwnership(w http.ResponseWriter, r *http.
 	}
 
 	playlist, err := h.db.GetPlaylist(r.Context(), playlistUUID)
-	if handleDBError(w, err, "playlist not found", h.logger, h.returns) {
+	if handleDBError(w, err, "playlist not found", logger, h.returns) {
 		ok = false
 		return
 	}
@@ -64,6 +65,8 @@ func (h *PlaylistHandler) checkPlaylistOwnership(w http.ResponseWriter, r *http.
 }
 
 func (h *PlaylistHandler) GetPlaylist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	playlistUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -71,7 +74,7 @@ func (h *PlaylistHandler) GetPlaylist(w http.ResponseWriter, r *http.Request) {
 	}
 
 	playlist, err := h.db.GetPlaylist(r.Context(), playlistUUID)
-	if handleDBError(w, err, "playlist not found", h.logger, h.returns) {
+	if handleDBError(w, err, "playlist not found", logger, h.returns) {
 		return
 	}
 
@@ -86,6 +89,8 @@ func (h *PlaylistHandler) GetPlaylistsForUser(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	limit, cursorTS, cursorID := parsePagination(r)
 	playlists, err := h.db.GetPlaylistsForUser(r.Context(), sqlhandler.GetPlaylistsForUserParams{
 		FromUser: userUUID,
@@ -94,7 +99,7 @@ func (h *PlaylistHandler) GetPlaylistsForUser(w http.ResponseWriter, r *http.Req
 		Uuid:     cursorID,
 	})
 	if err != nil {
-		h.logger.Error("failed to get playlists for user", zap.Error(err))
+		logger.Error("failed to get playlists for user", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get playlists", http.StatusInternalServerError)
 		return
 	}
@@ -107,6 +112,8 @@ func (h *PlaylistHandler) GetPlaylistsForUser(w http.ResponseWriter, r *http.Req
 }
 
 func (h *PlaylistHandler) GetPlaylistTracks(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	playlistUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -120,7 +127,7 @@ func (h *PlaylistHandler) GetPlaylistTracks(w http.ResponseWriter, r *http.Reque
 		Column3:      cursorPos,
 	})
 	if err != nil {
-		h.logger.Error("failed to get playlist tracks", zap.Error(err))
+		logger.Error("failed to get playlist tracks", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get playlist tracks", http.StatusInternalServerError)
 		return
 	}
@@ -134,13 +141,15 @@ func (h *PlaylistHandler) GetPlaylistTracks(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *PlaylistHandler) CreatePlaylist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
+	if !parseMultipartForm(w, r, 10, h.returns) {
 		return
 	}
 
@@ -172,7 +181,7 @@ func (h *PlaylistHandler) CreatePlaylist(w http.ResponseWriter, r *http.Request)
 
 	// Optional image upload
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		consts.PicturesPlaylistFolder, playlistID, "image", h.logger, h.returns)
+		consts.PicturesPlaylistFolder, playlistID, "image", h.returns)
 	if !ok {
 		return
 	}
@@ -191,10 +200,10 @@ func (h *PlaylistHandler) CreatePlaylist(w http.ResponseWriter, r *http.Request)
 		IsPublic:     publicBool,
 		ImagePath:    imagePath,
 	}); err != nil {
-		h.logger.Error("failed to create playlist", zap.Error(err))
+		logger.Error("failed to create playlist", zap.Error(err))
 		// If playlist creation fails and image was uploaded, try to clean up
 		if imagePath.Valid {
-			cleanupImage(r.Context(), h.fileStorage, consts.PicturesPlaylistFolder, playlistID, h.logger)
+			cleanupImage(r.Context(), h.fileStorage, consts.PicturesPlaylistFolder, playlistID)
 		}
 		h.returns.ReturnError(w, "failed to create playlist", http.StatusInternalServerError)
 		return
@@ -210,6 +219,8 @@ type updatePlaylistRequest struct {
 }
 
 func (h *PlaylistHandler) UpdatePlaylist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
@@ -243,7 +254,7 @@ func (h *PlaylistHandler) UpdatePlaylist(w http.ResponseWriter, r *http.Request)
 		Description:  description,
 		IsPublic:     isPublic,
 	}); err != nil {
-		h.logger.Error("failed to update playlist", zap.Error(err))
+		logger.Error("failed to update playlist", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update playlist", http.StatusInternalServerError)
 		return
 	}
@@ -252,13 +263,15 @@ func (h *PlaylistHandler) UpdatePlaylist(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *PlaylistHandler) DeletePlaylist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
 	}
 
 	if err := h.db.DeletePlaylist(r.Context(), sqlhandler.DeletePlaylistParams{UserUuid: userUUID, Uuid: playlistUUID}); err != nil {
-		h.logger.Error("failed to delete playlist", zap.Error(err))
+		logger.Error("failed to delete playlist", zap.Error(err))
 		h.returns.ReturnError(w, "failed to delete playlist", http.StatusInternalServerError)
 		return
 	}
@@ -289,6 +302,8 @@ func (h *PlaylistHandler) AddTrackToPlaylist(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Retry logic with exponential backoff to handle concurrent position conflicts
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	var lastErr error
 	backoffMs := consts.InitialRetryBackoffMs
 	for attempt := 0; attempt < consts.MaxRetries; attempt++ {
@@ -308,13 +323,15 @@ func (h *PlaylistHandler) AddTrackToPlaylist(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	h.logger.Error("failed to add track to playlist after retries",
+	logger.Error("failed to add track to playlist after retries",
 		zap.Error(lastErr),
 		zap.Int("attempts", consts.MaxRetries))
 	h.returns.ReturnError(w, "failed to add track to playlist", http.StatusInternalServerError)
 }
 
 func (h *PlaylistHandler) RemoveTrackFromPlaylist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
@@ -332,7 +349,7 @@ func (h *PlaylistHandler) RemoveTrackFromPlaylist(w http.ResponseWriter, r *http
 		MusicUuid:    musicUUID,
 		PlaylistUuid: playlistUUID,
 	}); err != nil {
-		h.logger.Error("failed to remove track from playlist", zap.Error(err))
+		logger.Error("failed to remove track from playlist", zap.Error(err))
 		h.returns.ReturnError(w, "failed to remove track from playlist", http.StatusInternalServerError)
 		return
 	}
@@ -341,20 +358,22 @@ func (h *PlaylistHandler) RemoveTrackFromPlaylist(w http.ResponseWriter, r *http
 }
 
 func (h *PlaylistHandler) UpdatePlaylistImage(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
+	if !parseMultipartForm(w, r, 10, h.returns) {
 		return
 	}
 
 	imageID := uuid.UUID(playlistUUID.Bytes).String()
 
 	imagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		consts.PicturesPlaylistFolder, imageID, "image", h.logger, h.returns)
+		consts.PicturesPlaylistFolder, imageID, "image", h.returns)
 	if !ok {
 		return
 	}
@@ -370,7 +389,7 @@ func (h *PlaylistHandler) UpdatePlaylistImage(w http.ResponseWriter, r *http.Req
 		Uuid:      playlistUUID,
 		ImagePath: imagePath,
 	}); err != nil {
-		h.logger.Error("failed to update playlist image", zap.Error(err))
+		logger.Error("failed to update playlist image", zap.Error(err))
 		h.returns.ReturnError(w, "failed to update playlist image", http.StatusInternalServerError)
 		return
 	}
@@ -383,6 +402,8 @@ type reorderPlaylistTracksRequest struct {
 }
 
 func (h *PlaylistHandler) ReorderPlaylistTracks(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, playlistUUID, ok := h.checkPlaylistOwnership(w, r)
 	if !ok {
 		return
@@ -423,7 +444,7 @@ func (h *PlaylistHandler) ReorderPlaylistTracks(w http.ResponseWriter, r *http.R
 		Column3:      -1,
 	})
 	if err != nil {
-		h.logger.Error("failed to get playlist tracks for validation", zap.Error(err))
+		logger.Error("failed to get playlist tracks for validation", zap.Error(err))
 		h.returns.ReturnError(w, "failed to reorder playlist tracks", http.StatusInternalServerError)
 		return
 	}
@@ -450,7 +471,7 @@ func (h *PlaylistHandler) ReorderPlaylistTracks(w http.ResponseWriter, r *http.R
 		PlaylistUuid: playlistUUID,
 		Column3:      musicUUIDs,
 	}); err != nil {
-		h.logger.Error("failed to reorder playlist tracks", zap.Error(err))
+		logger.Error("failed to reorder playlist tracks", zap.Error(err))
 		h.returns.ReturnError(w, "failed to reorder playlist tracks", http.StatusInternalServerError)
 		return
 	}

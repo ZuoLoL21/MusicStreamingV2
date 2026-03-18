@@ -91,19 +91,19 @@ func (a *App) Router() *mux.Router {
 func (a *App) initHandlers() {
 
 	a.handlers = &HandlerRegistry{
-		Auth:     handlers.NewAuthHandler(a.logger, a.config, a.jwtHandler, a.returns, a.db, a.fileStorage, a.clickhouseSync),
-		Device:   handlers.NewDeviceHandler(a.logger, a.config, a.returns, a.db),
-		User:     handlers.NewUserHandler(a.logger, a.config, a.jwtHandler, a.returns, a.db, a.fileStorage, a.clickhouseSync),
-		Artist:   handlers.NewArtistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
-		Album:    handlers.NewAlbumHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
-		Music:    handlers.NewMusicHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
-		Likes:    handlers.NewLikesHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
-		Follows:  handlers.NewFollowsHandler(a.logger, a.config, a.returns, a.db),
-		Tags:     handlers.NewTagsHandler(a.logger, a.config, a.jwtHandler, a.returns, a.db, a.fileStorage),
-		Playlist: handlers.NewPlaylistHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
-		History:  handlers.NewHistoryHandler(a.logger, a.config, a.returns, a.db),
-		Search:   handlers.NewSearchHandler(a.logger, a.config, a.returns, a.db, a.fileStorage),
-		File:     handlers.NewFileHandler(a.fileStorage, a.logger, a.returns, a.config, a.db),
+		Auth:     handlers.NewAuthHandler(a.config, a.jwtHandler, a.returns, a.db, a.fileStorage, a.clickhouseSync),
+		Device:   handlers.NewDeviceHandler(a.config, a.returns, a.db),
+		User:     handlers.NewUserHandler(a.config, a.jwtHandler, a.returns, a.db, a.fileStorage, a.clickhouseSync),
+		Artist:   handlers.NewArtistHandler(a.config, a.returns, a.db, a.fileStorage),
+		Album:    handlers.NewAlbumHandler(a.config, a.returns, a.db, a.fileStorage),
+		Music:    handlers.NewMusicHandler(a.config, a.returns, a.db, a.fileStorage),
+		Likes:    handlers.NewLikesHandler(a.config, a.returns, a.db, a.fileStorage),
+		Follows:  handlers.NewFollowsHandler(a.config, a.returns, a.db),
+		Tags:     handlers.NewTagsHandler(a.config, a.jwtHandler, a.returns, a.db, a.fileStorage),
+		Playlist: handlers.NewPlaylistHandler(a.config, a.returns, a.db, a.fileStorage),
+		History:  handlers.NewHistoryHandler(a.config, a.returns, a.db),
+		Search:   handlers.NewSearchHandler(a.config, a.returns, a.db, a.fileStorage),
+		File:     handlers.NewFileHandler(a.fileStorage, a.returns, a.config, a.db),
 	}
 }
 

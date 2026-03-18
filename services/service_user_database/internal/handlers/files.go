@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"libs/helpers"
+	libsmiddleware "libs/middleware"
 	"net/http"
 	"strings"
 
@@ -18,7 +19,6 @@ import (
 // FileHandler handles file serving from storage
 type FileHandler struct {
 	fileStorage storage.FileStorageClient
-	logger      *zap.Logger
 	returns     *libsdi.ReturnManager
 	config      *di.Config
 	db          consts.DB
@@ -27,14 +27,12 @@ type FileHandler struct {
 // NewFileHandler creates a new file handler
 func NewFileHandler(
 	fileStorage storage.FileStorageClient,
-	logger *zap.Logger,
 	returns *libsdi.ReturnManager,
 	config *di.Config,
 	db consts.DB,
 ) *FileHandler {
 	return &FileHandler{
 		fileStorage: fileStorage,
-		logger:      logger,
 		returns:     returns,
 		config:      config,
 		db:          db,
@@ -43,6 +41,7 @@ func NewFileHandler(
 
 // ServeFile serves a file from storage with authentication
 func (h *FileHandler) ServeFile(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
 	objectPath := r.URL.Path
 
 	// File info
@@ -55,14 +54,14 @@ func (h *FileHandler) ServeFile(w http.ResponseWriter, r *http.Request) {
 	} else if strings.HasPrefix(objectPath, consts.PublicPathStart) {
 		actualPath = strings.TrimPrefix(objectPath, consts.PublicPathStart)
 	} else {
-		h.logger.Warn("invalid path", zap.String("path", r.URL.Path))
+		logger.Warn("invalid path", zap.String("path", r.URL.Path))
 		h.returns.ReturnError(w, "not valid path: must use public or private", http.StatusBadRequest)
 		return
 	}
 
 	resourceInfo, err := parseResourceFromPath(actualPath)
 	if err != nil {
-		h.logger.Warn("invalid file path", zap.String("path", objectPath), zap.Error(err))
+		logger.Warn("invalid file path", zap.String("path", objectPath), zap.Error(err))
 		h.returns.ReturnError(w, "invalid file path", http.StatusBadRequest)
 		return
 	}
@@ -71,7 +70,7 @@ func (h *FileHandler) ServeFile(w http.ResponseWriter, r *http.Request) {
 	if isPrivate {
 		userUUIDStr := helpers.GetUserUUIDFromContext(r.Context())
 		if userUUIDStr == "" {
-			h.logger.Warn("unauthenticated access to private file",
+			logger.Warn("unauthenticated access to private file",
 				zap.String("path", objectPath))
 			h.returns.ReturnError(w, "unauthorized", http.StatusUnauthorized)
 			return
@@ -82,14 +81,14 @@ func (h *FileHandler) ServeFile(w http.ResponseWriter, r *http.Request) {
 		// Check permissions
 		allowed, err := checkFileAccess(r.Context(), h.db, resourceInfo, userUUID)
 		if err != nil {
-			h.logger.Error("failed to check file access",
+			logger.Error("failed to check file access",
 				zap.String("path", objectPath),
 				zap.Error(err))
 			h.returns.ReturnError(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 		if !allowed {
-			h.logger.Warn("unauthorized file access attempt",
+			logger.Warn("unauthorized file access attempt",
 				zap.String("path", objectPath),
 				zap.String("user_uuid", userUUIDStr))
 			h.returns.ReturnError(w, "forbidden", http.StatusForbidden)
@@ -100,7 +99,7 @@ func (h *FileHandler) ServeFile(w http.ResponseWriter, r *http.Request) {
 	// Serve file using the actual storage path (without public/private prefix)
 	object, contentType, size, err := h.fileStorage.GetObject(r.Context(), actualPath)
 	if err != nil {
-		h.logger.Warn("file not found", zap.String("path", objectPath), zap.Error(err))
+		logger.Warn("file not found", zap.String("path", objectPath), zap.Error(err))
 		h.returns.ReturnError(w, "file not found", http.StatusNotFound)
 		return
 	}
@@ -123,6 +122,6 @@ func (h *FileHandler) ServeFile(w http.ResponseWriter, r *http.Request) {
 	// Stream file
 	_, err = io.Copy(w, object)
 	if err != nil {
-		h.logger.Error("failed to stream file", zap.String("path", objectPath), zap.Error(err))
+		logger.Error("failed to stream file", zap.String("path", objectPath), zap.Error(err))
 	}
 }

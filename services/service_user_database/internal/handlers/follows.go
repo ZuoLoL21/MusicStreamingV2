@@ -14,15 +14,13 @@ import (
 )
 
 type FollowsHandler struct {
-	logger  *zap.Logger
 	config  *di.Config
 	returns *libsdi.ReturnManager
 	db      consts.DB
 }
 
-func NewFollowsHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB) *FollowsHandler {
+func NewFollowsHandler(config *di.Config, returns *libsdi.ReturnManager, db consts.DB) *FollowsHandler {
 	return &FollowsHandler{
-		logger:  logger,
 		config:  config,
 		returns: returns,
 		db:      db,

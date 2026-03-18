@@ -15,15 +15,13 @@ import (
 )
 
 type HistoryHandler struct {
-	logger  *zap.Logger
 	config  *di.Config
 	returns *libsdi.ReturnManager
 	db      consts.DB
 }
 
-func NewHistoryHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB) *HistoryHandler {
+func NewHistoryHandler(config *di.Config, returns *libsdi.ReturnManager, db consts.DB) *HistoryHandler {
 	return &HistoryHandler{
-		logger:  logger,
 		config:  config,
 		returns: returns,
 		db:      db,

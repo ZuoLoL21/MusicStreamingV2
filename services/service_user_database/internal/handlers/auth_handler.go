@@ -25,7 +25,6 @@ import (
 )
 
 type AuthHandler struct {
-	logger         *zap.Logger
 	config         *di.Config
 	jwtHandler     *libsdi.JWTHandler
 	returns        *libsdi.ReturnManager
@@ -34,9 +33,8 @@ type AuthHandler struct {
 	clickhouseSync *client.ClickHouseSync
 }
 
-func NewAuthHandler(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient, clickhouseSync *client.ClickHouseSync) *AuthHandler {
+func NewAuthHandler(config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient, clickhouseSync *client.ClickHouseSync) *AuthHandler {
 	return &AuthHandler{
-		logger:         logger,
 		config:         config,
 		jwtHandler:     jwtHandler,
 		returns:        returns,
@@ -150,8 +148,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
+	if !parseMultipartForm(w, r, 10, h.returns) {
 		return
 	}
 
@@ -216,7 +216,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Country:        country,
 	})
 	if err != nil {
-		h.logger.Warn("failed to create user", zap.Error(err))
+		logger.Warn("failed to create user", zap.Error(err))
 
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -244,7 +244,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Upload
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		consts.PicturesProfileFolder, userID, "image", h.logger, h.returns)
+		consts.PicturesProfileFolder, userID, "image", h.returns)
 	if !ok {
 		return
 	}
@@ -254,11 +254,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Uuid:             createdUUID,
 		ProfileImagePath: profileImagePath,
 	}); err != nil {
-		h.logger.Error("failed to update user image after creation", zap.Error(err))
+		logger.Error("failed to update user image after creation", zap.Error(err))
 		if profileImagePath.Valid {
-			cleanupImage(r.Context(), h.fileStorage, consts.PicturesProfileFolder, userID, h.logger)
+			cleanupImage(r.Context(), h.fileStorage, consts.PicturesProfileFolder, userID)
 		}
-		h.logger.Warn("user created but image update failed - image cleaned up",
+		logger.Warn("user created but image update failed - image cleaned up",
 			zap.String("userID", userID),
 			zap.Error(err))
 	}
@@ -269,7 +269,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	uuidStr := uuid.UUID(createdUUID.Bytes).String()
 	tokens, err := h.issueTokenPair(uuidStr, deviceID, deviceName)
 	if err != nil {
-		h.logger.Error("failed to generate tokens", zap.Error(err))
+		logger.Error("failed to generate tokens", zap.Error(err))
 		h.returns.ReturnError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -288,10 +288,11 @@ func (h *AuthHandler) Renew(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.validateRenewToken(r, uuidStr, deviceID, logger)
+	err := h.validateRenewToken(r, uuidStr, deviceID)
 	if err != nil {
 		logger.Warn("failed to get renew token", zap.Error(err))
 		h.returns.ReturnError(w, "invalid token", http.StatusUnauthorized)
+		return
 	}
 
 	tokens, err := h.issueTokenPair(uuidStr, deviceID, "")
@@ -321,7 +322,9 @@ func (h *AuthHandler) getRenewToken(r *http.Request) (string, error) {
 	return refreshToken, nil
 }
 
-func (h *AuthHandler) validateRenewToken(r *http.Request, uuidStr, deviceID string, logger *zap.Logger) error {
+func (h *AuthHandler) validateRenewToken(r *http.Request, uuidStr, deviceID string) error {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	refreshToken, err := h.getRenewToken(r)
 	if err != nil {
 		return err

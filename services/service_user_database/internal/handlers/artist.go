@@ -16,16 +16,14 @@ import (
 )
 
 type ArtistHandler struct {
-	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
 	db          consts.DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewArtistHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *ArtistHandler {
+func NewArtistHandler(config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *ArtistHandler {
 	return &ArtistHandler{
-		logger:      logger,
 		config:      config,
 		returns:     returns,
 		db:          db,
@@ -113,13 +111,13 @@ func (h *ArtistHandler) GetArtistsAlphabetically(w http.ResponseWriter, r *http.
 }
 
 func (h *ArtistHandler) GetArtist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	artistUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
 		return
 	}
-
-	logger := libsmiddleware.GetLogger(r.Context())
 
 	artist, err := h.db.GetArtist(r.Context(), artistUUID)
 	if handleDBError(w, err, "artist not found", logger, h.returns) {
@@ -131,13 +129,15 @@ func (h *ArtistHandler) GetArtist(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
+	if !parseMultipartForm(w, r, 10, h.returns) {
 		return
 	}
 
@@ -158,14 +158,12 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 	artistID := uuid.New().String()
 
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		consts.PicturesArtistFolder, artistID, "image", h.logger, h.returns)
+		consts.PicturesArtistFolder, artistID, "image", h.returns)
 	if !ok {
 		return
 	}
 
 	bioText := optionalStringToPgtype(bio)
-
-	logger := libsmiddleware.GetLogger(r.Context())
 
 	if err := h.db.CreateArtist(r.Context(), sqlhandler.CreateArtistParams{
 		UserUuid:         userUUID,
@@ -180,7 +178,7 @@ func (h *ArtistHandler) CreateArtist(w http.ResponseWriter, r *http.Request) {
 			zap.String("artist_name", artistName))
 
 		if profileImagePath.Valid {
-			cleanupImage(r.Context(), h.fileStorage, consts.PicturesArtistFolder, artistID, h.logger)
+			cleanupImage(r.Context(), h.fileStorage, consts.PicturesArtistFolder, artistID)
 		}
 		h.returns.ReturnError(w, "unable to create artist profile", http.StatusInternalServerError)
 		return
@@ -242,16 +240,15 @@ func (h *ArtistHandler) UpdateArtistPicture(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Ensure is multipart form
-	if !parseMultipartForm(w, r, 10, h.returns, h.logger) {
+	if !parseMultipartForm(w, r, 10, h.returns) {
 		return
 	}
 
-	// Artist UUID
 	imageID := uuid.UUID(artistUUID.Bytes).String()
 
 	// Upload
 	profileImagePath, ok := uploadImageFromForm(r.Context(), w, r, h.fileStorage,
-		consts.PicturesArtistFolder, imageID, "image", h.logger, h.returns)
+		consts.PicturesArtistFolder, imageID, "image", h.returns)
 	if !ok {
 		return
 	}

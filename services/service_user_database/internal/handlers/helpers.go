@@ -3,10 +3,10 @@ package handlers
 import (
 	"backend/internal/consts"
 	"backend/internal/di"
+	"context"
 	"libs/helpers"
 
 	sqlhandler "backend/sql/sqlc"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -336,31 +336,6 @@ func optionalStringToPgtext(s string) pgtype.Text {
 		return pgtype.Text{String: s, Valid: true}
 	}
 	return pgtype.Text{}
-}
-
-// pgtextToString converts pgtype.Text to string (returns empty string if invalid)
-func pgtextToString(t pgtype.Text) string {
-	if t.Valid {
-		return t.String
-	}
-	return ""
-}
-
-// extractBearerToken extracts and validates Bearer token from Authorization header
-func extractBearerToken(r *http.Request, w http.ResponseWriter, returns *libsdi.ReturnManager) (string, bool) {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		returns.ReturnError(w, "missing authorization header", http.StatusUnauthorized)
-		return "", false
-	}
-
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		returns.ReturnError(w, "invalid authorization header format", http.StatusUnauthorized)
-		return "", false
-	}
-
-	return parts[1], true
 }
 
 // verifyTokenMatch checks if the stored token matches the JWT claims

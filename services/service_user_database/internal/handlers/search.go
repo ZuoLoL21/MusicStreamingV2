@@ -9,22 +9,21 @@ import (
 	"strings"
 
 	libsdi "libs/di"
+	libsmiddleware "libs/middleware"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
 type SearchHandler struct {
-	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
 	db          consts.DB
 	fileStorage storage.FileStorageClient
 }
 
-func NewSearchHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *SearchHandler {
+func NewSearchHandler(config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *SearchHandler {
 	return &SearchHandler{
-		logger:      logger,
 		config:      config,
 		returns:     returns,
 		db:          db,
@@ -79,6 +78,8 @@ type PlaylistSearchResult struct {
 
 // SearchUsers searches for users by username or email
 func (h *SearchHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	if query == "" || len(query) < 2 {
 		h.returns.ReturnError(w, "search query required (min 2 chars)", http.StatusBadRequest)
@@ -95,7 +96,7 @@ func (h *SearchHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:  pgtype.Timestamp{Time: cursorTS.Time, Valid: cursorTS.Valid},
 	})
 	if err != nil {
-		h.logger.Error("failed to search users", zap.Error(err))
+		logger.Error("failed to search users", zap.Error(err))
 		h.returns.ReturnError(w, "failed to search users", http.StatusInternalServerError)
 		return
 	}
@@ -111,6 +112,8 @@ func (h *SearchHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 
 // SearchArtists searches for artists by name
 func (h *SearchHandler) SearchArtists(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	if query == "" || len(query) < 2 {
 		h.returns.ReturnError(w, "search query required (min 2 chars)", http.StatusBadRequest)
@@ -127,7 +130,7 @@ func (h *SearchHandler) SearchArtists(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:  pgtype.Timestamp{Time: cursorTS.Time, Valid: cursorTS.Valid},
 	})
 	if err != nil {
-		h.logger.Error("failed to search artists", zap.Error(err))
+		logger.Error("failed to search artists", zap.Error(err))
 		h.returns.ReturnError(w, "failed to search artists", http.StatusInternalServerError)
 		return
 	}
@@ -143,6 +146,8 @@ func (h *SearchHandler) SearchArtists(w http.ResponseWriter, r *http.Request) {
 
 // SearchAlbums searches for albums by name
 func (h *SearchHandler) SearchAlbums(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	if query == "" || len(query) < 2 {
 		h.returns.ReturnError(w, "search query required (min 2 chars)", http.StatusBadRequest)
@@ -159,7 +164,7 @@ func (h *SearchHandler) SearchAlbums(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:  pgtype.Timestamp{Time: cursorTS.Time, Valid: cursorTS.Valid},
 	})
 	if err != nil {
-		h.logger.Error("failed to search albums", zap.Error(err))
+		logger.Error("failed to search albums", zap.Error(err))
 		h.returns.ReturnError(w, "failed to search albums", http.StatusInternalServerError)
 		return
 	}
@@ -175,6 +180,8 @@ func (h *SearchHandler) SearchAlbums(w http.ResponseWriter, r *http.Request) {
 
 // SearchMusic searches for music tracks by name
 func (h *SearchHandler) SearchMusic(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	if query == "" || len(query) < 2 {
 		h.returns.ReturnError(w, "search query required (min 2 chars)", http.StatusBadRequest)
@@ -191,7 +198,7 @@ func (h *SearchHandler) SearchMusic(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:  pgtype.Timestamp{Time: cursorTS.Time, Valid: cursorTS.Valid},
 	})
 	if err != nil {
-		h.logger.Error("failed to search music", zap.Error(err))
+		logger.Error("failed to search music", zap.Error(err))
 		h.returns.ReturnError(w, "failed to search music", http.StatusInternalServerError)
 		return
 	}
@@ -207,6 +214,8 @@ func (h *SearchHandler) SearchMusic(w http.ResponseWriter, r *http.Request) {
 
 // SearchPlaylists searches for playlists by name
 func (h *SearchHandler) SearchPlaylists(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	userUUID, ok := userUUIDFromCtx(w, r, h.config, h.returns)
 	if !ok {
 		return
@@ -229,7 +238,7 @@ func (h *SearchHandler) SearchPlaylists(w http.ResponseWriter, r *http.Request) 
 		CreatedAt:  pgtype.Timestamp{Time: cursorTS.Time, Valid: cursorTS.Valid},
 	})
 	if err != nil {
-		h.logger.Error("failed to search playlists", zap.Error(err))
+		logger.Error("failed to search playlists", zap.Error(err))
 		h.returns.ReturnError(w, "failed to search playlists", http.StatusInternalServerError)
 		return
 	}

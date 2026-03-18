@@ -16,15 +16,13 @@ import (
 )
 
 type DeviceHandler struct {
-	logger  *zap.Logger
 	config  *di.Config
 	returns *libsdi.ReturnManager
 	db      consts.DB
 }
 
-func NewDeviceHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, db consts.DB) *DeviceHandler {
+func NewDeviceHandler(config *di.Config, returns *libsdi.ReturnManager, db consts.DB) *DeviceHandler {
 	return &DeviceHandler{
-		logger:  logger,
 		config:  config,
 		returns: returns,
 		db:      db,

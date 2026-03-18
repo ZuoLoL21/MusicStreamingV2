@@ -13,20 +13,21 @@ import (
 	"strings"
 
 	libsdi "libs/di"
+	libsmiddleware "libs/middleware"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
 // parseMultipartForm parses multipart form with size limit and handles errors
-func parseMultipartForm(w http.ResponseWriter, r *http.Request, maxSizeMB int64, returns *libsdi.ReturnManager, logger *zap.Logger) bool {
+func parseMultipartForm(w http.ResponseWriter, r *http.Request, maxSizeMB int64, returns *libsdi.ReturnManager) bool {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	maxSize := maxSizeMB << 20
 	if err := r.ParseMultipartForm(maxSize); err != nil {
 		logger.Warn("failed to parse multipart form",
 			zap.Error(err),
-			zap.String("content_type", r.Header.Get("Content-Type")),
-			zap.String("method", r.Method),
-			zap.String("path", r.URL.Path))
+			zap.String("content_type", r.Header.Get("Content-Type")))
 
 		contentType := r.Header.Get("Content-Type")
 		errorMsg := "request must be multipart/form-data"
@@ -45,7 +46,9 @@ func parseMultipartForm(w http.ResponseWriter, r *http.Request, maxSizeMB int64,
 }
 
 // handleFileStorageError maps file storage errors to appropriate HTTP responses
-func handleFileStorageError(w http.ResponseWriter, err error, logger *zap.Logger, returns *libsdi.ReturnManager, operation string) {
+func handleFileStorageError(ctx context.Context, w http.ResponseWriter, err error, returns *libsdi.ReturnManager, operation string) {
+	logger := libsmiddleware.GetLogger(ctx)
+
 	logger.Error("file storage operation failed", zap.String("operation", operation), zap.Error(err))
 
 	if strings.Contains(err.Error(), "status 413") {
@@ -66,12 +69,13 @@ func uploadImageFromForm(
 	folder string,
 	imageID string,
 	formFieldName string,
-	logger *zap.Logger,
 	returns *libsdi.ReturnManager,
 ) (pgtype.Text, bool) {
+	logger := libsmiddleware.GetLogger(ctx)
+
+	// Image is optional
 	imageFile, _, err := r.FormFile(formFieldName)
 	if err != nil {
-		// Image is optional
 		if errors.Is(err, http.ErrMissingFile) {
 			return pgtype.Text{}, true
 		}
@@ -117,7 +121,7 @@ func uploadImageFromForm(
 
 	imageURL, err := fileStorage.SaveImage(ctx, folder, imageID, processedData)
 	if err != nil {
-		handleFileStorageError(w, err, logger, returns, "upload image")
+		handleFileStorageError(ctx, w, err, returns, "upload image")
 		return pgtype.Text{}, false
 	}
 
@@ -132,7 +136,6 @@ func uploadAudioFromForm(
 	fileStorage storage.FileStorageClient,
 	musicID string,
 	formFieldName string,
-	logger *zap.Logger,
 	returns *libsdi.ReturnManager,
 ) (string, bool) {
 	audioFile, _, err := r.FormFile(formFieldName)
@@ -146,7 +149,7 @@ func uploadAudioFromForm(
 
 	audioURL, err := fileStorage.SaveAudio(ctx, musicID, audioFile)
 	if err != nil {
-		handleFileStorageError(w, err, logger, returns, "upload audio")
+		handleFileStorageError(ctx, w, err, returns, "upload audio")
 		return "", false
 	}
 
@@ -154,7 +157,9 @@ func uploadAudioFromForm(
 }
 
 // cleanupImage deletes uploaded image on rollback (logs warnings, doesn't fail)
-func cleanupImage(ctx context.Context, fileStorage storage.FileStorageClient, folder, imageID string, logger *zap.Logger) {
+func cleanupImage(ctx context.Context, fileStorage storage.FileStorageClient, folder, imageID string) {
+	logger := libsmiddleware.GetLogger(ctx)
+
 	if err := fileStorage.DeleteImage(ctx, folder, imageID); err != nil {
 		logger.Warn("failed to clean up image after operation failure",
 			zap.String("folder", folder),
@@ -164,7 +169,9 @@ func cleanupImage(ctx context.Context, fileStorage storage.FileStorageClient, fo
 }
 
 // cleanupAudio deletes uploaded audio on rollback (logs warnings, doesn't fail)
-func cleanupAudio(ctx context.Context, fileStorage storage.FileStorageClient, musicID string, logger *zap.Logger) {
+func cleanupAudio(ctx context.Context, fileStorage storage.FileStorageClient, musicID string) {
+	logger := libsmiddleware.GetLogger(ctx)
+
 	if err := fileStorage.DeleteAudio(ctx, musicID); err != nil {
 		logger.Warn("failed to clean up audio after operation failure",
 			zap.String("musicID", musicID),

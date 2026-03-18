@@ -30,7 +30,6 @@ func NewClickHouseSync(logger *zap.Logger, config *di.Config, jwtHandler *libsdi
 		jwtHandler: jwtHandler,
 		client: &libsclients.BaseClient{
 			HttpClient: &http.Client{Timeout: 5 * time.Second},
-			Logger:     logger,
 		},
 	}
 }

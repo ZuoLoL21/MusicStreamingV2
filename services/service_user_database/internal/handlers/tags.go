@@ -3,6 +3,7 @@ package handlers
 import (
 	"backend/internal/consts"
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	libsconsts "libs/consts"
@@ -23,7 +24,6 @@ import (
 )
 
 type TagsHandler struct {
-	logger      *zap.Logger
 	config      *di.Config
 	jwtHandler  *libsdi.JWTHandler
 	returns     *libsdi.ReturnManager
@@ -32,9 +32,8 @@ type TagsHandler struct {
 	httpClient  *http.Client
 }
 
-func NewTagsHandler(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *TagsHandler {
+func NewTagsHandler(config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *TagsHandler {
 	return &TagsHandler{
-		logger:      logger,
 		config:      config,
 		jwtHandler:  jwtHandler,
 		returns:     returns,
@@ -45,13 +44,15 @@ func NewTagsHandler(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JW
 }
 
 func (h *TagsHandler) GetAllTags(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	limit, cursorName := parsePaginationName(r)
 	tags, err := h.db.GetAllTags(r.Context(), sqlhandler.GetAllTagsParams{
 		Limit:   limit,
 		Column2: cursorName,
 	})
 	if err != nil {
-		h.logger.Error("failed to get tags", zap.Error(err))
+		logger.Error("failed to get tags", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get tags", http.StatusInternalServerError)
 		return
 	}
@@ -73,6 +74,8 @@ func (h *TagsHandler) GetTag(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TagsHandler) GetMusicForTag(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	name := mux.Vars(r)["name"]
 
 	limit, cursorTS, cursorID := parsePagination(r)
@@ -83,7 +86,7 @@ func (h *TagsHandler) GetMusicForTag(w http.ResponseWriter, r *http.Request) {
 		Uuid:    cursorID,
 	})
 	if err != nil {
-		h.logger.Error("failed to get music for tag", zap.Error(err))
+		logger.Error("failed to get music for tag", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get music for tag", http.StatusInternalServerError)
 		return
 	}
@@ -97,6 +100,8 @@ func (h *TagsHandler) GetMusicForTag(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TagsHandler) GetTagsForMusic(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	musicUUID, ok := parseUUID(r, "uuid")
 	if !ok {
 		h.returns.ReturnError(w, "invalid uuid", http.StatusBadRequest)
@@ -110,7 +115,7 @@ func (h *TagsHandler) GetTagsForMusic(w http.ResponseWriter, r *http.Request) {
 		Column3:   cursorName,
 	})
 	if err != nil {
-		h.logger.Error("failed to get tags for music", zap.Error(err))
+		logger.Error("failed to get tags for music", zap.Error(err))
 		h.returns.ReturnError(w, "failed to get tags for music", http.StatusInternalServerError)
 		return
 	}
@@ -124,6 +129,8 @@ type createTagRequest struct {
 }
 
 func (h *TagsHandler) CreateTag(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	body, ok := decodeBody[createTagRequest](w, r, h.returns)
 	if !ok {
 		return
@@ -138,7 +145,7 @@ func (h *TagsHandler) CreateTag(w http.ResponseWriter, r *http.Request) {
 		TagName:        body.TagName,
 		TagDescription: description,
 	}); err != nil {
-		h.logger.Error("failed to create tag", zap.Error(err))
+		logger.Error("failed to create tag", zap.Error(err))
 		h.returns.ReturnError(w, "failed to create tag", http.StatusInternalServerError)
 		return
 	}
@@ -175,6 +182,8 @@ func (h *TagsHandler) checkTagMusicAccess(w http.ResponseWriter, r *http.Request
 }
 
 func (h *TagsHandler) AssignTagToMusic(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	musicUUID, ok := h.checkTagMusicAccess(w, r)
 	if !ok {
 		return
@@ -186,7 +195,7 @@ func (h *TagsHandler) AssignTagToMusic(w http.ResponseWriter, r *http.Request) {
 		MusicUuid: musicUUID,
 		TagName:   name,
 	}); err != nil {
-		h.logger.Error("failed to assign tag to music", zap.Error(err))
+		logger.Error("failed to assign tag to music", zap.Error(err))
 		h.returns.ReturnError(w, "failed to assign tag to music", http.StatusInternalServerError)
 		return
 	}
@@ -197,6 +206,8 @@ func (h *TagsHandler) AssignTagToMusic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TagsHandler) RemoveTagFromMusic(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	musicUUID, ok := h.checkTagMusicAccess(w, r)
 	if !ok {
 		return
@@ -208,7 +219,7 @@ func (h *TagsHandler) RemoveTagFromMusic(w http.ResponseWriter, r *http.Request)
 		MusicUuid: musicUUID,
 		TagName:   name,
 	}); err != nil {
-		h.logger.Error("failed to remove tag from music", zap.Error(err))
+		logger.Error("failed to remove tag from music", zap.Error(err))
 		h.returns.ReturnError(w, "failed to remove tag from music", http.StatusInternalServerError)
 		return
 	}
@@ -218,6 +229,8 @@ func (h *TagsHandler) RemoveTagFromMusic(w http.ResponseWriter, r *http.Request)
 
 // syncThemeToClickHouse sends theme data to the event ingestion service
 func (h *TagsHandler) syncThemeToClickHouse(musicUUID pgtype.UUID, theme string) {
+	logger := libsmiddleware.GetLogger(context.Background())
+
 	if h.config.EventIngestionServiceURL == "" {
 		return
 	}
@@ -231,13 +244,13 @@ func (h *TagsHandler) syncThemeToClickHouse(musicUUID pgtype.UUID, theme string)
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		h.logger.Error("failed to marshal theme payload", zap.Error(err))
+		logger.Error("failed to marshal theme payload", zap.Error(err))
 		return
 	}
 
 	req, err := http.NewRequest("POST", h.config.EventIngestionServiceURL+"/events/theme", bytes.NewBuffer(jsonData))
 	if err != nil {
-		h.logger.Error("failed to create theme request", zap.Error(err))
+		logger.Error("failed to create theme request", zap.Error(err))
 		return
 	}
 
@@ -249,14 +262,14 @@ func (h *TagsHandler) syncThemeToClickHouse(musicUUID pgtype.UUID, theme string)
 		2*time.Minute,
 	)
 	if err != nil {
-		h.logger.Error("failed to generate service JWT", zap.Error(err))
+		logger.Error("failed to generate service JWT", zap.Error(err))
 		return
 	}
 	req.Header.Set("Authorization", "Bearer "+serviceJWT)
 
 	resp, err := h.httpClient.Do(req)
 	if err != nil {
-		h.logger.Warn("failed to sync theme to ClickHouse", zap.Error(err))
+		logger.Warn("failed to sync theme to ClickHouse", zap.Error(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -264,9 +277,9 @@ func (h *TagsHandler) syncThemeToClickHouse(musicUUID pgtype.UUID, theme string)
 	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		h.logger.Warn("theme sync failed", zap.Int("status", resp.StatusCode))
+		logger.Warn("theme sync failed", zap.Int("status", resp.StatusCode))
 	} else {
-		h.logger.Debug("theme synced to ClickHouse",
+		logger.Debug("theme synced to ClickHouse",
 			zap.String("music_uuid", musicUUIDStr),
 			zap.String("theme", theme))
 	}
