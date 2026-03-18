@@ -557,9 +557,3 @@ func TestIntegration_Error_DatabaseVsNotFound(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 }
-
-// Helper function for creating request without body
-func createRequestWithoutBody(t *testing.T, method, path string) *http.Request {
-	t.Helper()
-	return httptest.NewRequest(method, path, nil)
-}

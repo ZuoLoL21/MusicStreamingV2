@@ -169,7 +169,7 @@ func SetupMinIOClient(t *testing.T) *client.MinIOFileStorageClient {
 		config.MinIOAccessKey,
 		config.MinIOSecretKey,
 		config.MinIOBucket,
-		&zap.Logger{},
+		zap.NewNop(),
 	)
 	require.NoError(t, err, "failed to create MinIO test client")
 	require.NotNil(t, minioClient, "MinIO client should not be nil")

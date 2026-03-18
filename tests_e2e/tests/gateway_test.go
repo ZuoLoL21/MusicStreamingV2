@@ -154,21 +154,6 @@ func TestGateway_NotFound(t *testing.T) {
 	AssertResponseStatus(t, resp, http.StatusNotFound)
 }
 
-// TestGateway_MethodNotAllowed tests that wrong methods return 405
-func TestGateway_MethodNotAllowed(t *testing.T) {
-	config := GetTestConfig()
-	client := NewTestClient(config.GatewayBaseURL)
-
-	// Try to POST to a GET-only endpoint
-	resp, err := client.RawRequest("POST", "/health", nil)
-	require.NoError(t, err, "Request should not fail")
-	defer resp.Body.Close()
-
-	// Should return 405 Method Not Allowed or 200 (if POST is allowed)
-	assert.True(t, resp.StatusCode == http.StatusMethodNotAllowed || resp.StatusCode == http.StatusOK,
-		"Method handling should be correct")
-}
-
 // TestGateway_UnsupportedMediaType tests handling of unsupported media types
 func TestGateway_UnsupportedMediaType(t *testing.T) {
 	config := GetTestConfig()

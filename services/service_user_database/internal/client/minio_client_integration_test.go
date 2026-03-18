@@ -42,7 +42,7 @@ func getTestConfig() (endpoint, accessKey, secretKey, bucket string) {
 func setupTestClient(t *testing.T) *MinIOFileStorageClient {
 	endpoint, accessKey, secretKey, bucket := getTestConfig()
 
-	client, err := NewMinIOFileStorageClient(endpoint, accessKey, secretKey, bucket, &zap.Logger{})
+	client, err := NewMinIOFileStorageClient(endpoint, accessKey, secretKey, bucket, zap.NewNop())
 	require.NoError(t, err, "failed to create MinIO test client")
 	require.NotNil(t, client, "client should not be nil")
 
@@ -52,7 +52,7 @@ func setupTestClient(t *testing.T) *MinIOFileStorageClient {
 func TestIntegration_NewMinIOFileStorageClient(t *testing.T) {
 	endpoint, accessKey, secretKey, bucket := getTestConfig()
 
-	client, err := NewMinIOFileStorageClient(endpoint, accessKey, secretKey, bucket, &zap.Logger{})
+	client, err := NewMinIOFileStorageClient(endpoint, accessKey, secretKey, bucket, zap.NewNop())
 
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
