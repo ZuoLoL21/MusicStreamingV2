@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	libsdi "libs/di"
+	libsmiddleware "libs/middleware"
 	"net/http"
 	"popularity/internal/di"
 	"strconv"
@@ -16,24 +17,22 @@ import (
 )
 
 type PopularityHandler struct {
-	logger      *zap.Logger
 	config      *di.Config
 	returns     *libsdi.ReturnManager
 	warehouseDB *sql.DB
 }
 
-func NewPopularityHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager) *PopularityHandler {
+func NewPopularityHandler(config *di.Config, returns *libsdi.ReturnManager) (*PopularityHandler, error) {
 	warehouseDB, err := sql.Open("clickhouse", config.WarehouseURL)
 	if err != nil {
-		logger.Fatal("failed to connect to ClickHouse", zap.Error(err))
+		return nil, fmt.Errorf("failed to connect to ClickHouse: %w", err)
 	}
 
 	return &PopularityHandler{
-		logger:      logger,
 		config:      config,
 		returns:     returns,
 		warehouseDB: warehouseDB,
-	}
+	}, nil
 }
 
 type SongPopularity struct {
@@ -95,11 +94,12 @@ type Scanner interface {
 func executeQuery[T any](
 	ctx context.Context,
 	db *sql.DB,
-	logger *zap.Logger,
 	query string,
 	scanFn func(Scanner) (T, error),
 	args ...interface{},
 ) ([]T, error) {
+	logger := libsmiddleware.GetLogger(ctx)
+
 	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -159,6 +159,8 @@ func parseDateRange(r *http.Request) (time.Time, time.Time, error) {
 }
 
 func (h *PopularityHandler) PopularSongsAllTime(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
+
 	limit, cursorDecay, cursorID := parsePaginationDecay(r)
 
 	query := `
@@ -169,7 +171,7 @@ func (h *PopularityHandler) PopularSongsAllTime(w http.ResponseWriter, r *http.R
 		LIMIT ?
 	`
 
-	results, err := executeQuery(r.Context(), h.warehouseDB, h.logger, query,
+	results, err := executeQuery(r.Context(), h.warehouseDB, query,
 		func(s Scanner) (SongPopularity, error) {
 			var song SongPopularity
 			err := s.Scan(&song.MusicUUID, &song.DecayPlays, &song.DecayListenSeconds)
@@ -179,7 +181,7 @@ func (h *PopularityHandler) PopularSongsAllTime(w http.ResponseWriter, r *http.R
 	)
 
 	if err != nil {
-		h.logger.Error("failed to query popular songs", zap.Error(err))
+		logger.Error("failed to query popular songs", zap.Error(err))
 		h.returns.ReturnError(w, "failed to fetch popular songs", http.StatusInternalServerError)
 		return
 	}
@@ -188,6 +190,7 @@ func (h *PopularityHandler) PopularSongsAllTime(w http.ResponseWriter, r *http.R
 }
 
 func (h *PopularityHandler) PopularSongsTimeframe(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
 	limit, cursorPlays, cursorID := parsePaginationPlays(r)
 	start, end, err := parseDateRange(r)
 	if err != nil {
@@ -205,7 +208,7 @@ func (h *PopularityHandler) PopularSongsTimeframe(w http.ResponseWriter, r *http
 		LIMIT ?
 	`
 
-	results, err := executeQuery(r.Context(), h.warehouseDB, h.logger, query,
+	results, err := executeQuery(r.Context(), h.warehouseDB, query,
 		func(s Scanner) (SongPopularityTimeframe, error) {
 			var song SongPopularityTimeframe
 			err := s.Scan(&song.MusicUUID, &song.Plays, &song.ListenSeconds)
@@ -215,7 +218,7 @@ func (h *PopularityHandler) PopularSongsTimeframe(w http.ResponseWriter, r *http
 	)
 
 	if err != nil {
-		h.logger.Error("failed to query popular songs by timeframe", zap.Error(err))
+		logger.Error("failed to query popular songs by timeframe", zap.Error(err))
 		h.returns.ReturnError(w, "failed to fetch popular songs", http.StatusInternalServerError)
 		return
 	}
@@ -224,6 +227,7 @@ func (h *PopularityHandler) PopularSongsTimeframe(w http.ResponseWriter, r *http
 }
 
 func (h *PopularityHandler) PopularArtistAllTime(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
 	limit, cursorDecay, cursorID := parsePaginationDecay(r)
 
 	query := `
@@ -234,7 +238,7 @@ func (h *PopularityHandler) PopularArtistAllTime(w http.ResponseWriter, r *http.
 		LIMIT ?
 	`
 
-	results, err := executeQuery(r.Context(), h.warehouseDB, h.logger, query,
+	results, err := executeQuery(r.Context(), h.warehouseDB, query,
 		func(s Scanner) (ArtistPopularity, error) {
 			var artist ArtistPopularity
 			err := s.Scan(&artist.ArtistUUID, &artist.DecayPlays, &artist.DecayListenSeconds)
@@ -244,7 +248,7 @@ func (h *PopularityHandler) PopularArtistAllTime(w http.ResponseWriter, r *http.
 	)
 
 	if err != nil {
-		h.logger.Error("failed to query popular artists", zap.Error(err))
+		logger.Error("failed to query popular artists", zap.Error(err))
 		h.returns.ReturnError(w, "failed to fetch popular artists", http.StatusInternalServerError)
 		return
 	}
@@ -253,6 +257,7 @@ func (h *PopularityHandler) PopularArtistAllTime(w http.ResponseWriter, r *http.
 }
 
 func (h *PopularityHandler) PopularArtistTimeframe(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
 	limit, cursorPlays, cursorID := parsePaginationPlays(r)
 	start, end, err := parseDateRange(r)
 	if err != nil {
@@ -270,7 +275,7 @@ func (h *PopularityHandler) PopularArtistTimeframe(w http.ResponseWriter, r *htt
 		LIMIT ?
 	`
 
-	results, err := executeQuery(r.Context(), h.warehouseDB, h.logger, query,
+	results, err := executeQuery(r.Context(), h.warehouseDB, query,
 		func(s Scanner) (ArtistPopularityTimeframe, error) {
 			var artist ArtistPopularityTimeframe
 			err := s.Scan(&artist.ArtistUUID, &artist.Plays, &artist.ListenSeconds)
@@ -280,7 +285,7 @@ func (h *PopularityHandler) PopularArtistTimeframe(w http.ResponseWriter, r *htt
 	)
 
 	if err != nil {
-		h.logger.Error("failed to query popular artists by timeframe", zap.Error(err))
+		logger.Error("failed to query popular artists by timeframe", zap.Error(err))
 		h.returns.ReturnError(w, "failed to fetch popular artists", http.StatusInternalServerError)
 		return
 	}
@@ -289,6 +294,7 @@ func (h *PopularityHandler) PopularArtistTimeframe(w http.ResponseWriter, r *htt
 }
 
 func (h *PopularityHandler) PopularThemeAllTime(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
 	limit := parseLimit(r)
 
 	query := `
@@ -298,7 +304,7 @@ func (h *PopularityHandler) PopularThemeAllTime(w http.ResponseWriter, r *http.R
 		LIMIT ?
 	`
 
-	results, err := executeQuery(r.Context(), h.warehouseDB, h.logger, query,
+	results, err := executeQuery(r.Context(), h.warehouseDB, query,
 		func(s Scanner) (ThemePopularity, error) {
 			var theme ThemePopularity
 			err := s.Scan(&theme.Theme, &theme.DecayPlays, &theme.DecayListenSeconds)
@@ -308,7 +314,7 @@ func (h *PopularityHandler) PopularThemeAllTime(w http.ResponseWriter, r *http.R
 	)
 
 	if err != nil {
-		h.logger.Error("failed to query popular themes", zap.Error(err))
+		logger.Error("failed to query popular themes", zap.Error(err))
 		h.returns.ReturnError(w, "failed to fetch popular themes", http.StatusInternalServerError)
 		return
 	}
@@ -317,6 +323,7 @@ func (h *PopularityHandler) PopularThemeAllTime(w http.ResponseWriter, r *http.R
 }
 
 func (h *PopularityHandler) PopularThemeTimeframe(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
 	limit := parseLimit(r)
 	start, end, err := parseDateRange(r)
 	if err != nil {
@@ -333,7 +340,7 @@ func (h *PopularityHandler) PopularThemeTimeframe(w http.ResponseWriter, r *http
 		LIMIT ?
 	`
 
-	results, err := executeQuery(r.Context(), h.warehouseDB, h.logger, query,
+	results, err := executeQuery(r.Context(), h.warehouseDB, query,
 		func(s Scanner) (ThemePopularityTimeframe, error) {
 			var theme ThemePopularityTimeframe
 			err := s.Scan(&theme.Theme, &theme.Plays, &theme.ListenSeconds)
@@ -343,7 +350,7 @@ func (h *PopularityHandler) PopularThemeTimeframe(w http.ResponseWriter, r *http
 	)
 
 	if err != nil {
-		h.logger.Error("failed to query popular themes by timeframe", zap.Error(err))
+		logger.Error("failed to query popular themes by timeframe", zap.Error(err))
 		h.returns.ReturnError(w, "failed to fetch popular themes", http.StatusInternalServerError)
 		return
 	}
@@ -352,6 +359,7 @@ func (h *PopularityHandler) PopularThemeTimeframe(w http.ResponseWriter, r *http
 }
 
 func (h *PopularityHandler) PopularSongsAllTimeByTheme(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
 	limit, cursorDecay, cursorID := parsePaginationDecay(r)
 	vars := mux.Vars(r)
 	theme := vars["theme"]
@@ -368,7 +376,7 @@ func (h *PopularityHandler) PopularSongsAllTimeByTheme(w http.ResponseWriter, r 
 		LIMIT ?
 	`
 
-	results, err := executeQuery(r.Context(), h.warehouseDB, h.logger, query,
+	results, err := executeQuery(r.Context(), h.warehouseDB, query,
 		func(s Scanner) (SongPopularityTheme, error) {
 			var song SongPopularityTheme
 			err := s.Scan(&song.MusicUUID, &song.Theme, &song.DecayPlays, &song.DecayListenSeconds)
@@ -378,7 +386,7 @@ func (h *PopularityHandler) PopularSongsAllTimeByTheme(w http.ResponseWriter, r 
 	)
 
 	if err != nil {
-		h.logger.Error("failed to query popular songs by theme", zap.Error(err))
+		logger.Error("failed to query popular songs by theme", zap.Error(err))
 		h.returns.ReturnError(w, "failed to fetch popular songs", http.StatusInternalServerError)
 		return
 	}
@@ -387,6 +395,7 @@ func (h *PopularityHandler) PopularSongsAllTimeByTheme(w http.ResponseWriter, r 
 }
 
 func (h *PopularityHandler) PopularSongsTimeframeByTheme(w http.ResponseWriter, r *http.Request) {
+	logger := libsmiddleware.GetLogger(r.Context())
 	limit, cursorPlays, cursorID := parsePaginationPlays(r)
 	vars := mux.Vars(r)
 	theme := vars["theme"]
@@ -411,7 +420,7 @@ func (h *PopularityHandler) PopularSongsTimeframeByTheme(w http.ResponseWriter, 
 		LIMIT ?
 	`
 
-	results, err := executeQuery(r.Context(), h.warehouseDB, h.logger, query,
+	results, err := executeQuery(r.Context(), h.warehouseDB, query,
 		func(s Scanner) (SongPopularityThemeTimeframe, error) {
 			var song SongPopularityThemeTimeframe
 			err := s.Scan(&song.MusicUUID, &song.Theme, &song.Plays, &song.ListenSeconds)
@@ -421,7 +430,7 @@ func (h *PopularityHandler) PopularSongsTimeframeByTheme(w http.ResponseWriter, 
 	)
 
 	if err != nil {
-		h.logger.Error("failed to query popular songs by theme and timeframe", zap.Error(err))
+		logger.Error("failed to query popular songs by theme and timeframe", zap.Error(err))
 		h.returns.ReturnError(w, "failed to fetch popular songs", http.StatusInternalServerError)
 		return
 	}

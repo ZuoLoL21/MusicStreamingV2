@@ -2,11 +2,10 @@ package app
 
 import (
 	"libs/consts"
-	"popularity/internal/di"
-	"popularity/internal/handlers"
-
 	libsdi "libs/di"
 	libsmiddleware "libs/middleware"
+	"popularity/internal/di"
+	"popularity/internal/handlers"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -22,7 +21,10 @@ type App struct {
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
 
-	popularityHandler := handlers.NewPopularityHandler(a.Logger, a.Config, a.Returns)
+	popularityHandler, err := handlers.NewPopularityHandler(a.Config, a.Returns)
+	if err != nil {
+		a.Logger.Fatal("failed to initialize popularity handler", zap.Error(err))
+	}
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.Logger,
 		a.JWTHandler,
