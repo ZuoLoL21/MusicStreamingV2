@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"libs/helpers"
 	"net/http"
 	"strings"
@@ -46,24 +45,6 @@ func getIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-// requestID extracts the request ID from the context.
-// It uses the helpers package to retrieve the request ID set by request ID middleware.
-func requestID(ctx context.Context) string {
-	return helpers.GetRequestIDFromContext(ctx)
-}
-
-// userUUID extracts the user UUID from the context.
-// It uses the helpers package to retrieve the user UUID set by auth middleware.
-func userUUID(ctx context.Context) string {
-	return helpers.GetUserUUIDFromContext(ctx)
-}
-
-// deviceID extracts the device ID from the context.
-// It uses the helpers package to retrieve the device ID set by auth middleware.
-func deviceID(ctx context.Context) string {
-	return helpers.GetDeviceIDFromContext(ctx)
-}
-
 // FailureRecoveryMiddleware is a middleware that wraps an HTTP handler to provide
 // panic recovery and request logging. It recovers from any panics that occur during
 // request processing, logs the panic with relevant request details, and returns a
@@ -95,13 +76,13 @@ func FailureRecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 						zap.String("route", template),
 						zap.String("remote_addr", r.RemoteAddr),
 						zap.Duration("duration", duration),
-						zap.String("request_id", requestID(ctx)),
+						zap.String("request_id", helpers.GetRequestIDFromContext(ctx)),
 					}
 
-					if uuid := userUUID(ctx); uuid != "" {
+					if uuid := helpers.GetUserUUIDFromContext(ctx); uuid != "" {
 						fields = append(fields, zap.String("user_uuid", uuid))
 					}
-					if devID := deviceID(ctx); devID != "" {
+					if devID := helpers.GetDeviceIDFromContext(ctx); devID != "" {
 						fields = append(fields, zap.String("device_uuid", devID))
 					}
 
@@ -124,13 +105,13 @@ func FailureRecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 				zap.Int("bytes", rw.bytes),
 				zap.Duration("duration", duration),
 				zap.String("remote_addr", getIP(r)),
-				zap.String("request_id", requestID(ctx)),
+				zap.String("request_id", helpers.GetRequestIDFromContext(ctx)),
 			}
 
-			if uuid := userUUID(ctx); uuid != "" {
+			if uuid := helpers.GetUserUUIDFromContext(ctx); uuid != "" {
 				fields = append(fields, zap.String("user_uuid", uuid))
 			}
-			if devID := deviceID(ctx); devID != "" {
+			if devID := helpers.GetDeviceIDFromContext(ctx); devID != "" {
 				fields = append(fields, zap.String("device_uuid", devID))
 			}
 

@@ -8,17 +8,15 @@ import (
 	"io"
 	"net/http"
 
-	"go.uber.org/zap"
 	"libs/consts"
 )
 
 // BaseClient provides common HTTP functionality for service clients.
 //
-// It wraps an http.Client and a zap.Logger for making HTTP requests
+// It wraps an http.Client for making HTTP requests
 // with built-in error handling and JSON marshaling support.
 type BaseClient struct {
 	HttpClient *http.Client
-	Logger     *zap.Logger
 }
 
 // DoJSON performs an HTTP request with JSON marshaling/unmarshaling.

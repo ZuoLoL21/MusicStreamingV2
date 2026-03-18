@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"libs/consts"
-
-	"go.uber.org/zap"
 )
 
 // ProxyClient is a generic HTTP client for proxying requests to backend services.
@@ -25,16 +23,14 @@ type ProxyClient struct {
 // NewProxyClient creates a new proxy client with the given base URL.
 //
 //   - The baseURL should be the full URL of the backend service (e.g., "http://localhost:8080").
-//   - The logger is used for logging HTTP requests and responses.
 //
 // Returns a configured ProxyClient with a 30-second timeout.
-func NewProxyClient(baseURL string, logger *zap.Logger) *ProxyClient {
+func NewProxyClient(baseURL string) *ProxyClient {
 	return &ProxyClient{
 		BaseClient: BaseClient{
 			HttpClient: &http.Client{
 				Timeout: 30 * time.Second,
 			},
-			Logger: logger,
 		},
 		baseURL: baseURL,
 	}

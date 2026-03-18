@@ -102,21 +102,16 @@ func (h *AuthHandler) authenticate(token string, subject string) (string, string
 	if err != nil {
 		if strings.Contains(err.Error(), "transit") || strings.Contains(err.Error(), "vault") {
 			h.logger.Error("vault transit verify failed",
-				zap.String("operation", "ValidateJwtWithDevice"),
 				zap.Error(err))
 		} else {
-			h.logger.Warn("authentication failed",
+			h.logger.Warn("authentication failed, invalid token",
 				zap.String("subject", subject),
-				zap.String("reason", "invalid_token"),
 				zap.Error(err))
 		}
 		return "", "", fmt.Errorf("%s: %v", consts.ErrInvalidJWT, err.Error())
 	}
 
-	h.logger.Info("authentication successful",
-		zap.String("subject", subject),
-		zap.String("user_uuid", uuid),
-		zap.String("device_id", deviceID))
+	h.logger.Info("authentication successful", zap.String("subject", subject))
 
 	return uuid, deviceID, nil
 }

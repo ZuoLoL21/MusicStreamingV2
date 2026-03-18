@@ -70,18 +70,12 @@ func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 
 			serviceJWT, err := h.jwtHandler.GenerateJwtWithDevice(consts.JWTSubjectService, uuid, deviceID, h.duration)
 			if err != nil {
-				h.logger.Error("failed to generate service JWT",
-					zap.String("user_uuid", uuid),
-					zap.String("device_id", deviceID),
-					zap.Error(err))
+				h.logger.Error("failed to generate service JWT", zap.Error(err))
 				h.returns.ReturnError(w, consts.ErrFailedToGenerateToken, http.StatusInternalServerError)
 				return
 			}
 
-			h.logger.Info("service JWT generated",
-				zap.String("user_uuid", uuid),
-				zap.String("device_id", deviceID),
-				zap.Duration("ttl", h.duration))
+			h.logger.Info("service JWT generated", zap.Duration("ttl", h.duration))
 
 			ctx := context.WithValue(r.Context(), consts.ServiceJWTKey, serviceJWT)
 			next.ServeHTTP(w, r.WithContext(ctx))

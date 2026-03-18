@@ -6,6 +6,7 @@ import (
 	"io"
 	"libs/consts"
 	"libs/helpers"
+	"libs/middleware"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -56,28 +57,22 @@ func WriteProxyResponse(w http.ResponseWriter, body []byte, statusCode int, head
 func ProxyWithServiceJWT(
 	w http.ResponseWriter,
 	r *http.Request,
-	logger *zap.Logger,
 	forwardFunc func(ctx context.Context, method, path, query string, body io.Reader, headers http.Header, serviceJWT, requestID string) ([]byte, int, http.Header, error),
 ) {
+	logger := middleware.GetLogger(r.Context())
+
 	requestID := helpers.GetRequestIDFromContext(r.Context())
 	serviceJWT := helpers.GetServiceJWTFromContext(r.Context())
 
 	if serviceJWT == "" {
-		logger.Error("service JWT not found in context",
-			zap.String("request_id", requestID),
-			zap.String("method", r.Method),
-			zap.String("path", r.URL.Path))
+		logger.Error("service JWT not found in context")
 		http.Error(w, consts.ErrUnauthorized, http.StatusUnauthorized)
 		return
 	}
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		logger.Error("failed to read request body",
-			zap.Error(err),
-			zap.String("request_id", requestID),
-			zap.String("method", r.Method),
-			zap.String("path", r.URL.Path))
+		logger.Error("failed to read request body", zap.Error(err))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -97,10 +92,7 @@ func ProxyWithServiceJWT(
 	)
 
 	if err != nil {
-		logger.Error("failed to forward request",
-			zap.Error(err),
-			zap.String("request_id", requestID),
-			zap.String("method", r.Method))
+		logger.Error("failed to forward request", zap.Error(err))
 		http.Error(w, "bad gateway", http.StatusBadGateway)
 		return
 	}
@@ -116,28 +108,22 @@ func ProxyWithServiceJWT(
 func ProxyRenewWithServiceJWT(
 	w http.ResponseWriter,
 	r *http.Request,
-	logger *zap.Logger,
 	forwardFunc func(ctx context.Context, method, path, query string, body io.Reader, headers http.Header, serviceJWT, requestID string) ([]byte, int, http.Header, error),
 ) {
+	logger := middleware.GetLogger(r.Context())
+
 	requestID := helpers.GetRequestIDFromContext(r.Context())
 	serviceJWT := helpers.GetServiceJWTFromContext(r.Context())
 
 	if serviceJWT == "" {
-		logger.Error("service JWT not found in context",
-			zap.String("request_id", requestID),
-			zap.String("method", r.Method),
-			zap.String("path", r.URL.Path))
+		logger.Error("service JWT not found in context")
 		http.Error(w, consts.ErrUnauthorized, http.StatusUnauthorized)
 		return
 	}
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		logger.Error("failed to read request body",
-			zap.Error(err),
-			zap.String("request_id", requestID),
-			zap.String("method", r.Method),
-			zap.String("path", r.URL.Path))
+		logger.Error("failed to read request body", zap.Error(err))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -160,10 +146,7 @@ func ProxyRenewWithServiceJWT(
 	)
 
 	if err != nil {
-		logger.Error("failed to forward request",
-			zap.Error(err),
-			zap.String("request_id", requestID),
-			zap.String("method", r.Method))
+		logger.Error("failed to forward request", zap.Error(err))
 		http.Error(w, "bad gateway", http.StatusBadGateway)
 		return
 	}
@@ -182,18 +165,14 @@ func ProxyRenewWithServiceJWT(
 func ProxyPublic(
 	w http.ResponseWriter,
 	r *http.Request,
-	logger *zap.Logger,
 	forwardFunc func(ctx context.Context, method, path, query string, body io.Reader, headers http.Header, requestID string) ([]byte, int, http.Header, error),
 ) {
+	logger := middleware.GetLogger(r.Context())
 	requestID := helpers.GetRequestIDFromContext(r.Context())
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		logger.Error("failed to read request body",
-			zap.Error(err),
-			zap.String("request_id", requestID),
-			zap.String("method", r.Method),
-			zap.String("path", r.URL.Path))
+		logger.Error("failed to read request body", zap.Error(err))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -212,11 +191,7 @@ func ProxyPublic(
 	)
 
 	if err != nil {
-		logger.Error("failed to forward request",
-			zap.Error(err),
-			zap.String("request_id", requestID),
-			zap.String("method", r.Method),
-			zap.String("path", r.URL.Path))
+		logger.Error("failed to forward request", zap.Error(err))
 		http.Error(w, "bad gateway", http.StatusBadGateway)
 		return
 	}
