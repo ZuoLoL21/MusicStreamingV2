@@ -111,12 +111,12 @@ func (q *Queries) RevokeDevice(ctx context.Context, arg RevokeDeviceParams) erro
 }
 
 const upsertRefreshToken = `-- name: UpsertRefreshToken :one
-INSERT INTO refresh_tokens (user_uuid, device_id, token_hash, device_name, expires_at, created_at, last_used_at)
-VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+INSERT INTO refresh_tokens (user_uuid, device_id, token_hash, device_name, expires_at, last_used_at)
+VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
 ON CONFLICT (user_uuid, device_id)
 DO UPDATE SET
     token_hash = EXCLUDED.token_hash,
-    device_name = EXCLUDED.device_name,
+    device_name = COALESCE(NULLIF(EXCLUDED.device_name, ''), refresh_tokens.device_name),
     expires_at = EXCLUDED.expires_at,
     last_used_at = CURRENT_TIMESTAMP
 RETURNING uuid, user_uuid, device_id, token_hash, device_name, expires_at, created_at, last_used_at
