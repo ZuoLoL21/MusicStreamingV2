@@ -53,10 +53,13 @@ type tokenPair struct {
 }
 
 // issueTokenPair generates access and refresh tokens, stores the hashed refresh token in the database
+//
+// Use empty for deviceName if you don't wish to change the database
 func (h *AuthHandler) issueTokenPair(uuidStr, deviceID, deviceName string) (tokenPair, error) {
-	access, err := h.jwtHandler.GenerateJwt(
+	access, err := h.jwtHandler.GenerateJwtWithDevice(
 		libsconsts.JWTSubjectNormal,
 		uuidStr,
+		deviceID,
 		h.config.JWTExpirationNormal,
 	)
 	if err != nil {
@@ -275,37 +278,16 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Renew(w http.ResponseWriter, r *http.Request) {
 	logger := libsmiddleware.GetLogger(r.Context())
 
-	refreshToken, ok := extractBearerToken(r, w, h.returns)
-	if !ok {
-		return
-	}
+	uuidStr := libshelpers.GetUserUUIDFromContext(r.Context())
+	deviceID := libshelpers.GetDeviceIDFromContext(r.Context())
 
-	uuidStr, deviceID, err := h.jwtHandler.ValidateJwtWithDevice(libsconsts.JWTSubjectRefresh, refreshToken)
-	if err != nil {
-		logger.Warn("invalid refresh token JWT", zap.Error(err))
-		h.returns.ReturnError(w, "invalid or expired token", http.StatusUnauthorized)
-		return
-	}
-
-	// Validate
-	tokenHash := libshelpers.HashToken(refreshToken)
-	storedToken, err := h.db.ValidateAndUpdateRefreshToken(r.Context(), tokenHash)
-	if err != nil {
-		logger.Warn("refresh token not found in database or expired",
-			zap.String("user_uuid", uuidStr),
-			zap.String("device_id", deviceID))
-		h.returns.ReturnError(w, "invalid or expired token", http.StatusUnauthorized)
-		return
-	}
-
-	if !verifyTokenMatch(storedToken, uuidStr, deviceID, logger) {
+	if uuidStr == "" || deviceID == "" {
+		logger.Error("missing user UUID or device ID in context")
 		h.returns.ReturnError(w, "invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	// Issue
-	deviceName := pgtextToString(storedToken.DeviceName)
-	tokens, err := h.issueTokenPair(uuidStr, deviceID, deviceName)
+	tokens, err := h.issueTokenPair(uuidStr, deviceID, "")
 	if err != nil {
 		logger.Error("failed to generate tokens", zap.Error(err))
 		h.returns.ReturnError(w, "internal server error", http.StatusInternalServerError)

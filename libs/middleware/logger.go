@@ -18,7 +18,7 @@ var loggerKey = loggerKeyType{}
 
 // Logger returns a middleware that adds a zap.Logger to the request context.
 // The logger is enriched with request metadata (method, path) and context values
-// (requestID, userUUID) if present. The logger can be retrieved using GetLogger.
+// (requestID, userUUID, deviceID) if present. The logger can be retrieved using GetLogger.
 //
 // The logger is stored in context using a private key to avoid collisions.
 func Logger(baseLogger *zap.Logger) func(http.Handler) http.Handler {
@@ -31,6 +31,9 @@ func Logger(baseLogger *zap.Logger) func(http.Handler) http.Handler {
 			}
 			if userUUID := helpers.GetUserUUIDFromContext(r.Context()); userUUID != "" {
 				logger = logger.With(zap.String("user_uuid", userUUID))
+			}
+			if deviceID := helpers.GetDeviceIDFromContext(r.Context()); deviceID != "" {
+				logger = logger.With(zap.String("device_uuid", deviceID))
 			}
 
 			logger = logger.With(

@@ -34,3 +34,13 @@ func GetUserUUIDFromContext(ctx context.Context) string {
 	}
 	return ""
 }
+
+// GetDeviceIDFromContext extracts the device ID from the given context.
+// The device ID is stored in the context using the key defined by consts.DeviceIDKey.
+// Returns an empty string if the device ID is not found in the context.
+func GetDeviceIDFromContext(ctx context.Context) string {
+	if deviceID, ok := ctx.Value(consts.DeviceIDKey).(string); ok {
+		return deviceID
+	}
+	return ""
+}

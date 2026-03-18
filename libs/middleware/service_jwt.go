@@ -46,11 +46,11 @@ func NewServiceJWTHandler(
 
 // GetServiceJWTMiddleware returns a Gorilla Mux middleware that generates service JWTs.
 //
-// The middleware extracts the user UUID from the context (set by auth middleware),
-// generates a short-lived service JWT with that UUID, and stores it in the context.
+// The middleware extracts the user UUID and device ID from the context (set by auth middleware),
+// generates a short-lived service JWT with those values, and stores it in the context.
 // This JWT can be used for service-to-service authentication.
 //
-// Returns 500 Internal Server Error if user UUID is missing or token generation fails.
+// Returns 500 Internal Server Error if user UUID or device ID is missing, or if token generation fails.
 func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -61,10 +61,18 @@ func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 				return
 			}
 
-			serviceJWT, err := h.jwtHandler.GenerateJwt(consts.JWTSubjectService, uuid, h.duration)
+			deviceID := helpers.GetDeviceIDFromContext(r.Context())
+			if deviceID == "" {
+				h.logger.Error("device ID not found in context")
+				h.returns.ReturnError(w, consts.ErrMissingUserContext, http.StatusInternalServerError)
+				return
+			}
+
+			serviceJWT, err := h.jwtHandler.GenerateJwtWithDevice(consts.JWTSubjectService, uuid, deviceID, h.duration)
 			if err != nil {
 				h.logger.Error("failed to generate service JWT",
 					zap.String("user_uuid", uuid),
+					zap.String("device_id", deviceID),
 					zap.Error(err))
 				h.returns.ReturnError(w, consts.ErrFailedToGenerateToken, http.StatusInternalServerError)
 				return
@@ -72,6 +80,7 @@ func (h *ServiceJWTHandler) GetServiceJWTMiddleware() mux.MiddlewareFunc {
 
 			h.logger.Info("service JWT generated",
 				zap.String("user_uuid", uuid),
+				zap.String("device_id", deviceID),
 				zap.Duration("ttl", h.duration))
 
 			ctx := context.WithValue(r.Context(), consts.ServiceJWTKey, serviceJWT)

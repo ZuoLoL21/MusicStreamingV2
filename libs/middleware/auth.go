@@ -48,7 +48,7 @@ func NewAuthHandler(
 
 // GetAuthMiddleware returns a Gorilla Mux middleware function that performs JWT authentication.
 // The middleware extracts the Bearer token from the Authorization header, validates it
-// using the JWT handler, and adds the user UUID to the request context on success.
+// using the JWT handler, and adds the user UUID and device ID to the request context on success.
 //
 // Returns 401 Unauthorized if the token is missing, invalid, or has an unexpected subject.
 func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
@@ -61,7 +61,7 @@ func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 				return
 			}
 
-			uuid, err := h.authenticate(token, h.subject)
+			uuid, deviceID, err := h.authenticate(token, h.subject)
 
 			if err != nil {
 				h.returns.ReturnError(w, err.Error(), http.StatusUnauthorized)
@@ -69,6 +69,7 @@ func (h *AuthHandler) GetAuthMiddleware() mux.MiddlewareFunc {
 			}
 
 			ctx := context.WithValue(r.Context(), consts.UserUUIDKey, uuid)
+			ctx = context.WithValue(ctx, consts.DeviceIDKey, deviceID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		})
@@ -89,18 +90,19 @@ func (h *AuthHandler) parseToken(r *http.Request) (string, error) {
 	return tokenParts[1], nil
 }
 
-// authenticate validates the JWT token and returns the user's UUID if valid.
+// authenticate validates the JWT token and returns the user's UUID and device ID if valid.
+// Device ID is now required for all token types (normal, refresh, service).
 // It uses the JWT handler to validate the token against the expected subject.
-func (h *AuthHandler) authenticate(token string, subject string) (string, error) {
+func (h *AuthHandler) authenticate(token string, subject string) (string, string, error) {
 	if token == "" {
-		return "", fmt.Errorf(consts.ErrInvalidJWT)
+		return "", "", fmt.Errorf(consts.ErrInvalidJWT)
 	}
 
-	uuid, err := h.jwtHandler.ValidateJwt(subject, token)
+	uuid, deviceID, err := h.jwtHandler.ValidateJwtWithDevice(subject, token)
 	if err != nil {
 		if strings.Contains(err.Error(), "transit") || strings.Contains(err.Error(), "vault") {
 			h.logger.Error("vault transit verify failed",
-				zap.String("operation", "ValidateJwt"),
+				zap.String("operation", "ValidateJwtWithDevice"),
 				zap.Error(err))
 		} else {
 			h.logger.Warn("authentication failed",
@@ -108,12 +110,13 @@ func (h *AuthHandler) authenticate(token string, subject string) (string, error)
 				zap.String("reason", "invalid_token"),
 				zap.Error(err))
 		}
-		return "", fmt.Errorf("%s: %v", consts.ErrInvalidJWT, err.Error())
+		return "", "", fmt.Errorf("%s: %v", consts.ErrInvalidJWT, err.Error())
 	}
 
 	h.logger.Info("authentication successful",
 		zap.String("subject", subject),
-		zap.String("user_uuid", uuid))
+		zap.String("user_uuid", uuid),
+		zap.String("device_id", deviceID))
 
-	return uuid, nil
+	return uuid, deviceID, nil
 }

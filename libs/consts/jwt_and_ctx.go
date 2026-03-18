@@ -9,6 +9,7 @@ type ContextKey string
 const (
 	RequestIDKey  ContextKey = "requestId"
 	UserUUIDKey   ContextKey = "userUuid"
+	DeviceIDKey   ContextKey = "deviceId"
 	ServiceJWTKey ContextKey = "serviceJwt"
 )
 

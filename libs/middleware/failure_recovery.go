@@ -58,6 +58,12 @@ func userUUID(ctx context.Context) string {
 	return helpers.GetUserUUIDFromContext(ctx)
 }
 
+// deviceID extracts the device ID from the context.
+// It uses the helpers package to retrieve the device ID set by auth middleware.
+func deviceID(ctx context.Context) string {
+	return helpers.GetDeviceIDFromContext(ctx)
+}
+
 // FailureRecoveryMiddleware is a middleware that wraps an HTTP handler to provide
 // panic recovery and request logging. It recovers from any panics that occur during
 // request processing, logs the panic with relevant request details, and returns a
@@ -95,6 +101,9 @@ func FailureRecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 					if uuid := userUUID(ctx); uuid != "" {
 						fields = append(fields, zap.String("user_uuid", uuid))
 					}
+					if devID := deviceID(ctx); devID != "" {
+						fields = append(fields, zap.String("device_uuid", devID))
+					}
 
 					logger.Error("panic recovered", fields...)
 					http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -120,6 +129,9 @@ func FailureRecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 
 			if uuid := userUUID(ctx); uuid != "" {
 				fields = append(fields, zap.String("user_uuid", uuid))
+			}
+			if devID := deviceID(ctx); devID != "" {
+				fields = append(fields, zap.String("device_uuid", devID))
 			}
 
 			switch {
