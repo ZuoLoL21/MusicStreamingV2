@@ -2,6 +2,8 @@
 
 set -e
 
+start=$(date +%s%3N)
+
 COMPOSE_USER_DB="services/service_user_database/docker-compose.integration.yml"
 COMPOSE_BANDIT="services/service_bandit_system/docker-compose.integration.yml"
 COMPOSE_EVENT="services/service_event_ingestion/docker-compose.integration.yml"
@@ -116,8 +118,10 @@ echo "OK     E2E tests passed"
 docker compose -f $COMPOSE_E2E down -v
 echo ""
 
+end=$(date +%s%3N)
 
 echo "========================================"
 echo "OK     All integration tests passed!"
+echo "Hook execution time: $((end - start)) ms"
 echo "Push allowed."
 echo "========================================"
