@@ -148,7 +148,7 @@ OPTIONS /login
 POST /renew
 ```
 
-**Description:** Refresh access token using refresh token.
+**Description:** Refresh access token and refresh token using the current refresh token. Implements **token rotation** for enhanced security—the old refresh token is invalidated when a new token pair is issued.
 
 **Authentication:** Refresh JWT required
 
@@ -160,12 +160,21 @@ Authorization: Bearer <refresh-token>
 **Response:**
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIs..."
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+  "user_uuid": "123e4567-e89b-12d3-a456-426614174000"
 }
 ```
 
+**Response Fields:**
+- `access_token` (string) - New Normal JWT for API access (~10 min lifetime)
+- `refresh_token` (string) - New Refresh JWT for future renewals (~10 days lifetime)
+- `user_uuid` (string) - User's UUID
+
+**Security Note:** Both tokens must be updated in client storage. The old refresh token is invalidated upon successful renewal.
+
 **Status Codes:**
-- `200 OK` - Token refreshed successfully
+- `200 OK` - Tokens refreshed successfully
 - `400 Bad Request` - Invalid request
 - `401 Unauthorized` - Invalid or expired refresh token
 - `403 Forbidden` - Refresh token required

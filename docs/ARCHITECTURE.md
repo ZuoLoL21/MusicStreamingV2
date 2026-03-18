@@ -1,6 +1,6 @@
 # MusicStreamingV2 - Architecture Documentation
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-17
 
 This document describes the architecture, design decisions, and system flows for the MusicStreamingV2 platform. For detailed API endpoint documentation, see [API.md](API.md).
 
@@ -594,16 +594,21 @@ Token lifetimes are configurable via `libs/consts/jwt_and_ctx.go` with environme
      │                             │                                │
      │                             │    Validate Service JWT        │
      │                             │    Generate new Normal JWT     │
+     │                             │    Generate new Refresh JWT    │
+     │                             │    (Token Rotation)            │
      │                             │                                │
-     │                             │ {normal_token, user_uuid}      │
+     │                             │ {normal_token, refresh_token,  │
+     │                             │  user_uuid}                    │
      │                             │<───────────────────────────────┤
      │                             │                                │
      │ {normal_token,              │                                │
+     │  refresh_token,             │                                │
      │  user_uuid}                 │                                │
      │<────────────────────────────┤                                │
      │                             │                                │
      │ Update stored Normal JWT    │                                │
-     │ Keep existing Refresh JWT   │                                │
+     │ Update stored Refresh JWT   │                                │
+     │(Old Refresh JWT invalidated)│                                │
      │                             │                                │
 ```
 
@@ -612,14 +617,16 @@ Token lifetimes are configurable via `libs/consts/jwt_and_ctx.go` with environme
 2. Gateway validates Refresh JWT (checks `sub == "refresh"`)
 3. Gateway generates Service JWT
 4. Gateway forwards to service_user_database
-5. Service generates new Normal JWT
-6. Client receives new Normal JWT
-7. Client updates stored Normal JWT (keeps Refresh JWT)
+5. Service generates new Normal JWT **and** new Refresh JWT (token rotation)
+6. Client receives new Normal JWT and new Refresh JWT
+7. Client updates both stored tokens (old Refresh JWT is invalidated)
 
 **Security Notes:**
 - Refresh JWT is only valid for `/renew` endpoint
 - Normal JWT cannot be used for `/renew`
-- Refresh JWT has much longer lifetime
+- **Refresh Token Rotation:** Each renewal generates a new Refresh JWT, invalidating the old one
+- This prevents replay attacks if a Refresh JWT is compromised
+- Refresh JWT has much longer lifetime (~10 days)
 - If Refresh JWT expires, user must login again
 
 ---

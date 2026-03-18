@@ -1,6 +1,6 @@
 # MusicStreamingV2 - Unified API Documentation
 
-**Last Updated:** 2026-03-16
+**Last Updated:** 2026-03-17
 
 This document provides complete API reference for all services in the MusicStreamingV2 platform. For architecture and design decisions, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -68,8 +68,10 @@ This document provides complete API reference for all services in the MusicStrea
 ```
 1. POST /renew with Refresh JWT
    → gateway_api validates with service_user_database
-   → Returns new Normal JWT
-2. Update stored Normal JWT
+   → Returns new Normal JWT + new Refresh JWT (token rotation)
+2. Update both stored tokens (old Refresh JWT invalidated)
 ```
+
+**Security Note:** Refresh token rotation prevents replay attacks by invalidating the old Refresh JWT when a new pair is issued.
 
 ---
