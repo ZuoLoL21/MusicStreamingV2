@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"event_ingestion/internal/di"
+	"libs/middleware"
 	"net/http"
 	"strings"
 
@@ -14,15 +15,13 @@ import (
 )
 
 type EventHandler struct {
-	logger     *zap.Logger
 	config     *di.Config
 	returns    *libsdi.ReturnManager
 	clickhouse *di.ClickHouseClient
 }
 
-func NewEventHandler(logger *zap.Logger, config *di.Config, returns *libsdi.ReturnManager, clickhouse *di.ClickHouseClient) *EventHandler {
+func NewEventHandler(config *di.Config, returns *libsdi.ReturnManager, clickhouse *di.ClickHouseClient) *EventHandler {
 	return &EventHandler{
-		logger:     logger,
 		config:     config,
 		returns:    returns,
 		clickhouse: clickhouse,
@@ -30,17 +29,18 @@ func NewEventHandler(logger *zap.Logger, config *di.Config, returns *libsdi.Retu
 }
 
 func (h *EventHandler) IngestListenEvent(w http.ResponseWriter, r *http.Request) {
+	logger := middleware.GetLogger(r.Context())
+
 	var req di.ListenEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.Warn("invalid listen event request", zap.Error(err))
+		logger.Warn("invalid listen event request", zap.Error(err))
 		h.returns.ReturnError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate
 	if req.UserUUID == uuid.Nil || req.MusicUUID == uuid.Nil || req.ArtistUUID == uuid.Nil {
-		h.logger.Warn("missing required UUIDs in listen event",
-			zap.String("user_uuid", req.UserUUID.String()),
+		logger.Warn("missing required UUIDs in listen event",
 			zap.String("music_uuid", req.MusicUUID.String()),
 			zap.String("artist_uuid", req.ArtistUUID.String()),
 		)
@@ -58,7 +58,7 @@ func (h *EventHandler) IngestListenEvent(w http.ResponseWriter, r *http.Request)
 
 	// Insert into ClickHouse
 	if err := h.clickhouse.InsertListenEvent(r.Context(), req); err != nil {
-		h.logger.Error("failed to insert listen event", zap.Error(err))
+		logger.Error("failed to insert listen event", zap.Error(err))
 		h.returns.ReturnError(w, "Failed to ingest event", http.StatusInternalServerError)
 		return
 	}
@@ -69,9 +69,11 @@ func (h *EventHandler) IngestListenEvent(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *EventHandler) IngestLikeEvent(w http.ResponseWriter, r *http.Request) {
+	logger := middleware.GetLogger(r.Context())
+
 	var req di.LikeEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.Warn("invalid like event request", zap.Error(err))
+		logger.Warn("invalid like event request", zap.Error(err))
 		h.returns.ReturnError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -84,7 +86,7 @@ func (h *EventHandler) IngestLikeEvent(w http.ResponseWriter, r *http.Request) {
 
 	// Insert into ClickHouse
 	if err := h.clickhouse.InsertLikeEvent(r.Context(), req); err != nil {
-		h.logger.Error("failed to insert like event", zap.Error(err))
+		logger.Error("failed to insert like event", zap.Error(err))
 		h.returns.ReturnError(w, "Failed to ingest event", http.StatusInternalServerError)
 		return
 	}
@@ -95,9 +97,11 @@ func (h *EventHandler) IngestLikeEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *EventHandler) IngestThemeEvent(w http.ResponseWriter, r *http.Request) {
+	logger := middleware.GetLogger(r.Context())
+
 	var req di.ThemeEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.Warn("invalid theme event request", zap.Error(err))
+		logger.Warn("invalid theme event request", zap.Error(err))
 		h.returns.ReturnError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -114,7 +118,7 @@ func (h *EventHandler) IngestThemeEvent(w http.ResponseWriter, r *http.Request) 
 
 	// Upsert theme into ClickHouse
 	if err := h.clickhouse.UpsertTheme(r.Context(), req); err != nil {
-		h.logger.Error("failed to upsert theme", zap.Error(err))
+		logger.Error("failed to upsert theme", zap.Error(err))
 		h.returns.ReturnError(w, "Failed to ingest event", http.StatusInternalServerError)
 		return
 	}
@@ -125,9 +129,11 @@ func (h *EventHandler) IngestThemeEvent(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *EventHandler) IngestUserDimEvent(w http.ResponseWriter, r *http.Request) {
+	logger := middleware.GetLogger(r.Context())
+
 	var req di.UserDimRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.Warn("invalid user dim request", zap.Error(err))
+		logger.Warn("invalid user dim request", zap.Error(err))
 		h.returns.ReturnError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -154,7 +160,7 @@ func (h *EventHandler) IngestUserDimEvent(w http.ResponseWriter, r *http.Request
 
 	// Upsert user dimension into ClickHouse
 	if err := h.clickhouse.UpsertUserDim(r.Context(), req); err != nil {
-		h.logger.Error("failed to upsert user dim", zap.Error(err))
+		logger.Error("failed to upsert user dim", zap.Error(err))
 		h.returns.ReturnError(w, "Failed to ingest event", http.StatusInternalServerError)
 		return
 	}

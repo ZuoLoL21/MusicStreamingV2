@@ -54,7 +54,7 @@ func (a *App) Router() *mux.Router {
 
 func (a *App) initHandlers() {
 	a.handlers = &HandlerRegistry{
-		Event: handlers.NewEventHandler(a.logger, a.config, a.returns, a.clickhouse),
+		Event: handlers.NewEventHandler(a.config, a.returns, a.clickhouse),
 	}
 }
 

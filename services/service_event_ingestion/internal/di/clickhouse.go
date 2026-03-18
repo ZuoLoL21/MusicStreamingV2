@@ -3,7 +3,7 @@ package di
 import (
 	"context"
 	"fmt"
-	"time"
+	"libs/middleware"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -12,8 +12,7 @@ import (
 )
 
 type ClickHouseClient struct {
-	conn   driver.Conn
-	logger *zap.Logger
+	conn driver.Conn
 }
 
 func NewClickHouseClient(config *Config, logger *zap.Logger) (*ClickHouseClient, error) {
@@ -35,8 +34,7 @@ func NewClickHouseClient(config *Config, logger *zap.Logger) (*ClickHouseClient,
 	logger.Info("connected to ClickHouse")
 
 	return &ClickHouseClient{
-		conn:   conn,
-		logger: logger,
+		conn: conn,
 	}, nil
 }
 
@@ -46,6 +44,8 @@ func (c *ClickHouseClient) Close() error {
 
 // InsertListenEvent inserts a music listen event
 func (c *ClickHouseClient) InsertListenEvent(ctx context.Context, req ListenEventRequest) error {
+	logger := middleware.GetLogger(ctx)
+
 	query := fmt.Sprintf(`
 		INSERT INTO %s (
 			user_uuid, music_uuid, artist_uuid, album_uuid,
@@ -53,13 +53,6 @@ func (c *ClickHouseClient) InsertListenEvent(ctx context.Context, req ListenEven
 		) VALUES (?, ?, ?, ?, ?, ?, ?)
 	`, tableListenEvents)
 
-	// TODO: Choose one approach
-	//var albumUUID interface{}
-	//if req.AlbumUUID != nil {
-	//	albumUUID = *req.AlbumUUID
-	//} else {
-	//	albumUUID = nil
-	//}
 	var albumUUID uuid.UUID
 	if req.AlbumUUID != nil {
 		albumUUID = *req.AlbumUUID
@@ -75,24 +68,23 @@ func (c *ClickHouseClient) InsertListenEvent(ctx context.Context, req ListenEven
 		req.CompletionRatio,
 	)
 	if err != nil {
-		c.logger.Error("failed to insert listen event",
+		logger.Error("failed to insert listen event",
 			zap.Error(err),
-			zap.String("user_uuid", req.UserUUID.String()),
 			zap.String("music_uuid", req.MusicUUID.String()),
 		)
 		return fmt.Errorf("failed to insert listen event: %w", err)
 	}
 
-	c.logger.Debug("inserted listen event",
-		zap.String("user_uuid", req.UserUUID.String()),
+	logger.Debug("inserted listen event",
 		zap.String("music_uuid", req.MusicUUID.String()),
 	)
-
 	return nil
 }
 
 // InsertLikeEvent inserts a music like event
 func (c *ClickHouseClient) InsertLikeEvent(ctx context.Context, req LikeEventRequest) error {
+	logger := middleware.GetLogger(ctx)
+
 	query := fmt.Sprintf(`
 		INSERT INTO %s (user_uuid, music_uuid, artist_uuid) VALUES (?, ?, ?)
 	`, tableLikeEvents)
@@ -103,16 +95,14 @@ func (c *ClickHouseClient) InsertLikeEvent(ctx context.Context, req LikeEventReq
 		req.ArtistUUID,
 	)
 	if err != nil {
-		c.logger.Error("failed to insert like event",
+		logger.Error("failed to insert like event",
 			zap.Error(err),
-			zap.String("user_uuid", req.UserUUID.String()),
 			zap.String("music_uuid", req.MusicUUID.String()),
 		)
 		return fmt.Errorf("failed to insert like event: %w", err)
 	}
 
-	c.logger.Debug("inserted like event",
-		zap.String("user_uuid", req.UserUUID.String()),
+	logger.Debug("inserted like event",
 		zap.String("music_uuid", req.MusicUUID.String()),
 	)
 
@@ -121,13 +111,15 @@ func (c *ClickHouseClient) InsertLikeEvent(ctx context.Context, req LikeEventReq
 
 // UpsertTheme inserts/updates a music theme (ReplacingMergeTree)
 func (c *ClickHouseClient) UpsertTheme(ctx context.Context, req ThemeEventRequest) error {
+	logger := middleware.GetLogger(ctx)
+
 	query := fmt.Sprintf(`
 		INSERT INTO %s (music_uuid, theme) VALUES (?, ?)
 	`, tableTheme)
 
 	err := c.conn.Exec(ctx, query, req.MusicUUID, req.Theme)
 	if err != nil {
-		c.logger.Error("failed to upsert theme",
+		logger.Error("failed to upsert theme",
 			zap.Error(err),
 			zap.String("music_uuid", req.MusicUUID.String()),
 			zap.String("theme", req.Theme),
@@ -135,7 +127,7 @@ func (c *ClickHouseClient) UpsertTheme(ctx context.Context, req ThemeEventReques
 		return fmt.Errorf("failed to upsert theme: %w", err)
 	}
 
-	c.logger.Debug("upserted theme",
+	logger.Debug("upserted theme",
 		zap.String("music_uuid", req.MusicUUID.String()),
 		zap.String("theme", req.Theme),
 	)
@@ -145,51 +137,23 @@ func (c *ClickHouseClient) UpsertTheme(ctx context.Context, req ThemeEventReques
 
 // UpsertUserDim inserts/updates a user dimension (ReplacingMergeTree)
 func (c *ClickHouseClient) UpsertUserDim(ctx context.Context, req UserDimRequest) error {
+	logger := middleware.GetLogger(ctx)
+
 	query := fmt.Sprintf(`
 		INSERT INTO %s (user_uuid, created_at, country) VALUES (?, ?, ?)
 	`, tableUserDim)
 
 	err := c.conn.Exec(ctx, query, req.UserUUID, req.CreatedAt, req.Country)
 	if err != nil {
-		c.logger.Error("failed to upsert user dim",
+		logger.Error("failed to upsert user dim",
 			zap.Error(err),
-			zap.String("user_uuid", req.UserUUID.String()),
 		)
 		return fmt.Errorf("failed to upsert user dim: %w", err)
 	}
 
-	c.logger.Debug("upserted user dim",
-		zap.String("user_uuid", req.UserUUID.String()),
+	logger.Debug("upserted user dim",
 		zap.String("country", req.Country),
 	)
 
 	return nil
-}
-
-// Request models
-type ListenEventRequest struct {
-	UserUUID              uuid.UUID  `json:"user_uuid"`
-	MusicUUID             uuid.UUID  `json:"music_uuid"`
-	ArtistUUID            uuid.UUID  `json:"artist_uuid"`
-	AlbumUUID             *uuid.UUID `json:"album_uuid"`
-	ListenDurationSeconds int        `json:"listen_duration_seconds"`
-	TrackDurationSeconds  int        `json:"track_duration_seconds"`
-	CompletionRatio       float64    `json:"completion_ratio"`
-}
-
-type LikeEventRequest struct {
-	UserUUID   uuid.UUID `json:"user_uuid"`
-	MusicUUID  uuid.UUID `json:"music_uuid"`
-	ArtistUUID uuid.UUID `json:"artist_uuid"`
-}
-
-type ThemeEventRequest struct {
-	MusicUUID uuid.UUID `json:"music_uuid"`
-	Theme     string    `json:"theme"`
-}
-
-type UserDimRequest struct {
-	UserUUID  uuid.UUID `json:"user_uuid"`
-	CreatedAt time.Time `json:"created_at"`
-	Country   string    `json:"country"`
 }
