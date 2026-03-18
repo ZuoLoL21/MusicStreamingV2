@@ -75,22 +75,30 @@ OPTIONS /login
 ```json
 {
   "email": "user@example.com",
-  "password": "securepassword"
+  "password": "securepassword",
+  "device_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
+
+**Request Fields:**
+- `email` (required, string) - User email address
+- `password` (required, string) - User password
+- `device_id` (required, UUID) - Unique device identifier (generated client-side, stored in cookies)
+- `device_name` (optional, string) - Human-readable device name (e.g., "Chrome on Windows")
 
 **Response:**
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
-  "user_uuid": "123e4567-e89b-12d3-a456-426614174000"
+  "user_uuid": "123e4567-e89b-12d3-a456-426614174000",
+  "device_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
 **Status Codes:**
 - `200 OK` - Authentication successful
-- `400 Bad Request` - Invalid request body format
+- `400 Bad Request` - Invalid request body format or missing device_id
 - `401 Unauthorized` - Invalid credentials
 - `415 Unsupported Media Type` - Wrong Content-Type
 - `500 Internal Server Error` - Server error
@@ -114,7 +122,9 @@ OPTIONS /login
 - `email` (required, string, valid email format) - Email address
 - `password` (required, string, min 8 chars, must contain uppercase, lowercase, number, and special character) - Password
 - `country` (required, string, 2 chars) - ISO 3166-1 alpha-2 country code (e.g., "US", "GB")
+- `device_id` (required, UUID) - Unique device identifier (generated client-side, stored in cookies)
 - `bio` (optional, string) - User biography
+- `device_name` (optional, string) - Human-readable device name (e.g., "iPhone 14 Pro")
 - `image` (optional, file, max 10MB) - Profile image (JPEG, PNG, or WebP)
 
 **Content-Type:** `multipart/form-data` (required)
@@ -124,13 +134,14 @@ OPTIONS /login
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
-  "user_uuid": "123e4567-e89b-12d3-a456-426614174000"
+  "user_uuid": "123e4567-e89b-12d3-a456-426614174000",
+  "device_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
 **Status Codes:**
 - `201 Created` - Registration successful
-- `400 Bad Request` - Invalid input (missing required fields, invalid format, invalid image)
+- `400 Bad Request` - Invalid input (missing required fields, invalid format, invalid image, missing/invalid device_id)
 - `409 Conflict` - Email or username already exists
 - `413 Payload Too Large` - Image file too large
 - `415 Unsupported Media Type` - Wrong Content-Type (must be multipart/form-data)
@@ -148,7 +159,7 @@ OPTIONS /login
 POST /renew
 ```
 
-**Description:** Refresh access token and refresh token using the current refresh token. Implements **token rotation** for enhanced security—the old refresh token is invalidated when a new token pair is issued.
+**Description:** Refresh access token and refresh token using the current refresh token. Implements **token rotation** for enhanced security—the old refresh token is invalidated when a new token pair is issued. The `device_id` is automatically extracted from the refresh token claims.
 
 **Authentication:** Refresh JWT required
 
@@ -162,7 +173,8 @@ Authorization: Bearer <refresh-token>
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
-  "user_uuid": "123e4567-e89b-12d3-a456-426614174000"
+  "user_uuid": "123e4567-e89b-12d3-a456-426614174000",
+  "device_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -170,13 +182,14 @@ Authorization: Bearer <refresh-token>
 - `access_token` (string) - New Normal JWT for API access (~10 min lifetime)
 - `refresh_token` (string) - New Refresh JWT for future renewals (~10 days lifetime)
 - `user_uuid` (string) - User's UUID
+- `device_id` (string) - Device UUID (extracted from the refresh token)
 
-**Security Note:** Both tokens must be updated in client storage. The old refresh token is invalidated upon successful renewal.
+**Security Note:** Both tokens must be updated in client storage. The old refresh token is invalidated upon successful renewal. The device_id remains the same across token renewals for the same device.
 
 **Status Codes:**
 - `200 OK` - Tokens refreshed successfully
 - `400 Bad Request` - Invalid request
-- `401 Unauthorized` - Invalid or expired refresh token
+- `401 Unauthorized` - Invalid or expired refresh token, or device mismatch
 - `403 Forbidden` - Refresh token required
 - `415 Unsupported Media Type` - Wrong Content-Type
 - `502 Bad Gateway` - Backend service unavailable
@@ -292,12 +305,12 @@ DELETE /music/*
 
 **Description:** Proxies all music track-related requests to service_user_database.
 
-**Authentication:** Normal JWT required (except `/music/{uuid}/play`)
+**Authentication:** Normal JWT required
 
 **Proxied Routes Include:**
 - Music track management (`/music`, `/music/{uuid}`)
 - Music metadata (`/music/{uuid}/storage`, `/music/{uuid}/image`)
-- Play tracking (`/music/{uuid}/play`) - **Requires Normal JWT**
+- Play tracking (`/music/{uuid}/play`)
 - Listening history (`/music/{uuid}/listen`)
 - Music likes (`/music/{uuid}/like`, `/music/{uuid}/liked`)
 - Music tags (`/music/{uuid}/tags`, `/music/{uuid}/tags/{name}`)
@@ -590,8 +603,92 @@ POST /events/user
 
 **Description:** Track user events for analytics. The gateway adds a Service JWT when proxying these requests to service_event_ingestion.
 
-**Authentication:** 
+**Authentication:**
 - External clients: Normal JWT required
 - Internal services: Service JWT (added by gateway)
 
 **See:** [service_event_ingestion API](API_service_event_ingestion.md) for detailed documentation.
+
+---
+
+## Device Management
+
+### Get User Devices
+```
+GET /users/me/devices
+```
+
+**Description:** Retrieve all devices (refresh tokens) associated with the current user.
+
+**Authentication:** Normal JWT required
+
+**Response:**
+```json
+[
+  {
+    "uuid": "123e4567-e89b-12d3-a456-426614174000",
+    "device_id": "550e8400-e29b-41d4-a716-446655440000",
+    "device_name": "Chrome on Windows",
+    "created_at": "2025-01-15T10:30:00Z",
+    "last_used_at": "2025-01-20T14:22:00Z",
+    "expires_at": "2025-01-25T10:30:00Z"
+  }
+]
+```
+
+**Response Fields:**
+- `uuid` (string, UUID) - Token record identifier
+- `device_id` (string, UUID) - Device identifier
+- `device_name` (string, nullable) - Human-readable device name
+- `created_at` (string, ISO 8601) - Token creation timestamp
+- `last_used_at` (string, ISO 8601) - Last token usage timestamp
+- `expires_at` (string, ISO 8601) - Token expiration timestamp
+
+**Status Codes:**
+- 200 OK - Success
+- 401 Unauthorized - Invalid/missing JWT
+
+---
+
+### Revoke Device
+```
+DELETE /users/me/devices/{device_id}
+```
+
+**Description:** Revoke a specific device's refresh token. Revoking the current device signs the user out.
+
+**Authentication:** Normal JWT required
+
+**Path Parameters:**
+- `device_id` (required, UUID) - Device to revoke
+
+**Response:** 204 No Content
+
+**Status Codes:**
+- 204 No Content - Success
+- 401 Unauthorized - Invalid/missing JWT
+- 404 Not Found - Device not found
+
+**Notes:**
+- Client should redirect to login after revoking current device
+
+---
+
+### Revoke All Devices
+```
+DELETE /users/me/devices
+```
+
+**Description:** Revoke all refresh tokens for the current user, signing out all devices.
+
+**Authentication:** Normal JWT required
+
+**Response:** 204 No Content
+
+**Status Codes:**
+- 204 No Content - Success
+- 401 Unauthorized - Invalid/missing JWT
+
+**Notes:**
+- Revokes ALL devices including current one
+- Client should redirect to login after calling
