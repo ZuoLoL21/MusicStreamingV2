@@ -62,7 +62,7 @@ func TestIntegration_User_UpdateProfile(t *testing.T) {
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 
 	config := &backenddi.Config{}
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
 
 	// Create request struct matching the handler's expectation
 	bio := "Updated bio"
@@ -544,7 +544,7 @@ func TestIntegration_Errors_Unauthorized(t *testing.T) {
 	builders.NewUserBuilder().Build(t, ctx, db) // user2 (not used in this test)
 
 	config := &backenddi.Config{}
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
 
 	// Include all required fields: username (min 5 chars) and country (exactly 2 chars)
 	updateData := map[string]interface{}{

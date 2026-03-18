@@ -197,7 +197,7 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 
 			switch tc.handler {
 			case "user":
-				handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+				handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
 				req = createJSONRequest(t, "POST", tc.endpoint, tc.requestBody)
 				router := mux.NewRouter()
 				router.HandleFunc(tc.endpoint, wrapWithAuth(t, handler.UpdateProfile, testUser)).Methods("POST")
@@ -256,7 +256,7 @@ func TestIntegration_Validation_NullBytes(t *testing.T) {
 		WithEmail("testuser@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
 
 	// Attempt to inject null byte in username
 	updateReq := map[string]interface{}{
@@ -288,7 +288,7 @@ func TestIntegration_Validation_LeadingTrailingWhitespace(t *testing.T) {
 		WithEmail("testuser@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
 
 	// Username with leading/trailing whitespace
 	updateReq := map[string]interface{}{
@@ -417,7 +417,7 @@ func TestIntegration_Validation_EmailFormat(t *testing.T) {
 	fileStorage := SetupMinIOClient(t)
 	config := &backenddi.Config{}
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, fileStorage)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name           string
@@ -437,10 +437,12 @@ func TestIntegration_Validation_EmailFormat(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
-				"username": "user_" + strings.ReplaceAll(tc.email, "@", "_"),
-				"email":    tc.email,
-				"password": "TestPassword123!",
-				"country":  "US",
+				"username":    "user_" + strings.ReplaceAll(tc.email, "@", "_"),
+				"email":       tc.email,
+				"password":    "TestPassword123!",
+				"country":     "US",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			})
 
 			router := mux.NewRouter()
@@ -465,7 +467,7 @@ func TestIntegration_Validation_PasswordStrength(t *testing.T) {
 	fileStorage := SetupMinIOClient(t)
 	config := &backenddi.Config{}
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, fileStorage)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name           string
@@ -484,10 +486,12 @@ func TestIntegration_Validation_PasswordStrength(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
-				"username": "testuser",
-				"email":    "test@example.com",
-				"password": tc.password,
-				"country":  "US",
+				"username":    "testuser",
+				"email":       "test@example.com",
+				"password":    tc.password,
+				"country":     "US",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			})
 
 			router := mux.NewRouter()
@@ -516,7 +520,7 @@ func TestIntegration_Validation_SecurityInput(t *testing.T) {
 		WithEmail("securitytest@example.com").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
 
 	testCases := []struct {
 		name           string

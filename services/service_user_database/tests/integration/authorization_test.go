@@ -38,7 +38,7 @@ func TestIntegration_Auth_UpdateOtherUserProfile(t *testing.T) {
 		WithUsername("userB").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
 
 	// User A tries to update their profile (should succeed)
 	updateReq := map[string]interface{}{
@@ -275,7 +275,7 @@ func TestIntegration_Auth_MissingJWT(t *testing.T) {
 	config := &backenddi.Config{}
 	returns := di.NewReturnManager(logger)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
 
 	// Attempt to access protected endpoint without JWT (no auth wrapper)
 	updateReq := map[string]interface{}{

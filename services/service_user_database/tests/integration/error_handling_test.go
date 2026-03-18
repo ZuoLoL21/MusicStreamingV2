@@ -36,12 +36,14 @@ func TestIntegration_Error_DatabaseConstraintViolations(t *testing.T) {
 			Build(t, ctx, db)
 
 		// Try to create second user with same email
-		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+		handler := handlers.NewAuthHandler(logger, config, nil, returns, db, nil, nil)
 		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
-			"username": "user2",
-			"email":    "duplicate@test.com",
-			"password": "TestPassword123!",
-			"country":  "US",
+			"username":    "user2",
+			"email":       "duplicate@test.com",
+			"password":    "TestPassword123!",
+			"country":     "US",
+			"device_id":   "00000000-0000-0000-0000-000000000001",
+			"device_name": "test-device",
 		})
 
 		router := mux.NewRouter()
@@ -62,12 +64,14 @@ func TestIntegration_Error_DatabaseConstraintViolations(t *testing.T) {
 			Build(t, ctx, db)
 
 		// Try to create second user with same username
-		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+		handler := handlers.NewAuthHandler(logger, config, nil, returns, db, nil, nil)
 		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
-			"username": "samename",
-			"email":    "user2@test.com",
-			"password": "TestPassword123!",
-			"country":  "US",
+			"username":    "samename",
+			"email":       "user2@test.com",
+			"password":    "TestPassword123!",
+			"country":     "US",
+			"device_id":   "00000000-0000-0000-0000-000000000001",
+			"device_name": "test-device",
 		})
 
 		router := mux.NewRouter()
@@ -91,7 +95,7 @@ func TestIntegration_Error_NotFoundResponses(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 
 	t.Run("user_not_found", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
 		req := createRequest(t, "GET", "/users/00000000-0000-0000-0000-000000000001", nil)
 
 		router := mux.NewRouter()
@@ -172,7 +176,7 @@ func TestIntegration_Error_InvalidUUIDFormat(t *testing.T) {
 			name:     "invalid_uuid_user_get",
 			endpoint: "/users/not-a-valid-uuid",
 			handlerFunc: func() http.HandlerFunc {
-				h := handlers.NewUserHandler(logger, config, nil, returns, nil, nil)
+				h := handlers.NewUserHandler(logger, config, nil, returns, nil, nil, nil)
 				return h.GetPublicUser
 			},
 		},
@@ -241,11 +245,13 @@ func TestIntegration_Error_MissingRequiredFields(t *testing.T) {
 		Build(t, ctx, db)
 
 	t.Run("register_missing_username", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+		handler := handlers.NewAuthHandler(logger, config, nil, returns, db, nil, nil)
 		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
-			"email":    "test@test.com",
-			"password": "TestPassword123!",
-			"country":  "US",
+			"email":       "test@test.com",
+			"password":    "TestPassword123!",
+			"country":     "US",
+			"device_id":   "00000000-0000-0000-0000-000000000001",
+			"device_name": "test-device",
 		})
 
 		router := mux.NewRouter()
@@ -258,11 +264,13 @@ func TestIntegration_Error_MissingRequiredFields(t *testing.T) {
 	})
 
 	t.Run("register_missing_email", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+		handler := handlers.NewAuthHandler(logger, config, nil, returns, db, nil, nil)
 		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
-			"username": "testuser",
-			"password": "TestPassword123!",
-			"country":  "US",
+			"username":    "testuser",
+			"password":    "TestPassword123!",
+			"country":     "US",
+			"device_id":   "00000000-0000-0000-0000-000000000001",
+			"device_name": "test-device",
 		})
 
 		router := mux.NewRouter()
@@ -275,11 +283,13 @@ func TestIntegration_Error_MissingRequiredFields(t *testing.T) {
 	})
 
 	t.Run("register_missing_password", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+		handler := handlers.NewAuthHandler(logger, config, nil, returns, db, nil, nil)
 		req := createMultipartRequest(t, "POST", "/register", "", "", nil, map[string]string{
-			"username": "testuser",
-			"email":    "test@test.com",
-			"country":  "US",
+			"username":    "testuser",
+			"email":       "test@test.com",
+			"country":     "US",
+			"device_id":   "00000000-0000-0000-0000-000000000001",
+			"device_name": "test-device",
 		})
 
 		router := mux.NewRouter()
@@ -295,6 +305,8 @@ func TestIntegration_Error_MissingRequiredFields(t *testing.T) {
 		handler := handlers.NewPlaylistHandler(logger, config, returns, db, nil)
 		req := createMultipartRequest(t, "POST", "/playlists", "", "", nil, map[string]string{
 			"description": "Test playlist",
+			"device_id":   "00000000-0000-0000-0000-000000000001",
+			"device_name": "test-device",
 		})
 
 		router := mux.NewRouter()
@@ -336,7 +348,7 @@ func TestIntegration_Error_UnauthorizedAccess(t *testing.T) {
 		Build(t, ctx, db)
 
 	t.Run("update_other_user_profile", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
 
 		// Try to update non-owner's profile
 		req := createJSONRequest(t, "POST", "/users/me", map[string]interface{}{
@@ -401,7 +413,7 @@ func TestIntegration_Error_MethodNotAllowed(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 
 	t.Run("get_on_post_endpoint", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, nil, nil)
+		handler := handlers.NewAuthHandler(logger, config, nil, returns, nil, nil, nil)
 
 		// Try GET on register endpoint (should be POST)
 		req := createRequest(t, "GET", "/register", nil)
@@ -416,7 +428,7 @@ func TestIntegration_Error_MethodNotAllowed(t *testing.T) {
 	})
 
 	t.Run("post_on_get_endpoint", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, nil, nil)
+		handler := handlers.NewUserHandler(logger, config, nil, returns, nil, nil, nil)
 
 		// Try POST on user endpoint (should be GET)
 		req := createJSONRequest(t, "POST", "/users/me", map[string]interface{}{})
@@ -438,7 +450,7 @@ func TestIntegration_Error_BadRequestBody(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 
 	t.Run("invalid_json", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, nil, nil)
+		handler := handlers.NewAuthHandler(logger, config, nil, returns, nil, nil, nil)
 
 		// Create request with invalid JSON body
 		req := httptest.NewRequest("POST", "/register", strings.NewReader("{invalid json"))
@@ -454,7 +466,7 @@ func TestIntegration_Error_BadRequestBody(t *testing.T) {
 	})
 
 	t.Run("wrong_content_type", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, nil, nil)
+		handler := handlers.NewAuthHandler(logger, config, nil, returns, nil, nil, nil)
 
 		// Create request with wrong content type
 		req := httptest.NewRequest("POST", "/register", strings.NewReader("plain text"))
@@ -481,7 +493,7 @@ func TestIntegration_Error_DatabaseVsNotFound(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 
 	t.Run("user_not_found_returns_404", func(t *testing.T) {
-		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil)
+		handler := handlers.NewUserHandler(logger, config, nil, returns, db, nil, nil)
 
 		// Use a valid UUID that doesn't exist
 		nonExistentUUID := "00000000-0000-0000-0000-000000000001"

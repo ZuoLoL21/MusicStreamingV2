@@ -274,12 +274,15 @@ func TestGateway_RefreshTokenRotation(t *testing.T) {
 	// Register and login
 	email := "refreshtest-" + NewTestUUID()[:8] + "@example.com"
 	password := "TestPass123!"
+	deviceID := "00000000-0000-0000-0000-000000000001"
 
 	resp, err := client.RawMultipartRequest("PUT", "/login", map[string]string{
-		"email":    email,
-		"password": password,
-		"username": "refreshtest" + NewTestUUID()[:8],
-		"country":  "US",
+		"email":       email,
+		"password":    password,
+		"username":    "refreshtest" + NewTestUUID()[:8],
+		"country":     "US",
+		"device_id":   deviceID,
+		"device_name": "test-device",
 	})
 
 	require.NoError(t, err, "Register should not fail")
@@ -287,8 +290,10 @@ func TestGateway_RefreshTokenRotation(t *testing.T) {
 
 	// Login
 	resp, err = client.RawRequest("POST", "/login", map[string]interface{}{
-		"email":    email,
-		"password": password,
+		"email":       email,
+		"password":    password,
+		"device_id":   deviceID,
+		"device_name": "test-device",
 	})
 
 	require.NoError(t, err, "Login should not fail")

@@ -27,15 +27,17 @@ func TestIntegration_Register_Success(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, fileStorage)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
 
 	// Create registration request with valid data
 	formFields := map[string]string{
-		"username": "validuser123",
-		"email":    "validuser@test.com",
-		"password": "SecurePass123!",
-		"country":  "US",
-		"bio":      "Test bio",
+		"username":    "validuser123",
+		"email":       "validuser@test.com",
+		"password":    "SecurePass123!",
+		"country":     "US",
+		"bio":         "Test bio",
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	}
 	req := createMultipartRequest(t, "POST", "/register", "", "", nil, formFields)
 
@@ -68,14 +70,16 @@ func TestIntegration_Register_DuplicateEmail(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, fileStorage)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
 
 	// Create first user
 	formFields1 := map[string]string{
-		"username": "user1",
-		"email":    "duplicate@test.com",
-		"password": "Password123!",
-		"country":  "US",
+		"username":    "user1",
+		"email":       "duplicate@test.com",
+		"password":    "Password123!",
+		"country":     "US",
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	}
 	req1 := createMultipartRequest(t, "POST", "/register", "", "", nil, formFields1)
 	rr1 := httptest.NewRecorder()
@@ -84,10 +88,12 @@ func TestIntegration_Register_DuplicateEmail(t *testing.T) {
 
 	// Attempt to register with same email
 	formFields2 := map[string]string{
-		"username": "user2",
-		"email":    "duplicate@test.com", // Same email
-		"password": "Password456!",
-		"country":  "CA",
+		"username":    "user2",
+		"email":       "duplicate@test.com", // Same email
+		"password":    "Password456!",
+		"country":     "CA",
+		"device_id":   "00000000-0000-0000-0000-000000000002",
+		"device_name": "test-device",
 	}
 	req2 := createMultipartRequest(t, "POST", "/register", "", "", nil, formFields2)
 	rr2 := httptest.NewRecorder()
@@ -113,7 +119,7 @@ func TestIntegration_Register_InvalidEmail(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, fileStorage)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name  string
@@ -128,10 +134,12 @@ func TestIntegration_Register_InvalidEmail(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			formFields := map[string]string{
-				"username": "testuser",
-				"email":    tc.email,
-				"password": "Password123!",
-				"country":  "US",
+				"username":    "testuser",
+				"email":       tc.email,
+				"password":    "Password123!",
+				"country":     "US",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			}
 			req := createMultipartRequest(t, "POST", "/register", "", "", nil, formFields)
 			rr := httptest.NewRecorder()
@@ -154,7 +162,7 @@ func TestIntegration_Register_WeakPassword(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, fileStorage)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name     string
@@ -168,10 +176,12 @@ func TestIntegration_Register_WeakPassword(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			formFields := map[string]string{
-				"username": "testuser",
-				"email":    "test@example.com",
-				"password": tc.password,
-				"country":  "US",
+				"username":    "testuser",
+				"email":       "test@example.com",
+				"password":    tc.password,
+				"country":     "US",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			}
 			req := createMultipartRequest(t, "POST", "/register", "", "", nil, formFields)
 			rr := httptest.NewRecorder()
@@ -194,7 +204,7 @@ func TestIntegration_Register_ShortUsername(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, fileStorage)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name     string
@@ -209,10 +219,12 @@ func TestIntegration_Register_ShortUsername(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			formFields := map[string]string{
-				"username": tc.username,
-				"email":    "test@example.com",
-				"password": "Password123!",
-				"country":  "US",
+				"username":    tc.username,
+				"email":       "test@example.com",
+				"password":    "Password123!",
+				"country":     "US",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			}
 			req := createMultipartRequest(t, "POST", "/register", "", "", nil, formFields)
 			rr := httptest.NewRecorder()
@@ -235,7 +247,7 @@ func TestIntegration_Register_MissingFields(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, fileStorage)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name        string
@@ -245,36 +257,44 @@ func TestIntegration_Register_MissingFields(t *testing.T) {
 		{
 			name: "missing_email",
 			formFields: map[string]string{
-				"username": "testuser",
-				"password": "Password123!",
-				"country":  "US",
+				"username":    "testuser",
+				"password":    "Password123!",
+				"country":     "US",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			},
 			expectedMsg: "email required",
 		},
 		{
 			name: "missing_username",
 			formFields: map[string]string{
-				"email":    "test@example.com",
-				"password": "Password123!",
-				"country":  "US",
+				"email":       "test@example.com",
+				"password":    "Password123!",
+				"country":     "US",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			},
 			expectedMsg: "username required",
 		},
 		{
 			name: "missing_password",
 			formFields: map[string]string{
-				"username": "testuser",
-				"email":    "test@example.com",
-				"country":  "US",
+				"username":    "testuser",
+				"email":       "test@example.com",
+				"country":     "US",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			},
 			expectedMsg: "password required",
 		},
 		{
 			name: "missing_country",
 			formFields: map[string]string{
-				"username": "testuser",
-				"email":    "test@example.com",
-				"password": "Password123!",
+				"username":    "testuser",
+				"email":       "test@example.com",
+				"password":    "Password123!",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			},
 			expectedMsg: "country required",
 		},
@@ -303,7 +323,7 @@ func TestIntegration_Register_EmptyStrings(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, fileStorage)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name       string
@@ -312,28 +332,34 @@ func TestIntegration_Register_EmptyStrings(t *testing.T) {
 		{
 			name: "empty_username",
 			formFields: map[string]string{
-				"username": "",
-				"email":    "test@example.com",
-				"password": "Password123!",
-				"country":  "US",
+				"username":    "",
+				"email":       "test@example.com",
+				"password":    "Password123!",
+				"country":     "US",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			},
 		},
 		{
 			name: "empty_email",
 			formFields: map[string]string{
-				"username": "testuser",
-				"email":    "",
-				"password": "Password123!",
-				"country":  "US",
+				"username":    "testuser",
+				"email":       "",
+				"password":    "Password123!",
+				"country":     "US",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			},
 		},
 		{
 			name: "empty_password",
 			formFields: map[string]string{
-				"username": "testuser",
-				"email":    "test@example.com",
-				"password": "",
-				"country":  "US",
+				"username":    "testuser",
+				"email":       "test@example.com",
+				"password":    "",
+				"country":     "US",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			},
 		},
 	}
@@ -361,7 +387,7 @@ func TestIntegration_Register_VeryLongStrings(t *testing.T) {
 	returns := di.NewReturnManager(logger)
 	fileStorage := SetupMinIOClient(t)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, fileStorage)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, fileStorage, nil)
 
 	// Create a very long string (>1000 chars)
 	longString := string(make([]byte, 1001))
@@ -370,10 +396,12 @@ func TestIntegration_Register_VeryLongStrings(t *testing.T) {
 	}
 
 	formFields := map[string]string{
-		"username": longString,
-		"email":    "test@example.com",
-		"password": "Password123!",
-		"country":  "US",
+		"username":    longString,
+		"email":       "test@example.com",
+		"password":    "Password123!",
+		"country":     "US",
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	}
 	req := createMultipartRequest(t, "POST", "/register", "", "", nil, formFields)
 	rr := httptest.NewRecorder()

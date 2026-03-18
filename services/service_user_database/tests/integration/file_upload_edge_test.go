@@ -63,7 +63,7 @@ func TestIntegration_FileUpload_InvalidMimeType_Image(t *testing.T) {
 
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage, nil)
 
 	// Try to upload PDF as image
 	pdfData := []byte("%PDF-1.4 fake pdf content")
@@ -92,7 +92,7 @@ func TestIntegration_FileUpload_EmptyFile(t *testing.T) {
 
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage, nil)
 
 	// Upload empty file
 	emptyData := []byte{}
@@ -121,7 +121,7 @@ func TestIntegration_FileUpload_MissingFile(t *testing.T) {
 
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage, nil)
 
 	// No file in multipart request
 	formFields := map[string]string{}
@@ -151,7 +151,7 @@ func TestIntegration_FileUpload_MultipleFiles(t *testing.T) {
 
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage, nil)
 
 	// Upload single file (expected behavior)
 	imageData := createTestImage(512, 512)
@@ -180,7 +180,7 @@ func TestIntegration_FileUpload_LargeFilename(t *testing.T) {
 
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage, nil)
 
 	// Very long filename
 	longFilename := "this_is_a_very_long_filename_that_goes_on_and_on_and_on_" +
@@ -213,7 +213,7 @@ func TestIntegration_FileUpload_SpecialCharactersFilename(t *testing.T) {
 
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage)
+	handler := handlers.NewUserHandler(logger, config, nil, returns, db, fileStorage, nil)
 
 	// Filename with special characters
 	specialFilename := "my@#$%profile!&*.jpg"

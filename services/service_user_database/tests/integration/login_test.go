@@ -39,12 +39,14 @@ func TestIntegration_Login_Success(t *testing.T) {
 		WithPassword("CorrectPassword123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, nil)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
 
 	// Create login request
 	loginReq := map[string]string{
-		"email":    "login@test.com",
-		"password": "CorrectPassword123!",
+		"email":       "login@test.com",
+		"password":    "CorrectPassword123!",
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	}
 	req := createJSONRequest(t, "POST", "/login", loginReq)
 	rr := httptest.NewRecorder()
@@ -81,12 +83,14 @@ func TestIntegration_Login_WrongPassword(t *testing.T) {
 		WithPassword("CorrectPassword123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, nil)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
 
 	// Attempt login with wrong password
 	loginReq := map[string]string{
-		"email":    "login@test.com",
-		"password": "WrongPassword456!",
+		"email":       "login@test.com",
+		"password":    "WrongPassword456!",
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	}
 	req := createJSONRequest(t, "POST", "/login", loginReq)
 	rr := httptest.NewRecorder()
@@ -109,12 +113,14 @@ func TestIntegration_Login_NonExistentUser(t *testing.T) {
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, nil)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
 
 	// Attempt login with non-existent email
 	loginReq := map[string]string{
-		"email":    "nonexistent@test.com",
-		"password": "SomePassword123!",
+		"email":       "nonexistent@test.com",
+		"password":    "SomePassword123!",
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	}
 	req := createJSONRequest(t, "POST", "/login", loginReq)
 	rr := httptest.NewRecorder()
@@ -144,7 +150,7 @@ func TestIntegration_Login_CaseInsensitiveEmail(t *testing.T) {
 		WithPassword("Password123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, nil)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
 
 	// Login with different case variations
 	testCases := []string{
@@ -157,8 +163,10 @@ func TestIntegration_Login_CaseInsensitiveEmail(t *testing.T) {
 	for _, emailVariant := range testCases {
 		t.Run(emailVariant, func(t *testing.T) {
 			loginReq := map[string]string{
-				"email":    emailVariant,
-				"password": "Password123!",
+				"email":       emailVariant,
+				"password":    "Password123!",
+				"device_id":   "00000000-0000-0000-0000-000000000001",
+				"device_name": "test-device",
 			}
 			req := createJSONRequest(t, "POST", "/login", loginReq)
 			rr := httptest.NewRecorder()
@@ -191,12 +199,14 @@ func TestIntegration_Login_EmptyPassword(t *testing.T) {
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, nil)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
 
 	// Attempt login with empty password
 	loginReq := map[string]string{
-		"email":    "test@example.com",
-		"password": "",
+		"email":       "test@example.com",
+		"password":    "",
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	}
 	req := createJSONRequest(t, "POST", "/login", loginReq)
 	rr := httptest.NewRecorder()
@@ -219,12 +229,14 @@ func TestIntegration_Login_EmptyEmail(t *testing.T) {
 	jwtHandler := di.GetJWTHandler(logger, vaultConfig, "service-user-database")
 	returns := di.NewReturnManager(logger)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, nil)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
 
 	// Attempt login with empty email
 	loginReq := map[string]string{
-		"email":    "",
-		"password": "SomePassword123!",
+		"email":       "",
+		"password":    "SomePassword123!",
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	}
 	req := createJSONRequest(t, "POST", "/login", loginReq)
 	rr := httptest.NewRecorder()
@@ -254,12 +266,14 @@ func TestIntegration_Login_ReturnsJWT(t *testing.T) {
 		WithPassword("Password123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, nil)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
 
 	// Login
 	loginReq := map[string]string{
-		"email":    "jwt@test.com",
-		"password": "Password123!",
+		"email":       "jwt@test.com",
+		"password":    "Password123!",
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	}
 	req := createJSONRequest(t, "POST", "/login", loginReq)
 	rr := httptest.NewRecorder()
@@ -309,12 +323,14 @@ func TestIntegration_Login_JWTContainsUserUUID(t *testing.T) {
 		WithPassword("Password123!").
 		Build(t, ctx, db)
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, nil)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
 
 	// Login
 	loginReq := map[string]string{
-		"email":    "jwt-uuid@test.com",
-		"password": "Password123!",
+		"email":       "jwt-uuid@test.com",
+		"password":    "Password123!",
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	}
 	req := createJSONRequest(t, "POST", "/login", loginReq)
 	rr := httptest.NewRecorder()
@@ -367,12 +383,14 @@ func TestIntegration_Login_PasswordHashing(t *testing.T) {
 	// Verify the hash can be verified using helpers.Verify
 	assert.True(t, helpers.Verify(password, hashedPassword), "password verification should work")
 
-	handler := handlers.NewUserHandler(logger, config, jwtHandler, returns, db, nil)
+	handler := handlers.NewAuthHandler(logger, config, jwtHandler, returns, db, nil, nil)
 
 	// Login should succeed with correct password
 	loginReq := map[string]string{
-		"email":    "hash@test.com",
-		"password": password,
+		"email":       "hash@test.com",
+		"password":    password,
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	}
 	req := createJSONRequest(t, "POST", "/login", loginReq)
 	rr := httptest.NewRecorder()

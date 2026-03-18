@@ -285,10 +285,12 @@ func CreateTestUser(t *testing.T, client *TestClient, prefix string) (email, pas
 
 	// Register the user
 	resp, err := client.RawMultipartRequest("PUT", "/login", map[string]string{
-		"email":    email,
-		"password": password,
-		"username": prefix + NewTestUUID()[:8],
-		"country":  "US",
+		"email":       email,
+		"password":    password,
+		"username":    prefix + NewTestUUID()[:8],
+		"country":     "US",
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	})
 
 	require.NoError(t, err, "Failed to create test user request")
@@ -305,8 +307,10 @@ func CreateTestUser(t *testing.T, client *TestClient, prefix string) (email, pas
 // LoginUser logs in a user and returns the tokens
 func LoginUser(t *testing.T, client *TestClient, email, password string) (accessToken, refreshToken, userUUID string) {
 	resp, err := client.RawRequest("POST", "/login", map[string]interface{}{
-		"email":    email,
-		"password": password,
+		"email":       email,
+		"password":    password,
+		"device_id":   "00000000-0000-0000-0000-000000000001",
+		"device_name": "test-device",
 	})
 
 	require.NoError(t, err, "Failed to login")
@@ -442,19 +446,24 @@ func SetupAuthenticatedClient(t *testing.T, config *TestConfig) *TestClient {
 	// Try to login with test user
 	email := config.TestUserEmail
 	password := config.TestUserPassword
+	deviceID := "00000000-0000-0000-0000-000000000001"
 
 	resp, err := client.RawRequest("POST", "/login", map[string]interface{}{
-		"email":    email,
-		"password": password,
+		"email":       email,
+		"password":    password,
+		"device_id":   deviceID,
+		"device_name": "test-device",
 	})
 
 	if err != nil || resp.StatusCode != http.StatusOK {
 		// Try to register
 		resp, err = client.RawMultipartRequest("PUT", "/login", map[string]string{
-			"email":    email,
-			"password": password,
-			"username": "testuser",
-			"country":  "US",
+			"email":       email,
+			"password":    password,
+			"username":    "testuser",
+			"country":     "US",
+			"device_id":   deviceID,
+			"device_name": "test-device",
 		})
 		if err != nil {
 			t.Skipf("Cannot authenticate: %v", err)
@@ -463,8 +472,10 @@ func SetupAuthenticatedClient(t *testing.T, config *TestConfig) *TestClient {
 
 		// Try login again
 		resp, err = client.RawRequest("POST", "/login", map[string]interface{}{
-			"email":    email,
-			"password": password,
+			"email":       email,
+			"password":    password,
+			"device_id":   deviceID,
+			"device_name": "test-device",
 		})
 		if err != nil {
 			t.Skipf("Cannot authenticate: %v", err)

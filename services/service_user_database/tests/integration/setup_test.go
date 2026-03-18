@@ -135,7 +135,7 @@ func runMigrations(t *testing.T, config *TestConfig) {
 		filepath.Join(schemaDir, "01_tables.sql"),
 		filepath.Join(schemaDir, "02_triggers.sql"),
 		filepath.Join(schemaDir, "03_functions.sql"),
-		// Note: Skip 04_seed.sql for tests - we'll create our own test data
+		filepath.Join(schemaDir, "04_refresh_tokens.sql"),
 	}
 
 	connString := fmt.Sprintf(
