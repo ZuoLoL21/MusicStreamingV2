@@ -2,8 +2,6 @@ package clients
 
 import (
 	libsclients "libs/clients"
-
-	"go.uber.org/zap"
 )
 
 // UserDatabaseClient is a client for the user database service
@@ -12,8 +10,8 @@ type UserDatabaseClient struct {
 }
 
 // NewUserDatabaseClient creates a new user database client
-func NewUserDatabaseClient(baseURL string, logger *zap.Logger) *UserDatabaseClient {
+func NewUserDatabaseClient(baseURL string) *UserDatabaseClient {
 	return &UserDatabaseClient{
-		ProxyClient: libsclients.NewProxyClient(baseURL, logger),
+		ProxyClient: libsclients.NewProxyClient(baseURL),
 	}
 }

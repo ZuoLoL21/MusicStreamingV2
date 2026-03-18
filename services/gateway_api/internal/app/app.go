@@ -35,7 +35,6 @@ func (a *App) Router() *mux.Router {
 		a.UserDBClient,
 		a.RecommendClient,
 		a.EventIngestionClient,
-		a.Logger,
 	)
 	normalAuthHandler := libsmiddleware.NewAuthHandler(
 		a.Logger,
@@ -120,9 +119,9 @@ func NewApp(
 	jwtHandler *libsdi.JWTHandler,
 	returns *libsdi.ReturnManager,
 ) *App {
-	userDBClient := clients.NewUserDatabaseClient(config.UserDatabaseServiceURL, logger)
-	recommendClient := clients.NewRecommendationClient(config.RecommendationServiceURL, logger)
-	eventIngestionClient := clients.NewEventIngestionClient(config.EventIngestionServiceURL, logger)
+	userDBClient := clients.NewUserDatabaseClient(config.UserDatabaseServiceURL)
+	recommendClient := clients.NewRecommendationClient(config.RecommendationServiceURL)
+	eventIngestionClient := clients.NewEventIngestionClient(config.EventIngestionServiceURL)
 
 	return &App{
 		Config:               config,

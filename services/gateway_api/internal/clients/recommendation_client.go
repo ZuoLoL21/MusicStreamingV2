@@ -2,8 +2,6 @@ package clients
 
 import (
 	libsclients "libs/clients"
-
-	"go.uber.org/zap"
 )
 
 // RecommendationClient is a client for the recommendation service
@@ -12,8 +10,8 @@ type RecommendationClient struct {
 }
 
 // NewRecommendationClient creates a new recommendation client
-func NewRecommendationClient(baseURL string, logger *zap.Logger) *RecommendationClient {
+func NewRecommendationClient(baseURL string) *RecommendationClient {
 	return &RecommendationClient{
-		ProxyClient: libsclients.NewProxyClient(baseURL, logger),
+		ProxyClient: libsclients.NewProxyClient(baseURL),
 	}
 }
