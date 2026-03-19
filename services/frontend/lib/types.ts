@@ -6,6 +6,7 @@ export interface User {
   profile_image_path?: string;
   country: string;
   created_at: string;
+  similarity_score?: number; // Only present in search results
 }
 
 export interface Artist {
@@ -15,6 +16,7 @@ export interface Artist {
   profile_image_path?: string;
   follower_count?: number;
   created_at: string;
+  similarity_score?: number; // Only present in search results
 }
 
 export interface Album {
@@ -24,6 +26,7 @@ export interface Album {
   description?: string;
   image_path?: string;
   created_at: string;
+  similarity_score?: number; // Only present in search results
 }
 
 export interface Music {
@@ -37,6 +40,7 @@ export interface Music {
   play_count: number;
   duration_seconds: number;
   created_at: string;
+  similarity_score?: number; // Only present in search results
 }
 
 export interface Playlist {
@@ -47,6 +51,7 @@ export interface Playlist {
   is_public: boolean;
   image_path?: string;
   created_at: string;
+  similarity_score?: number; // Only present in search results
 }
 
 export interface Tag {

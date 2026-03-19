@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"gateway_recommendation/internal/clients"
-	libshandlers "libs/helpers"
+	libshelpers "libs/helpers"
 	libsmiddleware "libs/middleware"
 	"net/http"
 
@@ -43,7 +43,7 @@ func NewRecommendHandler(
 func (h *RecommendHandler) RecommendTheme(w http.ResponseWriter, r *http.Request) {
 	logger := libsmiddleware.GetLogger(r.Context())
 
-	requestID := libshandlers.GetRequestIDFromContext(r.Context())
+	requestID := libshelpers.GetRequestIDFromContext(r.Context())
 
 	// Parse request body
 	var req RecommendThemeRequest
@@ -72,7 +72,7 @@ func (h *RecommendHandler) RecommendTheme(w http.ResponseWriter, r *http.Request
 	logger.Debug("Bandit prediction completed", zap.String("recommended_theme", predictResp.Theme))
 
 	// Extract service JWT
-	serviceJWT := libshandlers.GetServiceJWTFromContext(r.Context())
+	serviceJWT := libshelpers.GetServiceJWTFromContext(r.Context())
 	if serviceJWT == "" {
 		logger.Error("Service JWT not found in Authorization header")
 		h.returnManager.ReturnError(w, "unauthorized", http.StatusUnauthorized)

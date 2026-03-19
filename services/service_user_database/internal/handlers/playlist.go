@@ -289,15 +289,10 @@ func (h *PlaylistHandler) AddTrackToPlaylist(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	body, ok := decodeBody[addTrackRequest](w, r, h.returns)
+	// musicUuid path param refers to the music UUID (matches route's musicUuid param)
+	musicUUID, ok := parseUUID(r, "musicUuid")
 	if !ok {
-		h.returns.ReturnError(w, "invalid inputs", http.StatusBadRequest)
-		return
-	}
-
-	musicUUID, err := uuidToPgtype(body.MusicUUID)
-	if err != nil {
-		h.returns.ReturnError(w, "invalid music_uuid", http.StatusBadRequest)
+		h.returns.ReturnError(w, "invalid music uuid", http.StatusBadRequest)
 		return
 	}
 

@@ -10,6 +10,11 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { AddToPlaylistButton } from '@/components/AddToPlaylistButton';
 
+interface SearchCursor {
+  cursor_score?: number;
+  cursor_ts?: string;
+}
+
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [musicResults, setMusicResults] = useState<Music[]>([]);
@@ -17,7 +22,21 @@ export default function SearchPage() {
   const [albumResults, setAlbumResults] = useState<Album[]>([]);
   const [userResults, setUserResults] = useState<User[]>([]);
   const [playlistResults, setPlaylistResults] = useState<Playlist[]>([]);
+
+  const [musicCursor, setMusicCursor] = useState<SearchCursor | undefined>();
+  const [artistCursor, setArtistCursor] = useState<SearchCursor | undefined>();
+  const [albumCursor, setAlbumCursor] = useState<SearchCursor | undefined>();
+  const [userCursor, setUserCursor] = useState<SearchCursor | undefined>();
+  const [playlistCursor, setPlaylistCursor] = useState<SearchCursor | undefined>();
+
+  const [hasMoreMusic, setHasMoreMusic] = useState(false);
+  const [hasMoreArtists, setHasMoreArtists] = useState(false);
+  const [hasMoreAlbums, setHasMoreAlbums] = useState(false);
+  const [hasMoreUsers, setHasMoreUsers] = useState(false);
+  const [hasMorePlaylists, setHasMorePlaylists] = useState(false);
+
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState<string | null>(null);
   const [searchPerformed, setSearchPerformed] = useState(false);
   const { playQueue } = usePlayerStore();
 
@@ -27,26 +46,187 @@ export default function SearchPage() {
 
     setLoading(true);
     setSearchPerformed(true);
+    // Reset cursors on new search
+    setMusicCursor(undefined);
+    setArtistCursor(undefined);
+    setAlbumCursor(undefined);
+    setUserCursor(undefined);
+    setPlaylistCursor(undefined);
 
     try {
-      const [music, artists, albums, users, playlists] = await Promise.all([
-        api.searchMusic(query),
-        api.searchArtists(query),
-        api.searchAlbums(query),
-        api.searchUsers(query),
-        api.searchPlaylists(query),
-      ]);
+      const [musicRes, artistsRes, albumsRes, usersRes, playlistsRes] =
+        await Promise.all([
+          api.searchMusic(query),
+          api.searchArtists(query),
+          api.searchAlbums(query),
+          api.searchUsers(query),
+          api.searchPlaylists(query),
+        ]);
 
-      setMusicResults(music);
-      setArtistResults(artists);
-      setAlbumResults(albums);
-      setUserResults(users);
-      setPlaylistResults(playlists);
+      setMusicResults(musicRes.music);
+      setHasMoreMusic(musicRes.hasMore);
+      if (musicRes.music.length > 0) {
+        const lastItem = musicRes.music[musicRes.music.length - 1];
+        setMusicCursor({
+          cursor_score: lastItem.similarity_score,
+          cursor_ts: lastItem.created_at
+        });
+      }
+
+      setArtistResults(artistsRes.artists);
+      setHasMoreArtists(artistsRes.hasMore);
+      if (artistsRes.artists.length > 0) {
+        const lastItem = artistsRes.artists[artistsRes.artists.length - 1];
+        setArtistCursor({
+          cursor_score: lastItem.similarity_score,
+          cursor_ts: lastItem.created_at
+        });
+      }
+
+      setAlbumResults(albumsRes.albums);
+      setHasMoreAlbums(albumsRes.hasMore);
+      if (albumsRes.albums.length > 0) {
+        const lastItem = albumsRes.albums[albumsRes.albums.length - 1];
+        setAlbumCursor({
+          cursor_score: lastItem.similarity_score,
+          cursor_ts: lastItem.created_at
+        });
+      }
+
+      setUserResults(usersRes.users);
+      setHasMoreUsers(usersRes.hasMore);
+      if (usersRes.users.length > 0) {
+        const lastItem = usersRes.users[usersRes.users.length - 1];
+        setUserCursor({
+          cursor_score: lastItem.similarity_score,
+          cursor_ts: lastItem.created_at
+        });
+      }
+
+      setPlaylistResults(playlistsRes.playlists);
+      setHasMorePlaylists(playlistsRes.hasMore);
+      if (playlistsRes.playlists.length > 0) {
+        const lastItem = playlistsRes.playlists[playlistsRes.playlists.length - 1];
+        setPlaylistCursor({
+          cursor_score: lastItem.similarity_score,
+          cursor_ts: lastItem.created_at
+        });
+      }
     } catch (error) {
       toast.error('Search failed');
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMoreMusic = async () => {
+    if (!hasMoreMusic || !musicCursor || loadingMore) return;
+    setLoadingMore('music');
+    try {
+      const musicRes = await api.searchMusic(query, 20, musicCursor);
+      setMusicResults([...musicResults, ...musicRes.music]);
+      setHasMoreMusic(musicRes.hasMore);
+
+      if (musicRes.music.length > 0) {
+        const lastItem = musicRes.music[musicRes.music.length - 1];
+        setMusicCursor({
+          cursor_score: lastItem.similarity_score,
+          cursor_ts: lastItem.created_at
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to load more songs');
+    } finally {
+      setLoadingMore(null);
+    }
+  };
+
+  const loadMoreArtists = async () => {
+    if (!hasMoreArtists || !artistCursor || loadingMore) return;
+    setLoadingMore('artists');
+    try {
+      const artistsRes = await api.searchArtists(query, 20, artistCursor);
+      setArtistResults([...artistResults, ...artistsRes.artists]);
+      setHasMoreArtists(artistsRes.hasMore);
+
+      if (artistsRes.artists.length > 0) {
+        const lastItem = artistsRes.artists[artistsRes.artists.length - 1];
+        setArtistCursor({
+          cursor_score: lastItem.similarity_score,
+          cursor_ts: lastItem.created_at
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to load more artists');
+    } finally {
+      setLoadingMore(null);
+    }
+  };
+
+  const loadMoreAlbums = async () => {
+    if (!hasMoreAlbums || !albumCursor || loadingMore) return;
+    setLoadingMore('albums');
+    try {
+      const albumsRes = await api.searchAlbums(query, 20, albumCursor);
+      setAlbumResults([...albumResults, ...albumsRes.albums]);
+      setHasMoreAlbums(albumsRes.hasMore);
+
+      if (albumsRes.albums.length > 0) {
+        const lastItem = albumsRes.albums[albumsRes.albums.length - 1];
+        setAlbumCursor({
+          cursor_score: lastItem.similarity_score,
+          cursor_ts: lastItem.created_at
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to load more albums');
+    } finally {
+      setLoadingMore(null);
+    }
+  };
+
+  const loadMoreUsers = async () => {
+    if (!hasMoreUsers || !userCursor || loadingMore) return;
+    setLoadingMore('users');
+    try {
+      const usersRes = await api.searchUsers(query, 20, userCursor);
+      setUserResults([...userResults, ...usersRes.users]);
+      setHasMoreUsers(usersRes.hasMore);
+
+      if (usersRes.users.length > 0) {
+        const lastItem = usersRes.users[usersRes.users.length - 1];
+        setUserCursor({
+          cursor_score: lastItem.similarity_score,
+          cursor_ts: lastItem.created_at
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to load more users');
+    } finally {
+      setLoadingMore(null);
+    }
+  };
+
+  const loadMorePlaylists = async () => {
+    if (!hasMorePlaylists || !playlistCursor || loadingMore) return;
+    setLoadingMore('playlists');
+    try {
+      const playlistsRes = await api.searchPlaylists(query, 20, playlistCursor);
+      setPlaylistResults([...playlistResults, ...playlistsRes.playlists]);
+      setHasMorePlaylists(playlistsRes.hasMore);
+
+      if (playlistsRes.playlists.length > 0) {
+        const lastItem = playlistsRes.playlists[playlistsRes.playlists.length - 1];
+        setPlaylistCursor({
+          cursor_score: lastItem.similarity_score,
+          cursor_ts: lastItem.created_at
+        });
+      }
+    } catch (error) {
+      toast.error('Failed to load more playlists');
+    } finally {
+      setLoadingMore(null);
     }
   };
 
@@ -107,6 +287,17 @@ export default function SearchPage() {
                   </Link>
                 ))}
               </div>
+              {hasMoreArtists && (
+                <div className="text-center mt-4">
+                  <button
+                    onClick={loadMoreArtists}
+                    className="px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition disabled:opacity-50"
+                    disabled={loadingMore === 'artists'}
+                  >
+                    {loadingMore === 'artists' ? 'Loading...' : 'Load More Artists'}
+                  </button>
+                </div>
+              )}
             </section>
           )}
 
@@ -139,6 +330,17 @@ export default function SearchPage() {
                   </Link>
                 ))}
               </div>
+              {hasMoreAlbums && (
+                <div className="text-center mt-4">
+                  <button
+                    onClick={loadMoreAlbums}
+                    className="px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition disabled:opacity-50"
+                    disabled={loadingMore === 'albums'}
+                  >
+                    {loadingMore === 'albums' ? 'Loading...' : 'Load More Albums'}
+                  </button>
+                </div>
+              )}
             </section>
           )}
 
@@ -165,6 +367,17 @@ export default function SearchPage() {
                   </Link>
                 ))}
               </div>
+              {hasMoreUsers && (
+                <div className="text-center mt-4">
+                  <button
+                    onClick={loadMoreUsers}
+                    className="px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition disabled:opacity-50"
+                    disabled={loadingMore === 'users'}
+                  >
+                    {loadingMore === 'users' ? 'Loading...' : 'Load More Users'}
+                  </button>
+                </div>
+              )}
             </section>
           )}
 
@@ -199,6 +412,17 @@ export default function SearchPage() {
                   </Link>
                 ))}
               </div>
+              {hasMorePlaylists && (
+                <div className="text-center mt-4">
+                  <button
+                    onClick={loadMorePlaylists}
+                    className="px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition disabled:opacity-50"
+                    disabled={loadingMore === 'playlists'}
+                  >
+                    {loadingMore === 'playlists' ? 'Loading...' : 'Load More Playlists'}
+                  </button>
+                </div>
+              )}
             </section>
           )}
 
@@ -244,6 +468,17 @@ export default function SearchPage() {
                   </div>
                 ))}
               </div>
+              {hasMoreMusic && (
+                <div className="text-center mt-4">
+                  <button
+                    onClick={loadMoreMusic}
+                    className="px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition disabled:opacity-50"
+                    disabled={loadingMore === 'music'}
+                  >
+                    {loadingMore === 'music' ? 'Loading...' : 'Load More Songs'}
+                  </button>
+                </div>
+              )}
             </section>
           )}
 

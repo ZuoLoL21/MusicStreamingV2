@@ -42,8 +42,8 @@ export default function MemberManagement({
     }
 
     try {
-      const users = await api.searchUsers(newMemberUsername.trim());
-      const user = users.find((u) => u.username.toLowerCase() === newMemberUsername.trim().toLowerCase());
+      const result = await api.searchUsers(newMemberUsername.trim());
+      const user = result.users.find((u) => u.username.toLowerCase() === newMemberUsername.trim().toLowerCase());
 
       if (!user) {
         toast.error('User not found');

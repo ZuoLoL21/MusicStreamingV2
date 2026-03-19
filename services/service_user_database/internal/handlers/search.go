@@ -38,6 +38,7 @@ type UserSearchResult struct {
 	Bio              *string `json:"bio,omitempty"`
 	ProfileImagePath *string `json:"profile_image_path,omitempty"`
 	SimilarityScore  float64 `json:"similarity_score"`
+	CreatedAt        string  `json:"created_at"`
 }
 type ArtistSearchResult struct {
 	Uuid             string  `json:"uuid"`
@@ -45,6 +46,7 @@ type ArtistSearchResult struct {
 	Bio              *string `json:"bio,omitempty"`
 	ProfileImagePath *string `json:"profile_image_path,omitempty"`
 	SimilarityScore  float64 `json:"similarity_score"`
+	CreatedAt        string  `json:"created_at"`
 }
 type AlbumSearchResult struct {
 	Uuid            string  `json:"uuid"`
@@ -53,6 +55,7 @@ type AlbumSearchResult struct {
 	Description     *string `json:"description,omitempty"`
 	ImagePath       *string `json:"image_path,omitempty"`
 	SimilarityScore float64 `json:"similarity_score"`
+	CreatedAt       string  `json:"created_at"`
 }
 type MusicSearchResult struct {
 	Uuid              string  `json:"uuid"`
@@ -65,6 +68,7 @@ type MusicSearchResult struct {
 	PlayCount         int32   `json:"play_count"`
 	DurationSeconds   int32   `json:"duration_seconds"`
 	SimilarityScore   float64 `json:"similarity_score"`
+	CreatedAt         string  `json:"created_at"`
 }
 type PlaylistSearchResult struct {
 	Uuid            string  `json:"uuid"`
@@ -74,6 +78,7 @@ type PlaylistSearchResult struct {
 	IsPublic        bool    `json:"is_public"`
 	ImagePath       *string `json:"image_path,omitempty"`
 	SimilarityScore float64 `json:"similarity_score"`
+	CreatedAt       string  `json:"created_at"`
 }
 
 // SearchUsers searches for users by username or email
@@ -262,6 +267,7 @@ func (h *SearchHandler) formatUserResults(users []sqlhandler.SearchForUserRow) [
 			Bio:              pgtypeTextToPtr(u.Bio),
 			ProfileImagePath: h.formatImagePath(u.ProfileImagePath, "user"),
 			SimilarityScore:  parseSimilarityScore(u.SimilarityScore),
+			CreatedAt:        u.CreatedAt.Time.Format("2006-01-02T15:04:05.999999999Z07:00"),
 		}
 	}
 	return results
@@ -276,6 +282,7 @@ func (h *SearchHandler) formatArtistResults(artists []sqlhandler.SearchForArtist
 			Bio:              pgtypeTextToPtr(a.Bio),
 			ProfileImagePath: h.formatImagePath(a.ProfileImagePath, "artist"),
 			SimilarityScore:  parseSimilarityScore(a.SimilarityScore),
+			CreatedAt:        a.CreatedAt.Time.Format("2006-01-02T15:04:05.999999999Z07:00"),
 		}
 	}
 	return results
@@ -291,6 +298,7 @@ func (h *SearchHandler) formatAlbumResults(albums []sqlhandler.SearchForAlbumRow
 			Description:     pgtypeTextToPtr(a.Description),
 			ImagePath:       h.formatImagePath(a.ImagePath, "album"),
 			SimilarityScore: parseSimilarityScore(a.SimilarityScore),
+			CreatedAt:       a.CreatedAt.Time.Format("2006-01-02T15:04:05.999999999Z07:00"),
 		}
 	}
 	return results
@@ -316,6 +324,7 @@ func (h *SearchHandler) formatMusicResults(music []sqlhandler.SearchForMusicRow)
 			PlayCount:         m.PlayCount.Int32,
 			DurationSeconds:   m.DurationSeconds,
 			SimilarityScore:   parseSimilarityScore(m.SimilarityScore),
+			CreatedAt:         m.CreatedAt.Time.Format("2006-01-02T15:04:05.999999999Z07:00"),
 		}
 	}
 	return results
@@ -332,6 +341,7 @@ func (h *SearchHandler) formatPlaylistResults(playlists []sqlhandler.SearchForPl
 			IsPublic:        p.IsPublic.Bool,
 			ImagePath:       h.formatImagePath(p.ImagePath, "playlist"),
 			SimilarityScore: parseSimilarityScore(p.SimilarityScore),
+			CreatedAt:       p.CreatedAt.Time.Format("2006-01-02T15:04:05.999999999Z07:00"),
 		}
 	}
 	return results

@@ -23,9 +23,20 @@ type PopularityHandler struct {
 }
 
 func NewPopularityHandler(config *di.Config, returns *libsdi.ReturnManager) (*PopularityHandler, error) {
+	if config.WarehouseURL == "" {
+		return nil, fmt.Errorf("WAREHOUSE_URL is required but not set")
+	}
+
 	warehouseDB, err := sql.Open("clickhouse", config.WarehouseURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to ClickHouse: %w", err)
+	}
+
+	// Validate connection with ping
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := warehouseDB.PingContext(ctx); err != nil {
+		return nil, fmt.Errorf("failed to ping ClickHouse: %w", err)
 	}
 
 	return &PopularityHandler{

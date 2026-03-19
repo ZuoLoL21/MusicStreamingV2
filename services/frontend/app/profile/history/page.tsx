@@ -27,7 +27,29 @@ export default function HistoryPage() {
         setHistory(data);
       } else {
         const data = await api.getTopMusicForUser(50);
-        setTopMusic(data);
+        // Fetch song details for each entry
+        const enriched = await Promise.all(
+          data.map(async (item) => {
+            try {
+              const music = await api.getMusic(item.music_uuid);
+              const artist = await api.getArtist(music.from_artist);
+              return {
+                ...item,
+                song_name: music.song_name,
+                artist_name: artist.artist_name,
+                artist_uuid: music.from_artist,
+              };
+            } catch {
+              return {
+                ...item,
+                song_name: 'Unknown Song',
+                artist_name: 'Unknown Artist',
+                artist_uuid: item.music_uuid, // fallback
+              };
+            }
+          })
+        );
+        setTopMusic(enriched);
       }
     } catch (error: any) {
       toast.error('Failed to load history');
@@ -74,9 +96,9 @@ export default function HistoryPage() {
               className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition group"
             >
               <div className="flex-1">
-                <Link href={`/music/${item.music_uuid}`} className="font-semibold hover:underline">
+                <div className="font-semibold">
                   {item.song_name}
-                </Link>
+                </div>
                 <div className="flex gap-2 text-sm text-gray-400">
                   <Link href={`/artists/${item.artist_uuid}`} className="hover:underline">
                     {item.artist_name}
@@ -106,9 +128,9 @@ export default function HistoryPage() {
             >
               <span className="text-gray-400 w-6">{index + 1}</span>
               <div className="flex-1">
-                <Link href={`/music/${item.music_uuid}`} className="font-semibold hover:underline">
+                <div className="font-semibold">
                   {item.song_name}
-                </Link>
+                </div>
                 <Link
                   href={`/artists/${item.artist_uuid}`}
                   className="block text-sm text-gray-400 hover:underline"

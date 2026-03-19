@@ -468,29 +468,124 @@ class ApiClient {
   }
 
   // Search
-  async searchMusic(query: string, limit = 20): Promise<Music[]> {
-    const response = await this.client.get(`/search/music?q=${encodeURIComponent(query)}&limit=${limit}`);
-    return ensureArray(response.data);
+  async searchMusic(
+    query: string,
+    limit = 20,
+    cursor?: { cursor_score?: number; cursor_ts?: string }
+  ): Promise<{ music: Music[]; hasMore: boolean }> {
+    const params = new URLSearchParams({
+      q: encodeURIComponent(query),
+      limit: String(limit)
+    });
+    if (cursor?.cursor_score !== undefined) {
+      params.append('cursor_score', String(cursor.cursor_score));
+    }
+    if (cursor?.cursor_ts) {
+      params.append('cursor_ts', cursor.cursor_ts);
+    }
+
+    const response = await this.client.get(`/search/music?${params}`);
+    const data = ensureArray(response.data.music || response.data) as Music[];
+    return {
+      music: data,
+      hasMore: data.length === limit
+    };
   }
 
-  async searchArtists(query: string, limit = 20): Promise<Artist[]> {
-    const response = await this.client.get(`/search/artists?q=${encodeURIComponent(query)}&limit=${limit}`);
-    return ensureArray(response.data);
+  async searchArtists(
+    query: string,
+    limit = 20,
+    cursor?: { cursor_score?: number; cursor_ts?: string }
+  ): Promise<{ artists: Artist[]; hasMore: boolean }> {
+    const params = new URLSearchParams({
+      q: encodeURIComponent(query),
+      limit: String(limit)
+    });
+    if (cursor?.cursor_score !== undefined) {
+      params.append('cursor_score', String(cursor.cursor_score));
+    }
+    if (cursor?.cursor_ts) {
+      params.append('cursor_ts', cursor.cursor_ts);
+    }
+
+    const response = await this.client.get(`/search/artists?${params}`);
+    const data = ensureArray(response.data.artists || response.data) as Artist[];
+    return {
+      artists: data,
+      hasMore: data.length === limit
+    };
   }
 
-  async searchAlbums(query: string, limit = 20): Promise<Album[]> {
-    const response = await this.client.get(`/search/albums?q=${encodeURIComponent(query)}&limit=${limit}`);
-    return ensureArray(response.data);
+  async searchAlbums(
+    query: string,
+    limit = 20,
+    cursor?: { cursor_score?: number; cursor_ts?: string }
+  ): Promise<{ albums: Album[]; hasMore: boolean }> {
+    const params = new URLSearchParams({
+      q: encodeURIComponent(query),
+      limit: String(limit)
+    });
+    if (cursor?.cursor_score !== undefined) {
+      params.append('cursor_score', String(cursor.cursor_score));
+    }
+    if (cursor?.cursor_ts) {
+      params.append('cursor_ts', cursor.cursor_ts);
+    }
+
+    const response = await this.client.get(`/search/albums?${params}`);
+    const data = ensureArray(response.data.albums || response.data) as Album[];
+    return {
+      albums: data,
+      hasMore: data.length === limit
+    };
   }
 
-  async searchUsers(query: string, limit = 20): Promise<User[]> {
-    const response = await this.client.get(`/search/users?q=${encodeURIComponent(query)}&limit=${limit}`);
-    return ensureArray(response.data);
+  async searchUsers(
+    query: string,
+    limit = 20,
+    cursor?: { cursor_score?: number; cursor_ts?: string }
+  ): Promise<{ users: User[]; hasMore: boolean }> {
+    const params = new URLSearchParams({
+      q: encodeURIComponent(query),
+      limit: String(limit)
+    });
+    if (cursor?.cursor_score !== undefined) {
+      params.append('cursor_score', String(cursor.cursor_score));
+    }
+    if (cursor?.cursor_ts) {
+      params.append('cursor_ts', cursor.cursor_ts);
+    }
+
+    const response = await this.client.get(`/search/users?${params}`);
+    const data = ensureArray(response.data.users || response.data) as User[];
+    return {
+      users: data,
+      hasMore: data.length === limit
+    };
   }
 
-  async searchPlaylists(query: string, limit = 20): Promise<Playlist[]> {
-    const response = await this.client.get(`/search/playlists?q=${encodeURIComponent(query)}&limit=${limit}`);
-    return ensureArray(response.data);
+  async searchPlaylists(
+    query: string,
+    limit = 20,
+    cursor?: { cursor_score?: number; cursor_ts?: string }
+  ): Promise<{ playlists: Playlist[]; hasMore: boolean }> {
+    const params = new URLSearchParams({
+      q: encodeURIComponent(query),
+      limit: String(limit)
+    });
+    if (cursor?.cursor_score !== undefined) {
+      params.append('cursor_score', String(cursor.cursor_score));
+    }
+    if (cursor?.cursor_ts) {
+      params.append('cursor_ts', cursor.cursor_ts);
+    }
+
+    const response = await this.client.get(`/search/playlists?${params}`);
+    const data = ensureArray(response.data.playlists || response.data) as Playlist[];
+    return {
+      playlists: data,
+      hasMore: data.length === limit
+    };
   }
 
   // Recommendations
