@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { api, getFileUrl } from '@/lib/api';
+import { formatDuration } from '@/lib/formatters';
 import { Music, Artist, Album, User, Playlist } from '@/lib/types';
 import { Search as SearchIcon, Play } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { AddToPlaylistButton } from '@/components/AddToPlaylistButton';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
@@ -208,8 +210,7 @@ export default function SearchPage() {
                 {musicResults.map((music, index) => (
                   <div
                     key={music.uuid}
-                    onClick={() => handlePlayMusic(music, index)}
-                    className="flex items-center space-x-4 p-3 bg-gray-900 hover:bg-gray-800 rounded-lg cursor-pointer group"
+                    className="flex items-center space-x-4 p-3 bg-gray-900 hover:bg-gray-800 rounded-lg group"
                   >
                     <div className="w-12 h-12 bg-gray-800 rounded overflow-hidden flex-shrink-0">
                       {music.image_path ? (
@@ -224,14 +225,20 @@ export default function SearchPage() {
                         </div>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handlePlayMusic(music, index)}>
                       <h3 className="font-semibold truncate">{music.song_name}</h3>
                       <p className="text-sm text-gray-400">Artist Name</p>
                     </div>
                     <div className="text-sm text-gray-400">
-                      {Math.floor(music.duration_seconds / 60)}:{String(music.duration_seconds % 60).padStart(2, '0')}
+                      {formatDuration(music.duration_seconds)}
                     </div>
-                    <button className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                    <div className="opacity-0 group-hover:opacity-100 transition">
+                      <AddToPlaylistButton musicUuid={music.uuid} size="sm" />
+                    </div>
+                    <button
+                      onClick={() => handlePlayMusic(music, index)}
+                      className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                    >
                       <Play className="w-5 h-5 text-black ml-1" />
                     </button>
                   </div>

@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { api, getFileUrl } from '@/lib/api';
+import { formatDuration } from '@/lib/formatters';
 import { Music } from '@/lib/types';
 import { usePlayerStore } from '@/lib/store';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { Heart } from 'lucide-react';
+import { AddToPlaylistButton } from '@/components/AddToPlaylistButton';
 
 export default function LikedSongsPage() {
   const [likedSongs, setLikedSongs] = useState<Music[]>([]);
@@ -132,8 +134,11 @@ export default function LikedSongsPage() {
               </div>
 
               <div className="text-sm text-gray-400">
-                {Math.floor(song.duration_seconds / 60)}:
-                {(song.duration_seconds % 60).toString().padStart(2, '0')}
+                {formatDuration(song.duration_seconds)}
+              </div>
+
+              <div className="opacity-0 group-hover:opacity-100 transition">
+                <AddToPlaylistButton musicUuid={song.uuid} size="sm" />
               </div>
 
               <button

@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { formatDate, formatNumber } from '@/lib/formatters';
 import { ListeningHistory, TopMusic } from '@/lib/types';
 import { usePlayerStore } from '@/lib/store';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { AddToPlaylistButton } from '@/components/AddToPlaylistButton';
 
 export default function HistoryPage() {
   const [tab, setTab] = useState<'recent' | 'top'>('recent');
@@ -69,7 +71,7 @@ export default function HistoryPage() {
           {history.map((item) => (
             <div
               key={`${item.music_uuid}-${item.listened_at}`}
-              className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition"
+              className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition group"
             >
               <div className="flex-1">
                 <Link href={`/music/${item.music_uuid}`} className="font-semibold hover:underline">
@@ -80,12 +82,15 @@ export default function HistoryPage() {
                     {item.artist_name}
                   </Link>
                   <span>•</span>
-                  <span>{new Date(item.listened_at).toLocaleString()}</span>
+                  <span>{formatDate(item.listened_at)}</span>
                 </div>
               </div>
               {item.completion_percentage !== undefined && (
                 <div className="text-sm text-gray-400">{item.completion_percentage}% played</div>
               )}
+              <div className="opacity-0 group-hover:opacity-100 transition">
+                <AddToPlaylistButton musicUuid={item.music_uuid} size="sm" />
+              </div>
             </div>
           ))}
           {history.length === 0 && (
@@ -97,7 +102,7 @@ export default function HistoryPage() {
           {topMusic.map((item, index) => (
             <div
               key={item.music_uuid}
-              className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition"
+              className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition group"
             >
               <span className="text-gray-400 w-6">{index + 1}</span>
               <div className="flex-1">
@@ -111,7 +116,10 @@ export default function HistoryPage() {
                   {item.artist_name}
                 </Link>
               </div>
-              <div className="text-sm text-gray-400">{item.play_count} plays</div>
+              <div className="text-sm text-gray-400">{formatNumber(item.play_count)} plays</div>
+              <div className="opacity-0 group-hover:opacity-100 transition">
+                <AddToPlaylistButton musicUuid={item.music_uuid} size="sm" />
+              </div>
             </div>
           ))}
           {topMusic.length === 0 && (

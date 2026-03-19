@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, getFileUrl } from '@/lib/api';
+import { formatDuration } from '@/lib/formatters';
 import { Playlist, Music } from '@/lib/types';
 import { Play, Music2 } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
 import toast from 'react-hot-toast';
+import { AddToPlaylistButton } from '@/components/AddToPlaylistButton';
 
 export default function PlaylistPage() {
   const params = useParams();
@@ -72,7 +74,7 @@ export default function PlaylistPage() {
           <div className="w-48 h-48 bg-gradient-to-br from-purple-900 to-blue-900 rounded overflow-hidden flex-shrink-0">
             {playlist.image_path ? (
               <img
-                src={playlist.image_path}
+                src={getFileUrl(playlist.image_path)}
                 alt={playlist.original_name}
                 className="w-full h-full object-cover"
               />
@@ -120,14 +122,13 @@ export default function PlaylistPage() {
             {tracks.map((track, index) => (
               <div
                 key={track.uuid}
-                onClick={() => handlePlayTrack(track, index)}
-                className="flex items-center space-x-4 p-3 hover:bg-gray-900 rounded-lg cursor-pointer group"
+                className="flex items-center space-x-4 p-3 hover:bg-gray-900 rounded-lg group"
               >
                 <span className="text-gray-400 w-6 text-center">{index + 1}</span>
                 <div className="w-12 h-12 bg-gray-800 rounded overflow-hidden flex-shrink-0">
                   {track.image_path ? (
                     <img
-                      src={track.image_path}
+                      src={getFileUrl(track.image_path)}
                       alt={track.song_name}
                       className="w-full h-full object-cover"
                     />
@@ -137,14 +138,20 @@ export default function PlaylistPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handlePlayTrack(track, index)}>
                   <h3 className="font-semibold truncate">{track.song_name}</h3>
                   <p className="text-sm text-gray-400">Artist Name</p>
                 </div>
                 <div className="text-sm text-gray-400">
-                  {Math.floor(track.duration_seconds / 60)}:{String(track.duration_seconds % 60).padStart(2, '0')}
+                  {formatDuration(track.duration_seconds)}
                 </div>
-                <button className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                <div className="opacity-0 group-hover:opacity-100 transition">
+                  <AddToPlaylistButton musicUuid={track.uuid} size="sm" />
+                </div>
+                <button
+                  onClick={() => handlePlayTrack(track, index)}
+                  className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                >
                   <Play className="w-5 h-5 text-black ml-1" />
                 </button>
               </div>

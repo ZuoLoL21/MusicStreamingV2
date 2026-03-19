@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api, getFileUrl } from '@/lib/api';
+import { formatDuration } from '@/lib/formatters';
 import { Music, Artist } from '@/lib/types';
 import { Play } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
@@ -147,7 +148,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="font-semibold truncate">{music.song_name}</h3>
                 <p className="text-sm text-gray-400 truncate">
-                  {Math.floor(music.duration_seconds / 60)}:{String(music.duration_seconds % 60).padStart(2, '0')}
+                  {formatDuration(music.duration_seconds)}
                 </p>
               </div>
             ))}

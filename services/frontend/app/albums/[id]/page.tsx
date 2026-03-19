@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, getFileUrl } from '@/lib/api';
+import { formatDuration } from '@/lib/formatters';
 import { Album, Music } from '@/lib/types';
 import { Play } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
 import toast from 'react-hot-toast';
+import { AddToPlaylistButton } from '@/components/AddToPlaylistButton';
 
 export default function AlbumPage() {
   const params = useParams();
@@ -72,7 +74,7 @@ export default function AlbumPage() {
           <div className="w-48 h-48 bg-gray-800 rounded overflow-hidden flex-shrink-0">
             {album.image_path ? (
               <img
-                src={album.image_path}
+                src={getFileUrl(album.image_path)}
                 alt={album.original_name}
                 className="w-full h-full object-cover"
               />
@@ -112,14 +114,13 @@ export default function AlbumPage() {
             {tracks.map((track, index) => (
               <div
                 key={track.uuid}
-                onClick={() => handlePlayTrack(track, index)}
-                className="flex items-center space-x-4 p-3 hover:bg-gray-900 rounded-lg cursor-pointer group"
+                className="flex items-center space-x-4 p-3 hover:bg-gray-900 rounded-lg group"
               >
                 <span className="text-gray-400 w-6 text-center">{index + 1}</span>
                 <div className="w-12 h-12 bg-gray-800 rounded overflow-hidden flex-shrink-0">
                   {track.image_path ? (
                     <img
-                      src={track.image_path}
+                      src={getFileUrl(track.image_path)}
                       alt={track.song_name}
                       className="w-full h-full object-cover"
                     />
@@ -129,14 +130,20 @@ export default function AlbumPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handlePlayTrack(track, index)}>
                   <h3 className="font-semibold truncate">{track.song_name}</h3>
                   <p className="text-sm text-gray-400">{track.play_count.toLocaleString()} plays</p>
                 </div>
                 <div className="text-sm text-gray-400">
-                  {Math.floor(track.duration_seconds / 60)}:{String(track.duration_seconds % 60).padStart(2, '0')}
+                  {formatDuration(track.duration_seconds)}
                 </div>
-                <button className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                <div className="opacity-0 group-hover:opacity-100 transition">
+                  <AddToPlaylistButton musicUuid={track.uuid} size="sm" />
+                </div>
+                <button
+                  onClick={() => handlePlayTrack(track, index)}
+                  className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                >
                   <Play className="w-5 h-5 text-black ml-1" />
                 </button>
               </div>

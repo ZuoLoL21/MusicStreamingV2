@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import Cookies from 'js-cookie';
+import { getDeviceId } from './deviceId';
 import {
   User,
   Artist,
@@ -17,6 +18,7 @@ import {
   ThemePopularity,
   ListeningHistory,
   TopMusic,
+  Device,
 } from './types';
 
 const API_BASE_URL = typeof window === 'undefined'
@@ -27,6 +29,11 @@ export const getFileUrl = (path: string): string => {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+};
+
+// Helper to ensure array responses are never null/undefined
+const ensureArray = <T>(data: T[] | null | undefined): T[] => {
+  return Array.isArray(data) ? data : [];
 };
 
 class ApiClient {
@@ -78,18 +85,22 @@ class ApiClient {
   }
 
   // Auth
-  async login(email: string, password: string): Promise<AuthResponse> {
-    const response = await this.client.post('/login', { email, password });
+  async login(email: string, password: string, deviceId: string): Promise<AuthResponse> {
+    const response = await this.client.post('/login', {
+      email,
+      password,
+      device_id: deviceId,
+    });
     return response.data;
   }
 
-  async register(email: string, password: string, username: string, displayName: string, country: string): Promise<AuthResponse> {
+  async register(email: string, password: string, username: string, country: string, deviceId: string): Promise<AuthResponse> {
     const formData = new FormData();
     formData.append('email', email);
     formData.append('password', password);
     formData.append('username', username);
-    formData.append('display_name', displayName);
     formData.append('country', country);
+    formData.append('device_id', deviceId);
 
     const response = await this.client.put('/login', formData);
     return response.data;
@@ -152,7 +163,7 @@ class ApiClient {
     if (cursor?.cursor_ts) params.append('cursor_ts', cursor.cursor_ts);
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/users/${uuid}/followers?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getFollowingUsers(uuid: string, limit = 20, cursor?: Cursor): Promise<User[]> {
@@ -160,7 +171,7 @@ class ApiClient {
     if (cursor?.cursor_ts) params.append('cursor_ts', cursor.cursor_ts);
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/users/${uuid}/following/users?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getFollowedArtists(uuid: string, limit = 20, cursor?: Cursor): Promise<Artist[]> {
@@ -168,7 +179,7 @@ class ApiClient {
     if (cursor?.cursor_ts) params.append('cursor_ts', cursor.cursor_ts);
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/users/${uuid}/following/artists?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getLikedSongs(uuid: string, limit = 20, cursor?: Cursor): Promise<Music[]> {
@@ -176,7 +187,7 @@ class ApiClient {
     if (cursor?.cursor_ts) params.append('cursor_ts', cursor.cursor_ts);
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/users/${uuid}/likes?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getUserPlaylists(uuid: string, limit = 20, cursor?: Cursor): Promise<Playlist[]> {
@@ -184,12 +195,12 @@ class ApiClient {
     if (cursor?.cursor_ts) params.append('cursor_ts', cursor.cursor_ts);
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/users/${uuid}/playlists?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getUserArtists(uuid: string): Promise<Artist[]> {
     const response = await this.client.get(`/users/${uuid}/artists`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   // Artists
@@ -197,7 +208,7 @@ class ApiClient {
     const params = new URLSearchParams({ limit: String(limit) });
     if (cursor) params.append('cursor_name', cursor);
     const response = await this.client.get(`/artists?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getArtist(uuid: string): Promise<Artist> {
@@ -207,12 +218,12 @@ class ApiClient {
 
   async getArtistMusic(uuid: string, limit = 20): Promise<Music[]> {
     const response = await this.client.get(`/artists/${uuid}/music?limit=${limit}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getArtistAlbums(uuid: string, limit = 20): Promise<Album[]> {
     const response = await this.client.get(`/artists/${uuid}/albums?limit=${limit}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async createArtist(name: string, bio?: string, image?: File): Promise<void> {
@@ -235,7 +246,7 @@ class ApiClient {
 
   async getArtistMembers(uuid: string): Promise<ArtistMember[]> {
     const response = await this.client.get(`/artists/${uuid}/members`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async addMemberToArtist(artistUuid: string, userUuid: string, role: string): Promise<void> {
@@ -255,7 +266,7 @@ class ApiClient {
     if (cursor?.cursor_ts) params.append('cursor_ts', cursor.cursor_ts);
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/artists/${artistUuid}/followers?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   // Albums
@@ -266,7 +277,7 @@ class ApiClient {
 
   async getAlbumMusic(uuid: string): Promise<Music[]> {
     const response = await this.client.get(`/albums/${uuid}/music`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async createAlbum(artistUuid: string, name: string, description?: string, image?: File): Promise<void> {
@@ -364,7 +375,7 @@ class ApiClient {
     const params = new URLSearchParams({ limit: String(limit) });
     if (cursor) params.append('cursor_name', cursor);
     const response = await this.client.get(`/music/${uuid}/tags?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async assignTagToMusic(musicUuid: string, tagName: string): Promise<void> {
@@ -388,7 +399,7 @@ class ApiClient {
 
   async getPlaylistTracks(uuid: string): Promise<Music[]> {
     const response = await this.client.get(`/playlists/${uuid}/tracks`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async createPlaylist(
@@ -443,7 +454,7 @@ class ApiClient {
   // Tags
   async getTags(limit = 50): Promise<Tag[]> {
     const response = await this.client.get(`/tags?limit=${limit}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getTag(name: string): Promise<Tag> {
@@ -453,33 +464,33 @@ class ApiClient {
 
   async getMusicForTag(name: string, limit = 20): Promise<Music[]> {
     const response = await this.client.get(`/tags/${name}/music?limit=${limit}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   // Search
   async searchMusic(query: string, limit = 20): Promise<Music[]> {
     const response = await this.client.get(`/search/music?q=${encodeURIComponent(query)}&limit=${limit}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async searchArtists(query: string, limit = 20): Promise<Artist[]> {
     const response = await this.client.get(`/search/artists?q=${encodeURIComponent(query)}&limit=${limit}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async searchAlbums(query: string, limit = 20): Promise<Album[]> {
     const response = await this.client.get(`/search/albums?q=${encodeURIComponent(query)}&limit=${limit}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async searchUsers(query: string, limit = 20): Promise<User[]> {
     const response = await this.client.get(`/search/users?q=${encodeURIComponent(query)}&limit=${limit}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async searchPlaylists(query: string, limit = 20): Promise<Playlist[]> {
     const response = await this.client.get(`/search/playlists?q=${encodeURIComponent(query)}&limit=${limit}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   // Recommendations
@@ -493,7 +504,7 @@ class ApiClient {
     if (cursor?.cursor_decay) params.append('cursor_decay', String(cursor.cursor_decay));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/popular/songs/all-time?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getPopularSongsTimeframe(
@@ -510,7 +521,7 @@ class ApiClient {
     if (cursor?.cursor_plays) params.append('cursor_plays', String(cursor.cursor_plays));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/popular/songs/timeframe?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getPopularSongsByTheme(
@@ -522,7 +533,7 @@ class ApiClient {
     if (cursor?.cursor_plays) params.append('cursor_plays', String(cursor.cursor_plays));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/popular/songs/theme/${encodeURIComponent(theme)}?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getPopularSongsByThemeTimeframe(
@@ -540,7 +551,7 @@ class ApiClient {
     if (cursor?.cursor_plays) params.append('cursor_plays', String(cursor.cursor_plays));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/popular/songs/theme/${encodeURIComponent(theme)}/timeframe?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getPopularArtistsAllTime(limit = 20, cursor?: PopularityCursor): Promise<ArtistPopularity[]> {
@@ -548,7 +559,7 @@ class ApiClient {
     if (cursor?.cursor_decay) params.append('cursor_decay', String(cursor.cursor_decay));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/popular/artists/all-time?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getPopularArtistsTimeframe(
@@ -565,12 +576,12 @@ class ApiClient {
     if (cursor?.cursor_plays) params.append('cursor_plays', String(cursor.cursor_plays));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/popular/artists/timeframe?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getPopularThemesAllTime(limit = 20): Promise<ThemePopularity[]> {
     const response = await this.client.get(`/popular/themes/all-time?limit=${limit}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getPopularThemesTimeframe(
@@ -584,7 +595,7 @@ class ApiClient {
       end_date: endDate,
     });
     const response = await this.client.get(`/popular/themes/timeframe?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   // History & Analytics
@@ -593,12 +604,12 @@ class ApiClient {
     if (cursor?.cursor_ts) params.append('cursor_ts', cursor.cursor_ts);
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/history?${params}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   async getTopMusicForUser(limit = 20): Promise<TopMusic[]> {
     const response = await this.client.get(`/history/top?limit=${limit}`);
-    return response.data;
+    return ensureArray(response.data);
   }
 
   // Event Tracking
@@ -636,6 +647,20 @@ class ApiClient {
       // Don't block user experience if event tracking fails
       console.warn('Failed to send like event:', error);
     }
+  }
+
+  // Device Management
+  async getDevices(): Promise<Device[]> {
+    const response = await this.client.get('/users/me/devices');
+    return ensureArray(response.data);
+  }
+
+  async revokeDevice(deviceId: string): Promise<void> {
+    await this.client.delete(`/users/me/devices/${deviceId}`);
+  }
+
+  async revokeAllDevices(): Promise<void> {
+    await this.client.delete('/users/me/devices');
   }
 }
 

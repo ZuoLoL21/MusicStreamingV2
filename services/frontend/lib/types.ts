@@ -59,6 +59,7 @@ export interface AuthResponse {
   access_token: string;
   refresh_token: string;
   user_uuid: string;
+  device_id: string;
 }
 
 // Cursor types for pagination
@@ -82,7 +83,6 @@ export interface PopularityCursor {
 export interface ArtistMember {
   user_uuid: string;
   username: string;
-  display_name?: string;
   role: 'owner' | 'manager' | 'member';
   added_at: string;
 }
@@ -149,4 +149,14 @@ export interface PlaylistTrack {
   from_artist?: string;
   duration_seconds?: number;
   image_path?: string;
+}
+
+// Device Management
+export interface Device {
+  uuid: string;
+  device_id: string;
+  device_name: string | null;
+  created_at: string;
+  last_used_at: string;
+  expires_at: string;
 }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
+import { getDeviceId } from '@/lib/deviceId';
 import Cookies from 'js-cookie';
 import toast from 'react-hot-toast';
 
@@ -12,7 +13,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [country, setCountry] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -23,12 +23,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      const deviceId = getDeviceId(); // Get or generate device ID
       let response;
+
       if (isLogin) {
-        response = await api.login(email, password);
+        response = await api.login(email, password, deviceId);
         toast.success('Logged in successfully!');
       } else {
-        response = await api.register(email, password, username, displayName, country);
+        response = await api.register(email, password, username, country, deviceId);
         toast.success('Account created successfully!');
       }
 
@@ -106,21 +108,6 @@ export default function LoginPage() {
                     required
                     className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                     placeholder="username"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="displayName" className="block text-sm font-medium mb-2">
-                    Display Name
-                  </label>
-                  <input
-                    id="displayName"
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    required
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                    placeholder="Your Name"
                   />
                 </div>
 

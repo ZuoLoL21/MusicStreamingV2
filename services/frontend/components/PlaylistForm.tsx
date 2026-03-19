@@ -56,7 +56,7 @@ export default function PlaylistForm({
       if (mode === 'create') {
         await api.createPlaylist(name, description || undefined, isPublic, image || undefined);
         toast.success('Playlist created successfully');
-        router.push('/profile');
+        router.push('/library');
       } else if (mode === 'edit' && playlistUuid) {
         await api.updatePlaylist(playlistUuid, name, description || undefined, isPublic);
         toast.success('Playlist updated successfully');

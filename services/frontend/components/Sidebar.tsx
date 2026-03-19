@@ -15,6 +15,7 @@ import {
   Compass,
   Clock,
   User,
+  Settings,
   LogIn,
   LogOut,
 } from 'lucide-react';
@@ -115,6 +116,15 @@ export function Sidebar() {
                 >
                   <User className="w-6 h-6" />
                   <span>Your Profile</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/settings"
+                  className={`flex items-center space-x-3 transition-colors ${isActive('/settings')}`}
+                >
+                  <Settings className="w-6 h-6" />
+                  <span>Settings</span>
                 </Link>
               </li>
               <li>

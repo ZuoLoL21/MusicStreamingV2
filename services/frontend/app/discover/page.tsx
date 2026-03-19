@@ -6,6 +6,7 @@ import { ThemeRecommendation, SongPopularity, ArtistPopularity } from '@/lib/typ
 import { usePlayerStore } from '@/lib/store';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { AddToPlaylistButton } from '@/components/AddToPlaylistButton';
 
 export default function DiscoverPage() {
   const [themeRec, setThemeRec] = useState<ThemeRecommendation | null>(null);
@@ -19,17 +20,36 @@ export default function DiscoverPage() {
 
   const loadRecommendations = async () => {
     try {
-      const [theme, songs, artists] = await Promise.all([
+      // Load each independently to handle partial failures
+      const results = await Promise.allSettled([
         api.getThemeRecommendation(),
         api.getPopularSongsAllTime(10),
         api.getPopularArtistsAllTime(10),
       ]);
 
-      setThemeRec(theme);
-      setPopularSongs(songs);
-      setPopularArtists(artists);
-    } catch (error: any) {
-      toast.error('Failed to load recommendations');
+      if (results[0].status === 'fulfilled') {
+        setThemeRec(results[0].value);
+      } else {
+        console.warn('Failed to load theme recommendation:', results[0].reason);
+      }
+
+      if (results[1].status === 'fulfilled') {
+        setPopularSongs(results[1].value);
+      } else {
+        console.warn('Failed to load popular songs:', results[1].reason);
+      }
+
+      if (results[2].status === 'fulfilled') {
+        setPopularArtists(results[2].value);
+      } else {
+        console.warn('Failed to load popular artists:', results[2].reason);
+      }
+
+      // Only show error if all failed
+      const allFailed = results.every(r => r.status === 'rejected');
+      if (allFailed) {
+        toast.error('Failed to load recommendations. Some services may be unavailable.');
+      }
     } finally {
       setLoading(false);
     }
@@ -73,7 +93,7 @@ export default function DiscoverPage() {
           {popularSongs.map((song, index) => (
             <div
               key={song.music_uuid}
-              className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition"
+              className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition group"
             >
               <span className="text-gray-400 w-6">{index + 1}</span>
               <div className="flex-1">
@@ -84,6 +104,9 @@ export default function DiscoverPage() {
               </div>
               <div className="text-sm text-gray-400">
                 {song.plays?.toLocaleString() || song.decay_plays?.toFixed(0)} plays
+              </div>
+              <div className="opacity-0 group-hover:opacity-100 transition">
+                <AddToPlaylistButton musicUuid={song.music_uuid} size="sm" />
               </div>
             </div>
           ))}
