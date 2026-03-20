@@ -101,6 +101,7 @@ export interface ThemeRecommendation {
 
 export interface SongPopularity {
   music_uuid: string;
+  artist_uuid?: string;
   song_name: string;
   artist_name: string;
   decay_plays?: number;

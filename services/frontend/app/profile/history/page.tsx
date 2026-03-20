@@ -27,29 +27,7 @@ export default function HistoryPage() {
         setHistory(data);
       } else {
         const data = await api.getTopMusicForUser(50);
-        // Fetch song details for each entry
-        const enriched = await Promise.all(
-          data.map(async (item) => {
-            try {
-              const music = await api.getMusic(item.music_uuid);
-              const artist = await api.getArtist(music.from_artist);
-              return {
-                ...item,
-                song_name: music.song_name,
-                artist_name: artist.artist_name,
-                artist_uuid: music.from_artist,
-              };
-            } catch {
-              return {
-                ...item,
-                song_name: 'Unknown Song',
-                artist_name: 'Unknown Artist',
-                artist_uuid: item.music_uuid, // fallback
-              };
-            }
-          })
-        );
-        setTopMusic(enriched);
+        setTopMusic(data);
       }
     } catch (error: any) {
       toast.error('Failed to load history');
