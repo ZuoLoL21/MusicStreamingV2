@@ -199,7 +199,7 @@ services:
       dockerfile: Dockerfile
     container_name: service-bandit-test
     environment:
-      DB_CONNECTION_STRING_WAREHOUSE: "clickhouse://clickhouse:clickhouse_test@database-clickhouse-test:9000/default"
+      DB_CONNECTION_STRING_WAREHOUSE: "clickhouse://clickhouse:clickhouse_test@database-clickhouse-test:8123/default"
       WAREHOUSE_BANDIT_DATA_TABLE: bandit_input_per_theme
       DB_CONNECTION_STRING_PARAMS: "postgresql://test_user:test_password@database-postgres-bandit-test:5432/bandit_test"
       BANDIT_DATA_TABLE: bandit_data

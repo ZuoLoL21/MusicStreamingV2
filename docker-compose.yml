@@ -278,7 +278,7 @@ services:
       dockerfile: Dockerfile
     container_name: service-bandit
     environment:
-      DB_CONNECTION_STRING_WAREHOUSE: "clickhouse://clickhouse:${CLICKHOUSE_PASSWORD}@database-clickhouse:9000/default"
+      DB_CONNECTION_STRING_WAREHOUSE: "clickhouse://clickhouse:${CLICKHOUSE_PASSWORD}@database-clickhouse:8123/default"
       WAREHOUSE_BANDIT_DATA_TABLE: bandit_input_per_theme
       DB_CONNECTION_STRING_PARAMS: "postgresql://postgres:${BANDIT_PASSWORD}@database-postgres-bandit:5432/bandit"
       BANDIT_DATA_TABLE: bandit_data
@@ -313,6 +313,7 @@ services:
       dockerfile: services/service_popularity_system/Dockerfile
     container_name: service-popularity
     environment:
+      POPULARITY_PORT: "8080"
       WAREHOUSE_URL: "clickhouse://clickhouse:${CLICKHOUSE_PASSWORD}@database-clickhouse:9000/default"
       TABLE_NAME: popularity_data
       JWT_STORE_PATH: jwt/popularity
