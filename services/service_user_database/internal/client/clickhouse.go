@@ -2,6 +2,7 @@ package client
 
 import (
 	"backend/internal/di"
+	sqlhandler "backend/sql/sqlc"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -42,31 +43,79 @@ func (c *ClickHouseSync) SyncUserDim(userUUID pgtype.UUID, country string, creat
 }
 
 func (c *ClickHouseSync) syncUserDim(userUUID pgtype.UUID, country string, createdAt time.Time) {
-	userUUIDStr := uuid.UUID(userUUID.Bytes).String()
 	if c.config.EventIngestionServiceURL == "" {
 		return
 	}
 
+	userUUIDStr := uuid.UUID(userUUID.Bytes).String()
 	payload := map[string]any{
 		"user_uuid":  userUUIDStr,
 		"created_at": createdAt.Format(time.RFC3339),
 		"country":    country,
 	}
 
-	jsonData, err := json.Marshal(payload)
-	if err != nil {
-		c.logger.Error("failed to marshal user dim payload", zap.Error(err))
+	if err := c.sendEvent("/events/user", payload, userUUIDStr); err != nil {
+		c.logger.Warn("failed to sync user dim to ClickHouse", zap.Error(err))
+	} else {
+		c.logger.Debug("user dim synced to ClickHouse", zap.String("user_uuid", userUUIDStr))
+	}
+}
+
+func (c *ClickHouseSync) SyncListenEvent(userUUID, musicUUID pgtype.UUID, music sqlhandler.Music, listenDurationSeconds *int32, completionPercentage *float64) {
+	if c == nil {
+		return
+	}
+	go c.syncListenEvent(userUUID, musicUUID, music, listenDurationSeconds, completionPercentage)
+}
+
+func (c *ClickHouseSync) syncListenEvent(userUUID, musicUUID pgtype.UUID, music sqlhandler.Music, listenDurationSeconds *int32, completionPercentage *float64) {
+	if c.config.EventIngestionServiceURL == "" {
 		return
 	}
 
+	userUUIDStr := uuid.UUID(userUUID.Bytes).String()
+
+	var completionRatio float64
+	if completionPercentage != nil {
+		completionRatio = *completionPercentage / 100.0
+	}
+
+	payload := map[string]any{
+		"user_uuid":               userUUIDStr,
+		"music_uuid":              uuid.UUID(musicUUID.Bytes).String(),
+		"artist_uuid":             uuid.UUID(music.FromArtist.Bytes).String(),
+		"listen_duration_seconds": listenDurationSeconds,
+		"track_duration_seconds":  music.DurationSeconds,
+		"completion_ratio":        completionRatio,
+	}
+	if music.InAlbum.Valid {
+		payload["album_uuid"] = uuid.UUID(music.InAlbum.Bytes).String()
+	}
+
+	if err := c.sendEvent("/events/listen", payload, userUUIDStr); err != nil {
+		c.logger.Warn("failed to sync listen event to ClickHouse", zap.Error(err))
+	} else {
+		c.logger.Debug("listen event synced to ClickHouse", zap.String("user_uuid", userUUIDStr), zap.String("music_uuid", uuid.UUID(musicUUID.Bytes).String()))
+	}
+}
+
+// sendEvent is a helper that generates a service JWT and sends an event payload to the ingestion service
+func (c *ClickHouseSync) sendEvent(path string, payload map[string]any, userUUID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	serviceJWT, err := c.jwtHandler.GenerateJwt(
 		libsconsts.JWTSubjectService,
-		userUUIDStr,
+		userUUID,
 		c.config.JWTExpirationService,
 	)
 	if err != nil {
-		c.logger.Error("failed to generate service JWT", zap.Error(err))
-		return
+		return err
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return err
 	}
 
 	headers := make(http.Header)
@@ -74,22 +123,21 @@ func (c *ClickHouseSync) syncUserDim(userUUID pgtype.UUID, country string, creat
 	headers.Set("Authorization", "Bearer "+serviceJWT)
 
 	_, statusCode, _, err := c.client.DoProxy(
-		context.Background(),
+		ctx,
 		"POST",
-		c.config.EventIngestionServiceURL+"/events/user",
+		c.config.EventIngestionServiceURL+path,
 		bytes.NewBuffer(jsonData),
 		headers,
 		"",
 	)
 
 	if err != nil {
-		c.logger.Warn("failed to sync user dim to ClickHouse", zap.Error(err))
-		return
+		return err
 	}
 
-	if statusCode != http.StatusOK {
-		c.logger.Warn("user dim sync failed", zap.Int("status", statusCode))
-	} else {
-		c.logger.Debug("user dim synced to ClickHouse", zap.String("user_uuid", userUUIDStr))
+	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
+		return nil
 	}
+
+	return nil
 }

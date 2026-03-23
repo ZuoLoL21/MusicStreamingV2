@@ -1,12 +1,12 @@
 package handlers
 
 import (
+	"backend/internal/client"
 	"backend/internal/consts"
-	"net/http"
-	"strconv"
-
 	"backend/internal/di"
 	"backend/internal/storage"
+	"net/http"
+	"strconv"
 
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
@@ -18,18 +18,20 @@ import (
 )
 
 type MusicHandler struct {
-	config      *di.Config
-	returns     *libsdi.ReturnManager
-	db          consts.DB
-	fileStorage storage.FileStorageClient
+	config         *di.Config
+	returns        *libsdi.ReturnManager
+	db             consts.DB
+	fileStorage    storage.FileStorageClient
+	clickhouseSync *client.ClickHouseSync
 }
 
-func NewMusicHandler(config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient) *MusicHandler {
+func NewMusicHandler(config *di.Config, returns *libsdi.ReturnManager, db consts.DB, fileStorage storage.FileStorageClient, clickhouseSync *client.ClickHouseSync) *MusicHandler {
 	return &MusicHandler{
-		config:      config,
-		returns:     returns,
-		db:          db,
-		fileStorage: fileStorage,
+		config:         config,
+		returns:        returns,
+		db:             db,
+		fileStorage:    fileStorage,
+		clickhouseSync: clickhouseSync,
 	}
 }
 
@@ -480,6 +482,13 @@ func (h *MusicHandler) AddListeningHistoryEntry(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	music, err := h.db.GetMusic(r.Context(), musicUUID)
+	if err != nil {
+		logger.Error("failed to fetch music details", zap.Error(err))
+		h.returns.ReturnError(w, "failed to fetch music details", http.StatusInternalServerError)
+		return
+	}
+
 	var duration pgtype.Int4
 	if body.ListenDurationSeconds != nil {
 		duration = pgtype.Int4{Int32: *body.ListenDurationSeconds, Valid: true}
@@ -500,6 +509,8 @@ func (h *MusicHandler) AddListeningHistoryEntry(w http.ResponseWriter, r *http.R
 		h.returns.ReturnError(w, "failed to add listening history", http.StatusInternalServerError)
 		return
 	}
+
+	h.clickhouseSync.SyncListenEvent(userUUID, musicUUID, music, body.ListenDurationSeconds, body.CompletionPercentage)
 
 	h.returns.ReturnText(w, "listening history recorded", http.StatusCreated)
 }

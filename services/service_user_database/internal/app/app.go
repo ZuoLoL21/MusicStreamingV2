@@ -96,7 +96,7 @@ func (a *App) initHandlers() {
 		User:     handlers.NewUserHandler(a.config, a.jwtHandler, a.returns, a.db, a.fileStorage, a.clickhouseSync),
 		Artist:   handlers.NewArtistHandler(a.config, a.returns, a.db, a.fileStorage),
 		Album:    handlers.NewAlbumHandler(a.config, a.returns, a.db, a.fileStorage),
-		Music:    handlers.NewMusicHandler(a.config, a.returns, a.db, a.fileStorage),
+		Music:    handlers.NewMusicHandler(a.config, a.returns, a.db, a.fileStorage, a.clickhouseSync),
 		Likes:    handlers.NewLikesHandler(a.config, a.returns, a.db, a.fileStorage),
 		Follows:  handlers.NewFollowsHandler(a.config, a.returns, a.db),
 		Tags:     handlers.NewTagsHandler(a.config, a.jwtHandler, a.returns, a.db, a.fileStorage),
