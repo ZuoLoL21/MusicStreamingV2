@@ -198,7 +198,7 @@ func TestIntegration_Auth_NonMemberCreateMusic(t *testing.T) {
 		WithName("Test Artist").
 		Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage, nil)
 
 	// Non-member tries to create music for artist
 	formFields := map[string]string{

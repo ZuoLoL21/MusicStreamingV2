@@ -153,19 +153,16 @@ func TestIntegration_BusinessLogic_DuplicateTrackInPlaylist(t *testing.T) {
 	handler := handlers.NewPlaylistHandler(config, returns, db, nil)
 
 	// Add track first time
-	requestBody := map[string]string{
-		"music_uuid": builders.UUIDToString(musicUUID),
-	}
-	req1 := createJSONRequest(t, "POST", "/playlists/"+builders.UUIDToString(playlistUUID)+"/tracks", requestBody)
+	req1 := createRequest(t, "PUT", "/playlists/"+builders.UUIDToString(playlistUUID)+"/tracks/"+builders.UUIDToString(musicUUID), nil)
 	router := mux.NewRouter()
-	router.HandleFunc("/playlists/{uuid}/tracks", wrapWithAuth(t, handler.AddTrackToPlaylist, userUUID)).Methods("POST")
+	router.HandleFunc("/playlists/{uuid}/tracks/{musicUuid}", wrapWithAuth(t, handler.AddTrackToPlaylist, userUUID)).Methods("PUT")
 
 	rr1 := httptest.NewRecorder()
 	router.ServeHTTP(rr1, req1)
 	assert.Equal(t, http.StatusCreated, rr1.Code)
 
 	// Add same track again (duplicates are allowed in playlists)
-	req2 := createJSONRequest(t, "POST", "/playlists/"+builders.UUIDToString(playlistUUID)+"/tracks", requestBody)
+	req2 := createRequest(t, "PUT", "/playlists/"+builders.UUIDToString(playlistUUID)+"/tracks/"+builders.UUIDToString(musicUUID), nil)
 	rr2 := httptest.NewRecorder()
 	router.ServeHTTP(rr2, req2)
 
@@ -214,7 +211,7 @@ func TestIntegration_BusinessLogic_IncrementPlayCountMultipleTimes(t *testing.T)
 	artistUUID := builders.NewArtistBuilder(artistOwner).Build(t, ctx, db)
 	musicUUID := builders.NewMusicBuilder(artistUUID, artistOwner).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(config, returns, db, nil)
+	handler := handlers.NewMusicHandler(config, returns, db, nil, nil)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/music/{uuid}/play", handler.IncrementPlayCount).Methods("POST")

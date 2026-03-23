@@ -165,12 +165,9 @@ func TestIntegration_Concurrency_PlaylistTrackAdditions(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			requestBody := map[string]string{
-				"music_uuid": builders.UUIDToString(musicTracks[trackIdx]),
-			}
-			req := createJSONRequest(t, "POST", "/playlists/"+builders.UUIDToString(playlistUUID)+"/tracks", requestBody)
+			req := createRequest(t, "PUT", "/playlists/"+builders.UUIDToString(playlistUUID)+"/tracks/"+builders.UUIDToString(musicTracks[trackIdx]), nil)
 			router := mux.NewRouter()
-			router.HandleFunc("/playlists/{uuid}/tracks", wrapWithAuth(t, handler.AddTrackToPlaylist, userUUID)).Methods("POST")
+			router.HandleFunc("/playlists/{uuid}/tracks/{musicUuid}", wrapWithAuth(t, handler.AddTrackToPlaylist, userUUID)).Methods("PUT")
 
 			rr := httptest.NewRecorder()
 			router.ServeHTTP(rr, req)

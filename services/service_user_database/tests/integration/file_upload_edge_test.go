@@ -30,7 +30,7 @@ func TestIntegration_FileUpload_InvalidMimeType_Audio(t *testing.T) {
 	userUUID := builders.NewUserBuilder().Build(t, ctx, db)
 	_ = builders.NewArtistBuilder(userUUID).Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage, nil)
 
 	// Try to upload text file as audio
 	textData := []byte("This is not an audio file")

@@ -119,6 +119,15 @@ func TestIntegration_HistoryHandler_GetListeningHistory(t *testing.T) {
 	var history []map[string]interface{}
 	assertJSONResponse(t, rr, http.StatusOK, &history)
 	assert.Len(t, history, 2)
+
+	// Verify enriched fields are present
+	firstEntry := history[0]
+	assert.Contains(t, firstEntry, "song_name", "Expected song_name field")
+	assert.Contains(t, firstEntry, "artist_name", "Expected artist_name field")
+	assert.Contains(t, firstEntry, "artist_uuid", "Expected artist_uuid field")
+	assert.NotEmpty(t, firstEntry["song_name"], "song_name should not be empty")
+	assert.NotEmpty(t, firstEntry["artist_name"], "artist_name should not be empty")
+	assert.NotEmpty(t, firstEntry["artist_uuid"], "artist_uuid should not be empty")
 }
 
 func TestIntegration_HistoryHandler_GetTopMusicForUser(t *testing.T) {
@@ -172,4 +181,18 @@ func TestIntegration_HistoryHandler_GetTopMusicForUser(t *testing.T) {
 
 	// music1 should be first (most played)
 	// Note: Exact ordering depends on implementation
+
+	// Verify enriched fields are present
+	firstEntry := topMusic[0]
+	assert.Contains(t, firstEntry, "song_name", "Expected song_name field")
+	assert.Contains(t, firstEntry, "artist_name", "Expected artist_name field")
+	assert.Contains(t, firstEntry, "artist_uuid", "Expected artist_uuid field")
+	assert.NotEmpty(t, firstEntry["song_name"], "song_name should not be empty")
+	assert.NotEmpty(t, firstEntry["artist_name"], "artist_name should not be empty")
+	assert.NotEmpty(t, firstEntry["artist_uuid"], "artist_uuid should not be empty")
+
+	// Verify second entry also has enriched fields
+	secondEntry := topMusic[1]
+	assert.Contains(t, secondEntry, "song_name", "Expected song_name field in second entry")
+	assert.Contains(t, secondEntry, "artist_name", "Expected artist_name field in second entry")
 }

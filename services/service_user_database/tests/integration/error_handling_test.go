@@ -121,7 +121,7 @@ func TestIntegration_Error_NotFoundResponses(t *testing.T) {
 	})
 
 	t.Run("music_not_found", func(t *testing.T) {
-		handler := handlers.NewMusicHandler(config, returns, db, nil)
+		handler := handlers.NewMusicHandler(config, returns, db, nil, nil)
 		req := createRequest(t, "GET", "/music/00000000-0000-0000-0000-000000000001", nil)
 
 		router := mux.NewRouter()
@@ -192,7 +192,7 @@ func TestIntegration_Error_InvalidUUIDFormat(t *testing.T) {
 			name:     "invalid_uuid_music_get",
 			endpoint: "/music/not-uuid",
 			handlerFunc: func() http.HandlerFunc {
-				h := handlers.NewMusicHandler(config, returns, nil, nil)
+				h := handlers.NewMusicHandler(config, returns, nil, nil, nil)
 				return h.GetMusic
 			},
 		},
@@ -510,7 +510,7 @@ func TestIntegration_Error_DatabaseVsNotFound(t *testing.T) {
 	})
 
 	t.Run("music_not_found_returns_404", func(t *testing.T) {
-		handler := handlers.NewMusicHandler(config, returns, db, nil)
+		handler := handlers.NewMusicHandler(config, returns, db, nil, nil)
 
 		nonExistentUUID := "00000000-0000-0000-0000-000000000002"
 		req := createRequest(t, "GET", "/music/"+nonExistentUUID, nil)

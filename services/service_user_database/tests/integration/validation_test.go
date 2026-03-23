@@ -213,7 +213,7 @@ func TestIntegration_Validation_StringFields(t *testing.T) {
 				router.ServeHTTP(rr, req)
 
 			case "music":
-				handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
+				handler := handlers.NewMusicHandler(config, returns, db, fileStorage, nil)
 				audioData := []byte("fake audio")
 				req = createMultipartRequest(t, "POST", tc.endpoint, "audio", "test.mp3", audioData, tc.formFields)
 				router := mux.NewRouter()
@@ -370,7 +370,7 @@ func TestIntegration_Validation_NumericFields(t *testing.T) {
 		WithName("Test Artist").
 		Build(t, ctx, db)
 
-	handler := handlers.NewMusicHandler(config, returns, db, fileStorage)
+	handler := handlers.NewMusicHandler(config, returns, db, fileStorage, nil)
 
 	testCases := []struct {
 		name           string

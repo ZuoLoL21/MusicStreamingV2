@@ -1350,24 +1350,16 @@ Add a track to a playlist (Owner only).
 
 **Authentication:** Required (JWT + Owner)
 
-**Content-Type:** `application/json`
-
-**Request Body:**
-```json
-{
-  "music_uuid": "music-uuid-to-add"
-}
-```
-
 **Path Parameters:**
 - `uuid`: Playlist's unique identifier
 - `musicUuid`: Music's unique identifier
 
 **Status Codes:**
 - `201 Created`: Track added successfully
-- `400 Bad Request`: Invalid request body
+- `400 Bad Request`: Invalid UUID
 - `401 Unauthorized`: Invalid or missing token
 - `403 Forbidden`: User is not the owner
+- `500 Internal Server Error`: Database error
 
 ---
 
@@ -1497,7 +1489,7 @@ Get all music with a specific tag.
 
 ### Get Listening History
 
-Get the authenticated user's listening history.
+Get the authenticated user's listening history with complete song and artist details.
 
 **Endpoint:** `GET /history`
 
@@ -1506,8 +1498,39 @@ Get the authenticated user's listening history.
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| limit | int | No | Number of results (default: 20) |
-| offset | int | No | Number of results to skip |
+| limit | int | No | Number of results (default: 20, max: 100) |
+| cursor_ts | string | No | RFC3339 timestamp cursor for pagination |
+| cursor_id | string | No | UUID cursor for pagination |
+
+**Response:** Array of listening history entries with enriched song and artist details
+
+**Example Response:**
+```json
+[
+  {
+    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "user_uuid": "123e4567-e89b-12d3-a456-426614174000",
+    "music_uuid": "789e0123-e89b-12d3-a456-426614174000",
+    "song_name": "In Da Club",
+    "artist_name": "50 Cent",
+    "artist_uuid": "456e7890-e89b-12d3-a456-426614174000",
+    "listened_at": "2024-03-15T10:30:00Z",
+    "listen_duration_seconds": 180,
+    "completion_percentage": "95.5"
+  }
+]
+```
+
+**Response Fields:**
+- `uuid` - History entry ID
+- `user_uuid` - User who listened
+- `music_uuid` - Track UUID
+- `song_name` - Track title (enriched from music table)
+- `artist_name` - Artist name (enriched from artists table)
+- `artist_uuid` - Artist UUID (enriched from music table)
+- `listened_at` - When track was played (ISO 8601 timestamp)
+- `listen_duration_seconds` - How many seconds were played
+- `completion_percentage` - Percentage of track completed
 
 **Status Codes:**
 - `200 OK`: Returns listening history
@@ -1517,7 +1540,7 @@ Get the authenticated user's listening history.
 
 ### Get Top Listened Music
 
-Get the authenticated user's most listened music.
+Get the authenticated user's most listened music ranked by play count, with complete song and artist details.
 
 **Endpoint:** `GET /history/top`
 
@@ -1526,7 +1549,40 @@ Get the authenticated user's most listened music.
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| limit | int | No | Number of results (default: 20) |
+| limit | int | No | Number of results (default: 20, max: 100) |
+| cursor_count | int | No | Play count cursor for pagination |
+| cursor_id | string | No | UUID cursor for pagination |
+
+**Response:** Array of top tracks ranked by play count with enriched song and artist details
+
+**Example Response:**
+```json
+[
+  {
+    "music_uuid": "789e0123-e89b-12d3-a456-426614174000",
+    "song_name": "In Da Club",
+    "artist_name": "50 Cent",
+    "artist_uuid": "456e7890-e89b-12d3-a456-426614174000",
+    "play_count": 42
+  },
+  {
+    "music_uuid": "abc01234-e89b-12d3-a456-426614174000",
+    "song_name": "Lose Yourself",
+    "artist_name": "Eminem",
+    "artist_uuid": "def56789-e89b-12d3-a456-426614174000",
+    "play_count": 38
+  }
+]
+```
+
+**Response Fields:**
+- `music_uuid` - Track UUID
+- `song_name` - Track title (enriched from music table)
+- `artist_name` - Artist name (enriched from artists table)
+- `artist_uuid` - Artist UUID (enriched from music table)
+- `play_count` - Number of times user played this track
+
+**Pagination:** Results are ordered by `play_count DESC, music_uuid DESC`. Use the last entry's `play_count` and `music_uuid` as `cursor_count` and `cursor_id` for the next page.
 
 **Status Codes:**
 - `200 OK`: Returns top listened music
