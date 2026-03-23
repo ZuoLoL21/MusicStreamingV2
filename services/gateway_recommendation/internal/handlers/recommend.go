@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"gateway_recommendation/internal/clients"
 	libshelpers "libs/helpers"
 	libsmiddleware "libs/middleware"
@@ -45,30 +44,22 @@ func (h *RecommendHandler) RecommendTheme(w http.ResponseWriter, r *http.Request
 
 	requestID := libshelpers.GetRequestIDFromContext(r.Context())
 
-	// Parse request body
-	var req RecommendThemeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logger.Warn("Failed to decode request", zap.Error(err))
-		h.returnManager.ReturnError(w, "Invalid request body", http.StatusBadRequest)
+	// Parse
+	userUUID := libshelpers.GetUserUUIDFromContext(r.Context())
+	if userUUID == "" {
+		logger.Warn("Missing user_uuid in context")
+		h.returnManager.ReturnError(w, "user_uuid not found in request context", http.StatusUnauthorized)
 		return
 	}
-
-	if req.UserUUID == "" {
-		logger.Warn("Missing user_uuid in request")
-		h.returnManager.ReturnError(w, "user_uuid is required", http.StatusBadRequest)
-		return
-	}
-
-	logger.Debug("Processing theme recommendation request")
+	logger.Debug("Processing theme recommendation request", zap.String("user_uuid", userUUID))
 
 	// Call bandit service for personalized prediction
-	predictResp, err := h.banditClient.Predict(r.Context(), req.UserUUID, requestID)
+	predictResp, err := h.banditClient.Predict(r.Context(), userUUID, requestID)
 	if err != nil {
-		logger.Warn("Bandit prediction failed", zap.Error(err))
-		h.returnManager.ReturnError(w, "Failed to get recommendation from bandit service", http.StatusInternalServerError)
+		logger.Error("Bandit prediction failed", zap.Error(err))
+		h.returnManager.ReturnError(w, "Failed to get recommendation", http.StatusServiceUnavailable)
 		return
 	}
-
 	logger.Debug("Bandit prediction completed", zap.String("recommended_theme", predictResp.Theme))
 
 	// Extract service JWT
