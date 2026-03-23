@@ -256,9 +256,10 @@ func (h *TagsHandler) syncThemeToClickHouse(musicUUID pgtype.UUID, theme string)
 
 	req.Header.Set("Content-Type", "application/json")
 
-	serviceJWT, err := h.jwtHandler.GenerateJwt(
+	serviceJWT, err := h.jwtHandler.GenerateJwtWithDevice(
 		libsconsts.JWTSubjectService,
 		"system",
+		libsconsts.DefaultDevice,
 		2*time.Minute,
 	)
 	if err != nil {

@@ -38,3 +38,7 @@ const (
 const (
 	JWTTimeoutVault = 30 * time.Second // Timeout for Vault Transit operations
 )
+
+const (
+	DefaultDevice = "00000000-0000-0000-0000-000000000000"
+)

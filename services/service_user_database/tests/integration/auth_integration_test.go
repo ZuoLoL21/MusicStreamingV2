@@ -21,18 +21,20 @@ func TestIntegration_Auth_JWTGeneration_Service(t *testing.T) {
 	// Initialize JWT handler for service JWTs
 	jwtHandler := di.GetJWTHandler(logger, config, "service-user-database")
 
-	// Create test user UUID
+	// Create test user UUID and device ID
 	testUUID := "550e8400-e29b-41d4-a716-446655440000"
+	testDeviceID := "660e8400-e29b-41d4-a716-446655440000"
 
-	// Generate service JWT
-	serviceJWT, err := jwtHandler.GenerateJwt("service", testUUID, 2*time.Minute)
+	// Generate service JWT with device ID
+	serviceJWT, err := jwtHandler.GenerateJwtWithDevice("service", testUUID, testDeviceID, 2*time.Minute)
 	require.NoError(t, err)
 	require.NotEmpty(t, serviceJWT, "service JWT should be generated")
 
 	// Validate the JWT
-	extractedUUID, err := jwtHandler.ValidateJwt("service", serviceJWT)
+	extractedUUID, extractedDeviceID, err := jwtHandler.ValidateJwtWithDevice("service", serviceJWT)
 	require.NoError(t, err, "service JWT should be valid")
 	assert.Equal(t, testUUID, extractedUUID, "extracted UUID should match")
+	assert.Equal(t, testDeviceID, extractedDeviceID, "extracted device ID should match")
 }
 
 func TestIntegration_Auth_JWTValidation_ExpiredToken(t *testing.T) {
@@ -41,9 +43,10 @@ func TestIntegration_Auth_JWTValidation_ExpiredToken(t *testing.T) {
 	jwtHandler := di.GetJWTHandler(logger, config, "service-user-database")
 
 	testUUID := "550e8400-e29b-41d4-a716-446655440000"
+	testDeviceID := "660e8400-e29b-41d4-a716-446655440000"
 
 	// Generate JWT with very short expiration
-	serviceJWT, err := jwtHandler.GenerateJwt("service", testUUID, 1*time.Millisecond)
+	serviceJWT, err := jwtHandler.GenerateJwtWithDevice("service", testUUID, testDeviceID, 1*time.Millisecond)
 	require.NoError(t, err)
 	require.NotEmpty(t, serviceJWT)
 
@@ -51,7 +54,7 @@ func TestIntegration_Auth_JWTValidation_ExpiredToken(t *testing.T) {
 	time.Sleep(5 * time.Millisecond)
 
 	// Attempt to validate expired JWT
-	_, err = jwtHandler.ValidateJwt("service", serviceJWT)
+	_, _, err = jwtHandler.ValidateJwtWithDevice("service", serviceJWT)
 	assert.Error(t, err, "expired JWT should fail validation")
 }
 
@@ -61,14 +64,15 @@ func TestIntegration_Auth_JWTValidation_WrongSubject(t *testing.T) {
 	jwtHandler := di.GetJWTHandler(logger, config, "service-user-database")
 
 	testUUID := "550e8400-e29b-41d4-a716-446655440000"
+	testDeviceID := "660e8400-e29b-41d4-a716-446655440000"
 
 	// Generate JWT with "service" subject
-	serviceJWT, err := jwtHandler.GenerateJwt("service", testUUID, 2*time.Minute)
+	serviceJWT, err := jwtHandler.GenerateJwtWithDevice("service", testUUID, testDeviceID, 2*time.Minute)
 	require.NoError(t, err)
 	require.NotEmpty(t, serviceJWT)
 
 	// Attempt to validate with wrong subject (e.g., "normal")
-	_, err = jwtHandler.ValidateJwt("normal", serviceJWT)
+	_, _, err = jwtHandler.ValidateJwtWithDevice("normal", serviceJWT)
 	assert.Error(t, err, "JWT with wrong subject should fail validation")
 }
 
@@ -101,27 +105,30 @@ func TestIntegration_Auth_UserLoginFlow(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, userUUID.Bytes, user.Uuid.Bytes)
 
-	// Generate user JWT (normally done after password verification)
+	// Generate user JWT with device ID (normally done after password verification)
 	jwtHandler := di.GetJWTHandler(logger, config, "gateway-api")
-	userJWT, err := jwtHandler.GenerateJwt("normal", builders.UUIDToString(user.Uuid), 10*time.Minute)
+	testDeviceID := "660e8400-e29b-41d4-a716-446655440000"
+	userJWT, err := jwtHandler.GenerateJwtWithDevice("normal", builders.UUIDToString(user.Uuid), testDeviceID, 10*time.Minute)
 	require.NoError(t, err)
 	require.NotEmpty(t, userJWT)
 
 	// Validate user JWT
-	extractedUUID, err := jwtHandler.ValidateJwt("normal", userJWT)
+	extractedUUID, extractedDeviceID, err := jwtHandler.ValidateJwtWithDevice("normal", userJWT)
 	require.NoError(t, err)
 	assert.Equal(t, builders.UUIDToString(user.Uuid), extractedUUID)
+	assert.Equal(t, testDeviceID, extractedDeviceID)
 
-	// Simulate gateway transforming user JWT to service JWT
+	// Simulate gateway transforming user JWT to service JWT (preserving device ID)
 	serviceJWTHandler := di.GetJWTHandler(logger, config, "service-user-database")
-	serviceJWT, err := serviceJWTHandler.GenerateJwt("service", extractedUUID, 2*time.Minute)
+	serviceJWT, err := serviceJWTHandler.GenerateJwtWithDevice("service", extractedUUID, extractedDeviceID, 2*time.Minute)
 	require.NoError(t, err)
 	require.NotEmpty(t, serviceJWT)
 
 	// Validate service JWT at backend
-	backendExtractedUUID, err := serviceJWTHandler.ValidateJwt("service", serviceJWT)
+	backendExtractedUUID, backendExtractedDeviceID, err := serviceJWTHandler.ValidateJwtWithDevice("service", serviceJWT)
 	require.NoError(t, err)
 	assert.Equal(t, extractedUUID, backendExtractedUUID)
+	assert.Equal(t, extractedDeviceID, backendExtractedDeviceID)
 }
 
 func TestIntegration_Auth_MultipleApplications(t *testing.T) {

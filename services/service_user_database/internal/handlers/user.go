@@ -110,7 +110,8 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.clickhouseSync.SyncUserDim(userUUID, body.Country, time.Now())
+	deviceID := libshelpers.GetDeviceIDFromContext(r.Context())
+	h.clickhouseSync.SyncUserDim(userUUID, deviceID, body.Country, time.Now())
 
 	h.returns.ReturnText(w, "profile updated", http.StatusOK)
 }

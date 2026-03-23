@@ -10,6 +10,7 @@ import (
 
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
+	libshelpers "libs/helpers"
 	libsmiddleware "libs/middleware"
 
 	"github.com/google/uuid"
@@ -510,7 +511,8 @@ func (h *MusicHandler) AddListeningHistoryEntry(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	h.clickhouseSync.SyncListenEvent(userUUID, musicUUID, music, body.ListenDurationSeconds, body.CompletionPercentage)
+	deviceID := libshelpers.GetDeviceIDFromContext(r.Context())
+	h.clickhouseSync.SyncListenEvent(userUUID, musicUUID, deviceID, music, body.ListenDurationSeconds, body.CompletionPercentage)
 
 	h.returns.ReturnText(w, "listening history recorded", http.StatusCreated)
 }

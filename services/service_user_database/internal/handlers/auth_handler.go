@@ -263,7 +263,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			zap.Error(err))
 	}
 
-	h.clickhouseSync.SyncUserDim(createdUUID, country, time.Now())
+	h.clickhouseSync.SyncUserDim(createdUUID, deviceID, country, time.Now())
 
 	// Issue
 	uuidStr := uuid.UUID(createdUUID.Bytes).String()

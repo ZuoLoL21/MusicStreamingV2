@@ -35,14 +35,14 @@ func NewClickHouseSync(logger *zap.Logger, config *di.Config, jwtHandler *libsdi
 	}
 }
 
-func (c *ClickHouseSync) SyncUserDim(userUUID pgtype.UUID, country string, createdAt time.Time) {
+func (c *ClickHouseSync) SyncUserDim(userUUID pgtype.UUID, deviceID, country string, createdAt time.Time) {
 	if c == nil {
 		return
 	}
-	go c.syncUserDim(userUUID, country, createdAt)
+	go c.syncUserDim(userUUID, deviceID, country, createdAt)
 }
 
-func (c *ClickHouseSync) syncUserDim(userUUID pgtype.UUID, country string, createdAt time.Time) {
+func (c *ClickHouseSync) syncUserDim(userUUID pgtype.UUID, deviceID, country string, createdAt time.Time) {
 	if c.config.EventIngestionServiceURL == "" {
 		return
 	}
@@ -54,21 +54,21 @@ func (c *ClickHouseSync) syncUserDim(userUUID pgtype.UUID, country string, creat
 		"country":    country,
 	}
 
-	if err := c.sendEvent("/events/user", payload, userUUIDStr); err != nil {
+	if err := c.sendEvent("/events/user", payload, userUUIDStr, deviceID); err != nil {
 		c.logger.Warn("failed to sync user dim to ClickHouse", zap.Error(err))
 	} else {
 		c.logger.Debug("user dim synced to ClickHouse", zap.String("user_uuid", userUUIDStr))
 	}
 }
 
-func (c *ClickHouseSync) SyncListenEvent(userUUID, musicUUID pgtype.UUID, music sqlhandler.Music, listenDurationSeconds *int32, completionPercentage *float64) {
+func (c *ClickHouseSync) SyncListenEvent(userUUID, musicUUID pgtype.UUID, deviceID string, music sqlhandler.Music, listenDurationSeconds *int32, completionPercentage *float64) {
 	if c == nil {
 		return
 	}
-	go c.syncListenEvent(userUUID, musicUUID, music, listenDurationSeconds, completionPercentage)
+	go c.syncListenEvent(userUUID, musicUUID, deviceID, music, listenDurationSeconds, completionPercentage)
 }
 
-func (c *ClickHouseSync) syncListenEvent(userUUID, musicUUID pgtype.UUID, music sqlhandler.Music, listenDurationSeconds *int32, completionPercentage *float64) {
+func (c *ClickHouseSync) syncListenEvent(userUUID, musicUUID pgtype.UUID, deviceID string, music sqlhandler.Music, listenDurationSeconds *int32, completionPercentage *float64) {
 	if c.config.EventIngestionServiceURL == "" {
 		return
 	}
@@ -92,7 +92,7 @@ func (c *ClickHouseSync) syncListenEvent(userUUID, musicUUID pgtype.UUID, music 
 		payload["album_uuid"] = uuid.UUID(music.InAlbum.Bytes).String()
 	}
 
-	if err := c.sendEvent("/events/listen", payload, userUUIDStr); err != nil {
+	if err := c.sendEvent("/events/listen", payload, userUUIDStr, deviceID); err != nil {
 		c.logger.Warn("failed to sync listen event to ClickHouse", zap.Error(err))
 	} else {
 		c.logger.Debug("listen event synced to ClickHouse", zap.String("user_uuid", userUUIDStr), zap.String("music_uuid", uuid.UUID(musicUUID.Bytes).String()))
@@ -100,13 +100,14 @@ func (c *ClickHouseSync) syncListenEvent(userUUID, musicUUID pgtype.UUID, music 
 }
 
 // sendEvent is a helper that generates a service JWT and sends an event payload to the ingestion service
-func (c *ClickHouseSync) sendEvent(path string, payload map[string]any, userUUID string) error {
+func (c *ClickHouseSync) sendEvent(path string, payload map[string]any, userUUID, deviceID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	serviceJWT, err := c.jwtHandler.GenerateJwt(
+	serviceJWT, err := c.jwtHandler.GenerateJwtWithDevice(
 		libsconsts.JWTSubjectService,
 		userUUID,
+		deviceID,
 		c.config.JWTExpirationService,
 	)
 	if err != nil {
