@@ -35,17 +35,28 @@ func (q *Queries) AddListeningHistoryEntry(ctx context.Context, arg AddListening
 }
 
 const getListeningHistoryForUser = `-- name: GetListeningHistoryForUser :many
-SELECT uuid, user_uuid, music_uuid, played_at, listen_duration_seconds, completion_percentage
-FROM listening_history
-WHERE user_uuid = $1
+SELECT
+    lh.uuid,
+    lh.user_uuid,
+    lh.music_uuid,
+    m.song_name,
+    a.artist_name,
+    m.from_artist as artist_uuid,
+    lh.played_at as listened_at,
+    lh.listen_duration_seconds,
+    lh.completion_percentage
+FROM listening_history lh
+INNER JOIN music m ON lh.music_uuid = m.uuid
+INNER JOIN artist a ON m.from_artist = a.uuid
+WHERE lh.user_uuid = $1
 AND (
     $3::timestamptz IS NULL
     OR (
-         played_at < $3
-         OR (played_at = $3 AND uuid < $4)
+         lh.played_at < $3
+         OR (lh.played_at = $3 AND lh.uuid < $4)
        )
 )
-ORDER BY played_at DESC, uuid DESC
+ORDER BY lh.played_at DESC, lh.uuid DESC
 LIMIT $2
 `
 
@@ -56,9 +67,21 @@ type GetListeningHistoryForUserParams struct {
 	Uuid     pgtype.UUID        `json:"uuid"`
 }
 
+type GetListeningHistoryForUserRow struct {
+	Uuid                  pgtype.UUID      `json:"uuid"`
+	UserUuid              pgtype.UUID      `json:"user_uuid"`
+	MusicUuid             pgtype.UUID      `json:"music_uuid"`
+	SongName              string           `json:"song_name"`
+	ArtistName            string           `json:"artist_name"`
+	ArtistUuid            pgtype.UUID      `json:"artist_uuid"`
+	ListenedAt            pgtype.Timestamp `json:"listened_at"`
+	ListenDurationSeconds pgtype.Int4      `json:"listen_duration_seconds"`
+	CompletionPercentage  pgtype.Numeric   `json:"completion_percentage"`
+}
+
 // ------------- ListeningHistory -----------------
 // ---- GET
-func (q *Queries) GetListeningHistoryForUser(ctx context.Context, arg GetListeningHistoryForUserParams) ([]ListeningHistory, error) {
+func (q *Queries) GetListeningHistoryForUser(ctx context.Context, arg GetListeningHistoryForUserParams) ([]GetListeningHistoryForUserRow, error) {
 	rows, err := q.db.Query(ctx, getListeningHistoryForUser,
 		arg.UserUuid,
 		arg.Limit,
@@ -69,14 +92,17 @@ func (q *Queries) GetListeningHistoryForUser(ctx context.Context, arg GetListeni
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListeningHistory
+	var items []GetListeningHistoryForUserRow
 	for rows.Next() {
-		var i ListeningHistory
+		var i GetListeningHistoryForUserRow
 		if err := rows.Scan(
 			&i.Uuid,
 			&i.UserUuid,
 			&i.MusicUuid,
-			&i.PlayedAt,
+			&i.SongName,
+			&i.ArtistName,
+			&i.ArtistUuid,
+			&i.ListenedAt,
 			&i.ListenDurationSeconds,
 			&i.CompletionPercentage,
 		); err != nil {
@@ -91,18 +117,25 @@ func (q *Queries) GetListeningHistoryForUser(ctx context.Context, arg GetListeni
 }
 
 const getTopMusicForUser = `-- name: GetTopMusicForUser :many
-SELECT music_uuid, COUNT(*) as play_count
-FROM listening_history
-WHERE user_uuid = $1
-GROUP BY music_uuid
+SELECT
+    lh.music_uuid,
+    m.song_name,
+    a.artist_name,
+    m.from_artist as artist_uuid,
+    COUNT(*) as play_count
+FROM listening_history lh
+INNER JOIN music m ON lh.music_uuid = m.uuid
+INNER JOIN artist a ON m.from_artist = a.uuid
+WHERE lh.user_uuid = $1
+GROUP BY lh.music_uuid, m.song_name, a.artist_name, m.from_artist
 HAVING (
     $3::uuid IS NULL
     OR (
         COUNT(*) < $4
-        OR (COUNT(*) = $4 AND music_uuid < $3)
+        OR (COUNT(*) = $4 AND lh.music_uuid < $3)
     )
 )
-ORDER BY play_count DESC, music_uuid DESC
+ORDER BY play_count DESC, lh.music_uuid DESC
 LIMIT $2
 `
 
@@ -114,8 +147,11 @@ type GetTopMusicForUserParams struct {
 }
 
 type GetTopMusicForUserRow struct {
-	MusicUuid pgtype.UUID `json:"music_uuid"`
-	PlayCount int64       `json:"play_count"`
+	MusicUuid  pgtype.UUID `json:"music_uuid"`
+	SongName   string      `json:"song_name"`
+	ArtistName string      `json:"artist_name"`
+	ArtistUuid pgtype.UUID `json:"artist_uuid"`
+	PlayCount  int64       `json:"play_count"`
 }
 
 func (q *Queries) GetTopMusicForUser(ctx context.Context, arg GetTopMusicForUserParams) ([]GetTopMusicForUserRow, error) {
@@ -132,7 +168,13 @@ func (q *Queries) GetTopMusicForUser(ctx context.Context, arg GetTopMusicForUser
 	var items []GetTopMusicForUserRow
 	for rows.Next() {
 		var i GetTopMusicForUserRow
-		if err := rows.Scan(&i.MusicUuid, &i.PlayCount); err != nil {
+		if err := rows.Scan(
+			&i.MusicUuid,
+			&i.SongName,
+			&i.ArtistName,
+			&i.ArtistUuid,
+			&i.PlayCount,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
