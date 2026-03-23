@@ -599,7 +599,60 @@ class ApiClient {
     if (cursor?.cursor_decay) params.append('cursor_decay', String(cursor.cursor_decay));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/popular/songs/all-time?${params}`);
-    return ensureArray(response.data);
+    const rawData = ensureArray(response.data) as Array<{
+      music_uuid: string;
+      artist_uuid?: string;
+      decay_plays?: number;
+      plays?: number;
+      decay_listen_seconds?: number;
+      listen_seconds?: number;
+    }>;
+
+    // Enrich with music and artist details
+    return await this.enrichSongPopularity(rawData);
+  }
+
+  private async enrichSongPopularity(rawData: Array<{
+    music_uuid: string;
+    artist_uuid?: string;
+    decay_plays?: number;
+    plays?: number;
+    decay_listen_seconds?: number;
+    listen_seconds?: number;
+  }>): Promise<SongPopularity[]> {
+    // Fetch music details in parallel
+    const enrichedPromises = rawData.map(async (item) => {
+      try {
+        const music = await this.getMusic(item.music_uuid);
+        const artist = await this.getArtist(music.from_artist);
+
+        return {
+          music_uuid: item.music_uuid,
+          artist_uuid: music.from_artist,
+          song_name: music.song_name,
+          artist_name: artist.artist_name,
+          decay_plays: item.decay_plays,
+          plays: item.plays,
+          decay_listen_seconds: item.decay_listen_seconds,
+          listen_seconds: item.listen_seconds,
+        };
+      } catch (error) {
+        console.warn(`Failed to enrich song ${item.music_uuid}:`, error);
+        // Return partial data on error
+        return {
+          music_uuid: item.music_uuid,
+          artist_uuid: item.artist_uuid || '',
+          song_name: 'Unknown Song',
+          artist_name: 'Unknown Artist',
+          decay_plays: item.decay_plays,
+          plays: item.plays,
+          decay_listen_seconds: item.decay_listen_seconds,
+          listen_seconds: item.listen_seconds,
+        };
+      }
+    });
+
+    return await Promise.all(enrichedPromises);
   }
 
   async getPopularSongsTimeframe(
@@ -616,7 +669,17 @@ class ApiClient {
     if (cursor?.cursor_plays) params.append('cursor_plays', String(cursor.cursor_plays));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/popular/songs/timeframe?${params}`);
-    return ensureArray(response.data);
+    const rawData = ensureArray(response.data) as Array<{
+      music_uuid: string;
+      artist_uuid?: string;
+      decay_plays?: number;
+      plays?: number;
+      decay_listen_seconds?: number;
+      listen_seconds?: number;
+    }>;
+
+    // Enrich with music and artist details
+    return await this.enrichSongPopularity(rawData);
   }
 
   async getPopularSongsByTheme(
@@ -628,7 +691,17 @@ class ApiClient {
     if (cursor?.cursor_plays) params.append('cursor_plays', String(cursor.cursor_plays));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/popular/songs/theme/${encodeURIComponent(theme)}?${params}`);
-    return ensureArray(response.data);
+    const rawData = ensureArray(response.data) as Array<{
+      music_uuid: string;
+      artist_uuid?: string;
+      decay_plays?: number;
+      plays?: number;
+      decay_listen_seconds?: number;
+      listen_seconds?: number;
+    }>;
+
+    // Enrich with music and artist details
+    return await this.enrichSongPopularity(rawData);
   }
 
   async getPopularSongsByThemeTimeframe(
@@ -646,7 +719,17 @@ class ApiClient {
     if (cursor?.cursor_plays) params.append('cursor_plays', String(cursor.cursor_plays));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/popular/songs/theme/${encodeURIComponent(theme)}/timeframe?${params}`);
-    return ensureArray(response.data);
+    const rawData = ensureArray(response.data) as Array<{
+      music_uuid: string;
+      artist_uuid?: string;
+      decay_plays?: number;
+      plays?: number;
+      decay_listen_seconds?: number;
+      listen_seconds?: number;
+    }>;
+
+    // Enrich with music and artist details
+    return await this.enrichSongPopularity(rawData);
   }
 
   async getPopularArtistsAllTime(limit = 20, cursor?: PopularityCursor): Promise<ArtistPopularity[]> {
@@ -654,7 +737,53 @@ class ApiClient {
     if (cursor?.cursor_decay) params.append('cursor_decay', String(cursor.cursor_decay));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/popular/artists/all-time?${params}`);
-    return ensureArray(response.data);
+    const rawData = ensureArray(response.data) as Array<{
+      artist_uuid: string;
+      decay_plays?: number;
+      plays?: number;
+      decay_listen_seconds?: number;
+      listen_seconds?: number;
+    }>;
+
+    // Enrich with artist details
+    return await this.enrichArtistPopularity(rawData);
+  }
+
+  private async enrichArtistPopularity(rawData: Array<{
+    artist_uuid: string;
+    decay_plays?: number;
+    plays?: number;
+    decay_listen_seconds?: number;
+    listen_seconds?: number;
+  }>): Promise<ArtistPopularity[]> {
+    // Fetch artist details in parallel
+    const enrichedPromises = rawData.map(async (item) => {
+      try {
+        const artist = await this.getArtist(item.artist_uuid);
+
+        return {
+          artist_uuid: item.artist_uuid,
+          artist_name: artist.artist_name,
+          decay_plays: item.decay_plays,
+          plays: item.plays,
+          decay_listen_seconds: item.decay_listen_seconds,
+          listen_seconds: item.listen_seconds,
+        };
+      } catch (error) {
+        console.warn(`Failed to enrich artist ${item.artist_uuid}:`, error);
+        // Return partial data on error
+        return {
+          artist_uuid: item.artist_uuid,
+          artist_name: 'Unknown Artist',
+          decay_plays: item.decay_plays,
+          plays: item.plays,
+          decay_listen_seconds: item.decay_listen_seconds,
+          listen_seconds: item.listen_seconds,
+        };
+      }
+    });
+
+    return await Promise.all(enrichedPromises);
   }
 
   async getPopularArtistsTimeframe(
@@ -671,7 +800,16 @@ class ApiClient {
     if (cursor?.cursor_plays) params.append('cursor_plays', String(cursor.cursor_plays));
     if (cursor?.cursor_id) params.append('cursor_id', cursor.cursor_id);
     const response = await this.client.get(`/popular/artists/timeframe?${params}`);
-    return ensureArray(response.data);
+    const rawData = ensureArray(response.data) as Array<{
+      artist_uuid: string;
+      decay_plays?: number;
+      plays?: number;
+      decay_listen_seconds?: number;
+      listen_seconds?: number;
+    }>;
+
+    // Enrich with artist details
+    return await this.enrichArtistPopularity(rawData);
   }
 
   async getPopularThemesAllTime(limit = 20): Promise<ThemePopularity[]> {
