@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 class Config:
     db_warehouse_string: str
     bandit_data_table: str
+    theme_catalog_table: str
     db_params_string: str
     bandit_params_table: str
     alpha: float
@@ -22,9 +23,10 @@ class Config:
         load_dotenv()
 
         db_warehouse_string = os.getenv("DB_CONNECTION_STRING_WAREHOUSE")
-        bandit_data_table = os.getenv("WAREHOUSE_BANDIT_DATA_TABLE")
+        bandit_data_table = os.getenv("WAREHOUSE_BANDIT_DATA_TABLE", "bandit_input_per_theme")
+        theme_catalog_table = os.getenv("WAREHOUSE_THEME_CATALOG_TABLE", "music_theme")
         db_params_string = os.getenv("DB_CONNECTION_STRING_PARAMS")
-        bandit_params_table = os.getenv("BANDIT_DATA_TABLE")
+        bandit_params_table = os.getenv("BANDIT_DATA_TABLE", "bandit_data")
         alpha = float(os.getenv("BANDIT_ALPHA", "0.5"))
         ridge_lambda = float(os.getenv("BANDIT_RIDGE_LAMBDA", "1.0"))
         sherman_morrison_recompute_interval = int(
@@ -43,6 +45,7 @@ class Config:
         return cls(
             db_warehouse_string=db_warehouse_string,
             bandit_data_table=bandit_data_table,
+            theme_catalog_table=theme_catalog_table,
             db_params_string=db_params_string,
             bandit_params_table=bandit_params_table,
             alpha=alpha,

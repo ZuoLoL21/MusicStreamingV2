@@ -38,6 +38,7 @@ def test_config():
     return Config(
         db_warehouse_string=CLICKHOUSE_TEST_URL,
         bandit_data_table="bandit_input_per_theme",
+        theme_catalog_table="music_theme",
         db_params_string=POSTGRES_TEST_URL,
         bandit_params_table="bandit_data",
         alpha=0.5,

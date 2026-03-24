@@ -45,7 +45,7 @@ class DBManagers:
         self._storage_engine = create_engine(config.db_params_string)
         self._warehouse_engine = create_engine(config.db_warehouse_string)
         self._logger = structlog.get_logger("db_managers")
-        self._themes_cache = ThemesCache(self._warehouse_engine, config.bandit_data_table)
+        self._themes_cache = ThemesCache(self._warehouse_engine, config.theme_catalog_table)
 
     def get_input_data(self, uuid: UUID4) -> Dict[str, np.ndarray]:
         cols = ", ".join(_FEATURE_COLS)

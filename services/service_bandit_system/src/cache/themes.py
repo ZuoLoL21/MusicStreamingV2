@@ -8,9 +8,9 @@ from sqlalchemy import Engine, text
 
 class ThemesCache:
 
-    def __init__(self, warehouse_engine: Engine, bandit_data_table: str, ttl_minutes: int = 30):
+    def __init__(self, warehouse_engine: Engine, theme_catalog_table: str, ttl_minutes: int = 30):
         self._warehouse_engine = warehouse_engine
-        self._bandit_data_table = bandit_data_table
+        self._theme_catalog_table = theme_catalog_table
         self._logger = structlog.get_logger("themes_cache")
 
         self._ttl = timedelta(minutes=ttl_minutes)
@@ -30,7 +30,7 @@ class ThemesCache:
 
             query = text(
                 f"SELECT DISTINCT theme"
-                f" FROM {self._bandit_data_table}"
+                f" FROM {self._theme_catalog_table}"
                 f" ORDER BY theme"
             )
 
