@@ -6,6 +6,7 @@ import structlog
 from pydantic import UUID4
 from sqlalchemy import create_engine, text
 
+from src.cache.themes import ThemesCache
 from src.di.config import Config
 from src.models.linucb import ArmResultLinUCB, LinUCB
 
@@ -75,71 +76,39 @@ class DBManagers:
             f"SELECT theme, weights, biases, weights_inv, updates_since_recompute, version"
             f" FROM {self._config.bandit_params_table}"
             f" WHERE user_uuid = :uuid"
-            f" ORDER BY theme"
         )
         with self._storage_engine.connect() as conn:
             rows = conn.execute(query, {"uuid": str(uuid)}).fetchall()
 
-        arms: Dict[str, ArmResultLinUCB] = {}
-        for (
-            theme,
-            weights_json,
-            biases_json,
-            weights_inv_json,
-            updates_since_recompute,
-            version,
-        ) in rows:
-            weights_inv = (
-                np.array(_ensure_deserialized(weights_inv_json), dtype=np.float64)
-                if weights_inv_json
-                else None
-            )
-            if weights_inv is None:
-                # Fallback: compute inverse if not stored
-                weights = np.array(_ensure_deserialized(weights_json), dtype=np.float64)
-                weights_inv = np.linalg.inv(weights)
-                updates_since_recompute = 0
-
-            arms[theme] = ArmResultLinUCB(
-                Theme=theme,
-                Version=int(version),
-                Weights=np.array(_ensure_deserialized(weights_json), dtype=np.float64),
-                Biases=np.array(_ensure_deserialized(biases_json), dtype=np.float64),
-                WeightsInv=weights_inv,
-                UpdatesSinceRecompute=int(updates_since_recompute)
-                if updates_since_recompute is not None
-                else 0,
-            )
-        return arms
+        return {
+            row[0]: self._build_arm_result(*row)
+            for row in rows
+        }
 
     def get_weight_bias_for_one(self, uuid: UUID4, theme: str) -> ArmResultLinUCB:
         query = text(
             f"SELECT weights, biases, weights_inv, updates_since_recompute, version"
             f" FROM {self._config.bandit_params_table}"
-            f" WHERE user_uuid = :uuid"
-            f" AND theme = :theme"
+            f" WHERE user_uuid = :uuid AND theme = :theme"
         )
         with self._storage_engine.connect() as conn:
             rows = conn.execute(query, {"uuid": str(uuid), "theme": theme}).fetchall()
 
-        if len(rows) == 0:
+        if not rows:
             return self._bandit.get_new_arm_result(theme, NUMB_FEATURES)
 
-        (
-            weights_json,
-            biases_json,
-            weights_inv_json,
-            updates_since_recompute,
-            version,
-        ) = rows[0]
+        return self._build_arm_result(theme, *rows[0])
 
+    def _build_arm_result(
+        self, theme: str, weights_json, biases_json, weights_inv_json, updates_since_recompute, version
+    ) -> ArmResultLinUCB:
         weights = np.array(_ensure_deserialized(weights_json), dtype=np.float64)
-        weights_inv = (
-            np.array(_ensure_deserialized(weights_inv_json), dtype=np.float64)
-            if weights_inv_json
-            else None
-        )
-        if weights_inv is None:
+        biases = np.array(_ensure_deserialized(biases_json), dtype=np.float64)
+
+        # Compute inverse if not stored
+        if weights_inv_json:
+            weights_inv = np.array(_ensure_deserialized(weights_inv_json), dtype=np.float64)
+        else:
             weights_inv = np.linalg.inv(weights)
             updates_since_recompute = 0
 
@@ -147,11 +116,9 @@ class DBManagers:
             Theme=theme,
             Version=int(version),
             Weights=weights,
-            Biases=np.array(_ensure_deserialized(biases_json), dtype=np.float64),
+            Biases=biases,
             WeightsInv=weights_inv,
-            UpdatesSinceRecompute=int(updates_since_recompute)
-            if updates_since_recompute is not None
-            else 0,
+            UpdatesSinceRecompute=int(updates_since_recompute or 0),
         )
 
     def update_weight_bias(
