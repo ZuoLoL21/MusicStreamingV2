@@ -43,19 +43,32 @@ class DBManagers:
         self._bandit = bandit
         self._storage_engine = create_engine(config.db_params_string)
         self._warehouse_engine = create_engine(config.db_warehouse_string)
+        self._logger = structlog.get_logger("db_managers")
+        self._themes_cache = ThemesCache(self._warehouse_engine, config.bandit_data_table)
 
     def get_input_data(self, uuid: UUID4) -> Dict[str, np.ndarray]:
         cols = ", ".join(_FEATURE_COLS)
-        query = text(
+        user_query = text(
             f"SELECT theme, {cols}"
             f" FROM {self._config.bandit_data_table}"
             f" WHERE user_uuid = :uuid"
-            f" ORDER BY theme"
         )
         with self._warehouse_engine.connect() as conn:
-            rows = conn.execute(query, {"uuid": str(uuid)}).fetchall()
+            user_rows = conn.execute(user_query, {"uuid": str(uuid)}).fetchall()
 
-        return {row[0]: np.array(row[1:], dtype=np.float64) for row in rows}
+        user_themes = {row[0]: np.array(row[1:], dtype=np.float64) for row in user_rows}
+
+        all_themes = {
+            theme: np.zeros(NUMB_FEATURES, dtype=np.float64)
+            for theme in self._themes_cache.get_all_themes()
+        }
+
+        result = {**all_themes, **user_themes}
+
+        if len(user_themes) == 0:
+            self._logger.info("cold_start", user_uuid=str(uuid), theme_count=len(result))
+
+        return result
 
     def get_weight_bias(self, uuid: UUID4) -> Dict[str, ArmResultLinUCB]:
         query = text(
