@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { api, getFileUrl } from '@/lib/api';
 import { formatDuration } from '@/lib/formatters';
 import { Artist, Music, Album } from '@/lib/types';
-import { Play } from 'lucide-react';
+import { Play, Upload, Edit, Users, BarChart3, UserPlus, UserMinus } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -19,6 +19,8 @@ export default function ArtistPage() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<'owner' | 'manager' | 'member' | null>(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { playQueue } = usePlayerStore();
 
   useEffect(() => {
@@ -38,16 +40,33 @@ export default function ArtistPage() {
       setMusic(musicData);
       setAlbums(albumsData);
 
-      // Check if current user is a member
+      // Check if current user is a member and if following
       try {
         const currentUser = await api.getCurrentUser();
+        setIsLoggedIn(true);
+
         const members = await api.getArtistMembers(artistId);
+        console.log('Current user UUID:', currentUser.uuid);
+        console.log('Artist members:', members);
         const userMember = members.find((m) => m.user_uuid === currentUser.uuid);
+        console.log('User member found:', userMember);
         if (userMember) {
           setUserRole(userMember.role);
         }
+
+        // Check if following (only if not a member)
+        if (!userMember) {
+          try {
+            const followedArtists = await api.getFollowedArtists(currentUser.uuid, 1000);
+            const isFollowingArtist = followedArtists.some(a => a.uuid === artistId);
+            setIsFollowing(isFollowingArtist);
+          } catch (e) {
+            // Couldn't check following status
+          }
+        }
       } catch (e) {
         // User is not logged in or not a member
+        setIsLoggedIn(false);
       }
     } catch (error) {
       toast.error('Failed to load artist');
@@ -67,6 +86,41 @@ export default function ArtistPage() {
     playQueue(music, index);
   };
 
+  const handleFollowToggle = async () => {
+    if (!isLoggedIn) {
+      toast.error('Please log in to follow artists');
+      return;
+    }
+
+    try {
+      if (isFollowing) {
+        await api.unfollowArtist(artistId);
+        setIsFollowing(false);
+        toast.success('Unfollowed artist');
+        // Update follower count
+        if (artist) {
+          setArtist({
+            ...artist,
+            follower_count: (artist.follower_count || 0) - 1,
+          });
+        }
+      } else {
+        await api.followArtist(artistId);
+        setIsFollowing(true);
+        toast.success('Following artist');
+        // Update follower count
+        if (artist) {
+          setArtist({
+            ...artist,
+            follower_count: (artist.follower_count || 0) + 1,
+          });
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to update follow status');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -83,7 +137,115 @@ export default function ArtistPage() {
     );
   }
 
-  return (
+  // Management View for Owners/Managers
+  const renderManagementView = () => (
+    <div>
+      {/* Management Header */}
+      <div className="bg-gradient-to-b from-purple-900 to-black p-8">
+        <div className="flex items-end space-x-6">
+          <div className="w-48 h-48 bg-gray-800 rounded-full overflow-hidden flex-shrink-0">
+            {artist.profile_image_path ? (
+              <img
+                src={getFileUrl(artist.profile_image_path)}
+                alt={artist.artist_name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-6xl text-gray-600">
+                {artist.artist_name.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <p className="text-sm font-semibold uppercase">Your Artist</p>
+              <span className="px-2 py-1 bg-purple-600 text-xs rounded-full">{userRole}</span>
+            </div>
+            <h1 className="text-6xl font-bold my-2">{artist.artist_name}</h1>
+            {artist.follower_count !== undefined && (
+              <p className="text-gray-400">{artist.follower_count.toLocaleString()} followers</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Management Stats & Actions */}
+      <div className="bg-gradient-to-b from-black/60 to-black p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+          {/* Stats Cards */}
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <div className="text-3xl font-bold">{music.length}</div>
+            <div className="text-sm text-gray-400">Total Tracks</div>
+          </div>
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <div className="text-3xl font-bold">{albums.length}</div>
+            <div className="text-sm text-gray-400">Albums</div>
+          </div>
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <div className="text-3xl font-bold">{artist.follower_count || 0}</div>
+            <div className="text-sm text-gray-400">Followers</div>
+          </div>
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <div className="text-3xl font-bold">
+              {music.reduce((sum, m) => sum + m.play_count, 0).toLocaleString()}
+            </div>
+            <div className="text-sm text-gray-400">Total Plays</div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={handlePlayAll}
+            disabled={music.length === 0}
+            className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center hover:scale-105 transition disabled:opacity-50"
+          >
+            <Play className="w-7 h-7 text-black ml-1" />
+          </button>
+
+          <Link
+            href={`/artists/${artistId}/upload`}
+            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-full font-semibold"
+          >
+            <Upload className="w-5 h-5" />
+            Upload Music
+          </Link>
+
+          {(userRole === 'owner' || userRole === 'manager') && (
+            <>
+              <Link
+                href={`/artists/${artistId}/edit`}
+                className="flex items-center gap-2 px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-full font-semibold"
+              >
+                <Edit className="w-5 h-5" />
+                Edit Artist
+              </Link>
+              <Link
+                href={`/artists/${artistId}/albums/create`}
+                className="flex items-center gap-2 px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-full font-semibold"
+              >
+                <Upload className="w-5 h-5" />
+                Create Album
+              </Link>
+            </>
+          )}
+
+          {userRole === 'owner' && (
+            <Link
+              href={`/artists/${artistId}/members`}
+              className="flex items-center gap-2 px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-full font-semibold"
+            >
+              <Users className="w-5 h-5" />
+              Manage Members
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Listener View for Regular Users
+  const renderListenerView = () => (
     <div>
       {/* Artist Header */}
       <div className="bg-gradient-to-b from-green-900 to-black p-8">
@@ -104,8 +266,9 @@ export default function ArtistPage() {
           <div className="flex-1">
             <p className="text-sm font-semibold uppercase">Artist</p>
             <h1 className="text-6xl font-bold my-2">{artist.artist_name}</h1>
+            {artist.bio && <p className="text-gray-400 mt-2">{artist.bio}</p>}
             {artist.follower_count !== undefined && (
-              <p className="text-gray-400">{artist.follower_count.toLocaleString()} followers</p>
+              <p className="text-gray-400 mt-2">{artist.follower_count.toLocaleString()} followers</p>
             )}
           </div>
         </div>
@@ -122,51 +285,37 @@ export default function ArtistPage() {
             <Play className="w-7 h-7 text-black ml-1" />
           </button>
 
-          {/* Management Actions */}
-          {userRole && (
-            <div className="flex gap-3">
-              {(userRole === 'owner' || userRole === 'manager') && (
+          {isLoggedIn && (
+            <button
+              onClick={handleFollowToggle}
+              className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold ${
+                isFollowing
+                  ? 'bg-gray-700 hover:bg-gray-600'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              {isFollowing ? (
                 <>
-                  <Link
-                    href={`/artists/${artistId}/edit`}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-full font-semibold"
-                  >
-                    Edit Artist
-                  </Link>
-                  <Link
-                    href={`/artists/${artistId}/upload`}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-full font-semibold"
-                  >
-                    Upload Music
-                  </Link>
-                  <Link
-                    href={`/artists/${artistId}/albums/create`}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-full font-semibold"
-                  >
-                    Create Album
-                  </Link>
+                  <UserMinus className="w-5 h-5" />
+                  Unfollow
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-5 h-5" />
+                  Follow
                 </>
               )}
-              {userRole === 'member' && (
-                <Link
-                  href={`/artists/${artistId}/upload`}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-full font-semibold"
-                >
-                  Upload Music
-                </Link>
-              )}
-              {userRole === 'owner' && (
-                <Link
-                  href={`/artists/${artistId}/members`}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-full font-semibold"
-                >
-                  Manage Members
-                </Link>
-              )}
-            </div>
+            </button>
           )}
         </div>
       </div>
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Render appropriate view based on user role */}
+      {userRole ? renderManagementView() : renderListenerView()}
 
       {/* Content */}
       <div className="p-8">

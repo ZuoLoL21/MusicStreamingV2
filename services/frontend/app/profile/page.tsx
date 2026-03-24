@@ -108,19 +108,35 @@ export default function ProfilePage() {
       {/* User's Artists */}
       {artists.length > 0 && (
         <div className="bg-gray-800 rounded-lg p-6 mb-6">
-          <h2 className="text-2xl font-bold mb-4">Your Artists</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Your Artists</h2>
+            <Link
+              href="/profile/artists"
+              className="text-blue-400 hover:text-blue-300 font-semibold"
+            >
+              Manage All →
+            </Link>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {artists.map((artist) => (
+            {artists.slice(0, 4).map((artist) => (
               <Link
                 key={artist.uuid}
                 href={`/artists/${artist.uuid}`}
                 className="flex items-center gap-4 p-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition"
               >
-                <img
-                  src={getFileUrl(artist.profile_image_path || '')}
-                  alt={artist.artist_name}
-                  className="w-16 h-16 rounded-full object-cover"
-                />
+                <div className="w-16 h-16 rounded-full bg-gray-600 overflow-hidden flex-shrink-0">
+                  {artist.profile_image_path ? (
+                    <img
+                      src={getFileUrl(artist.profile_image_path)}
+                      alt={artist.artist_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-2xl text-gray-400">
+                      {artist.artist_name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
                 <div>
                   <h3 className="font-semibold">{artist.artist_name}</h3>
                   {artist.follower_count !== undefined && (
@@ -132,24 +148,35 @@ export default function ProfilePage() {
               </Link>
             ))}
           </div>
-          <Link
-            href="/artists/create"
-            className="mt-4 inline-block bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-semibold"
-          >
-            Create New Artist
-          </Link>
+          {artists.length > 4 && (
+            <p className="text-sm text-gray-400 mt-3">
+              and {artists.length - 4} more...
+            </p>
+          )}
         </div>
       )}
 
       {artists.length === 0 && (
         <div className="bg-gray-800 rounded-lg p-6 text-center">
-          <p className="text-gray-400 mb-4">You haven't created any artists yet</p>
-          <Link
-            href="/artists/create"
-            className="inline-block bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-semibold"
-          >
-            Create Your First Artist
-          </Link>
+          <h2 className="text-2xl font-bold mb-3">Start Sharing Your Music</h2>
+          <p className="text-gray-400 mb-2">Create an artist profile to upload and share your music</p>
+          <p className="text-sm text-gray-500 mb-6">
+            As an artist, you can upload songs, create albums, and build your following
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Link
+              href="/artists/create"
+              className="inline-block bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold"
+            >
+              Create Your First Artist
+            </Link>
+            <Link
+              href="/profile/artists"
+              className="inline-block bg-gray-700 hover:bg-gray-600 px-6 py-3 rounded-lg font-semibold"
+            >
+              Learn More
+            </Link>
+          </div>
         </div>
       )}
 

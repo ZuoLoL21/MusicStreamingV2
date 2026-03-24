@@ -58,7 +58,7 @@ export default function HomePage() {
       </p>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
         <Link
           href="/discover"
           className="bg-gradient-to-br from-purple-600 to-blue-600 p-6 rounded-lg hover:scale-105 transition"
@@ -67,25 +67,18 @@ export default function HomePage() {
           <p className="text-sm opacity-90">Explore new music and themes</p>
         </Link>
         <Link
-          href="/profile"
+          href="/search"
           className="bg-gradient-to-br from-green-600 to-teal-600 p-6 rounded-lg hover:scale-105 transition"
         >
-          <h3 className="text-xl font-bold mb-2">Your Profile</h3>
-          <p className="text-sm opacity-90">Manage your account</p>
+          <h3 className="text-xl font-bold mb-2">Search</h3>
+          <p className="text-sm opacity-90">Find your favorite songs and artists</p>
         </Link>
         <Link
-          href="/artists/create"
+          href="/library"
           className="bg-gradient-to-br from-orange-600 to-red-600 p-6 rounded-lg hover:scale-105 transition"
         >
-          <h3 className="text-xl font-bold mb-2">Create Artist</h3>
-          <p className="text-sm opacity-90">Start uploading music</p>
-        </Link>
-        <Link
-          href="/playlists/create"
-          className="bg-gradient-to-br from-pink-600 to-purple-600 p-6 rounded-lg hover:scale-105 transition"
-        >
-          <h3 className="text-xl font-bold mb-2">New Playlist</h3>
-          <p className="text-sm opacity-90">Organize your favorites</p>
+          <h3 className="text-xl font-bold mb-2">Your Library</h3>
+          <p className="text-sm opacity-90">Access your playlists and likes</p>
         </Link>
       </div>
 

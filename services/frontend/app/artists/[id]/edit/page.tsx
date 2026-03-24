@@ -29,10 +29,22 @@ export default function EditArtistPage() {
       const data = await api.getArtist(artistId);
       setArtist(data);
 
-      // Check if user can edit (need to check membership)
-      // For now, assume they can if they're on this page
-      // In production, check user role via members endpoint
-      setCanEdit(true);
+      // Check if user can edit (owner or manager only)
+      try {
+        const currentUser = await api.getCurrentUser();
+        const members = await api.getArtistMembers(artistId);
+        const userMember = members.find((m) => m.user_uuid === currentUser.uuid);
+
+        if (userMember && (userMember.role === 'owner' || userMember.role === 'manager')) {
+          setCanEdit(true);
+        } else {
+          toast.error('You must be an owner or manager to edit this artist');
+          router.push(`/artists/${artistId}`);
+        }
+      } catch (e) {
+        toast.error('Failed to verify permissions');
+        router.push(`/artists/${artistId}`);
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to load artist');
       router.push('/artists');
