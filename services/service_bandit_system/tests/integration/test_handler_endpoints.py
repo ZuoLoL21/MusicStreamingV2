@@ -78,10 +78,10 @@ def test_predict_success_multiple_themes(test_client, db_managers):
 
 
 def test_predict_no_themes_available(test_client, db_managers):
-    """Test prediction fails when no themes exist for user."""
+    """Test prediction fails when NO themes exist in the entire system."""
     user_uuid = uuid4()
 
-    # Don't insert any themes
+    # Don't insert any themes (empty system)
 
     # Make prediction request
     response = test_client.post(
@@ -90,7 +90,71 @@ def test_predict_no_themes_available(test_client, db_managers):
     )
 
     assert response.status_code == 500
-    assert "No themes exist in DB" in response.json()["detail"]
+    assert "No themes exist in the system" in response.json()["detail"]
+
+
+def test_predict_new_user_cold_start(test_client, db_managers):
+    """Test prediction for new user with no data (cold-start scenario)."""
+    new_user_uuid = uuid4()
+    existing_user_uuid = uuid4()
+    themes = ["rock", "jazz", "classical", "pop", "metal"]
+
+    # Insert themes for an existing user (so themes exist in the system)
+    # Each with different popularity levels
+    for i, theme in enumerate(themes):
+        builder = ThemeFeatureBuilder(existing_user_uuid, theme)
+        # Give them different popularity (higher impressions = more popular)
+        builder.features[7] = 1000.0 - (i * 100)  # f_theme_decay_impressions
+        builder.build(db_managers)
+
+    # New user makes prediction request (has no data yet)
+    response = test_client.post(
+        "/api/v1/predict",
+        json={"user_uuid": str(new_user_uuid)}
+    )
+
+    # Should succeed with random exploration across all available themes
+    assert response.status_code == 200
+    data = response.json()
+    assert "theme" in data
+    assert "features" in data
+    # Should return one of all available themes
+    assert data["theme"] in themes
+    # Features should be zeros (pure exploration)
+    assert all(f == 0.0 for f in data["features"])
+
+
+def test_predict_existing_user_with_exploration_themes(test_client, db_managers):
+    """Test that existing users get all themes for discovering new genres."""
+    user_uuid = uuid4()
+    other_user_uuid = uuid4()
+
+    # User has listened to only 2 themes
+    user_themes = ["rock", "jazz"]
+    for theme in user_themes:
+        ThemeFeatureBuilder(user_uuid, theme).with_high_engagement().build(db_managers)
+
+    # System has more themes (some user hasn't tried)
+    all_themes = ["rock", "jazz", "pop", "electronic", "classical"]
+    for i, theme in enumerate(all_themes):
+        if theme not in user_themes:
+            # Other users have listened to these themes
+            builder = ThemeFeatureBuilder(other_user_uuid, theme)
+            builder.features[7] = 1000.0 - (i * 100)  # f_theme_decay_impressions
+            builder.build(db_managers)
+
+    # Make prediction
+    response = test_client.post(
+        "/api/v1/predict",
+        json={"user_uuid": str(user_uuid)}
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # User should be able to get recommended ANY theme in the system
+    # (Their 2 themes with personalized features + all other themes for exploration)
+    assert data["theme"] in all_themes
 
 
 def test_predict_invalid_uuid(test_client):

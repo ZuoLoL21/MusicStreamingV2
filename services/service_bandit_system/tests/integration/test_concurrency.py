@@ -169,7 +169,7 @@ def test_max_retries_exceeded(db_managers, handler, monkeypatch):
     monkeypatch.setattr(db_managers, "update_weight_bias", always_fail_update)
 
     # Attempt update (should fail after max retries)
-    with pytest.raises(RuntimeError, match="Failed to update bandit"):
+    with pytest.raises(RuntimeError, match="Update failed after .* retries"):
         handler.update(user_uuid, 0.8, theme, features)
 
 
