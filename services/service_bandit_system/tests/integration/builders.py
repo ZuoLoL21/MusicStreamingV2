@@ -201,6 +201,59 @@ class BanditWeightBuilder:
                 )
 
 
+class MusicThemeBuilder:
+    """Builds music-theme associations for ClickHouse warehouse database.
+
+    Example usage:
+        builder = MusicThemeBuilder(music_uuid, "rock")
+        builder.with_stats(views=100, successes=80).build(db_managers)
+    """
+
+    def __init__(self, music_uuid: UUID, theme: str):
+        self.music_uuid = music_uuid
+        self.theme = theme
+        self.views = 0
+        self.successes = 0
+
+    def with_stats(self, views: int = 0, successes: int = 0) -> "MusicThemeBuilder":
+        """Set view and success statistics.
+
+        Args:
+            views: Number of times this theme was viewed
+            successes: Number of successful interactions with this theme
+
+        Returns:
+            self for method chaining
+        """
+        self.views = views
+        self.successes = successes
+        return self
+
+    def build(self, db_managers: DBManagers):
+        """Insert the music-theme association into ClickHouse.
+
+        Args:
+            db_managers: DatabaseManagers instance with warehouse connection
+        """
+        query = text(
+            f"INSERT INTO {db_managers._config.theme_catalog_table} "
+            "(music_uuid, theme, views, successes) "
+            "VALUES (:music_uuid, :theme, :views, :successes)"
+        )
+
+        with db_managers._warehouse_engine.connect() as conn:
+            with conn.begin():
+                conn.execute(
+                    query,
+                    {
+                        "music_uuid": str(self.music_uuid),
+                        "theme": self.theme,
+                        "views": self.views,
+                        "successes": self.successes,
+                    },
+                )
+
+
 def create_test_user_with_themes(
     db_managers: DBManagers, user_uuid: UUID, themes: List[str]
 ) -> None:

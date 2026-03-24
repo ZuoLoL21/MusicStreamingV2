@@ -7,6 +7,7 @@ from uuid import uuid4
 from tests.integration.builders import (
     ThemeFeatureBuilder,
     BanditWeightBuilder,
+    MusicThemeBuilder,
     create_test_user_with_themes,
 )
 
@@ -93,11 +94,30 @@ def test_predict_no_themes_available(test_client, db_managers):
     assert "No themes exist in DB" in response.json()["detail"]
 
 
-def test_predict_new_user_cold_start(test_client, db_managers):
+def test_predict_new_user_cold_start(test_client, app_state, clickhouse_engine, test_config):
     """Test prediction for new user with no data (cold-start scenario)."""
+    from sqlalchemy import text
+
     new_user_uuid = uuid4()
     existing_user_uuid = uuid4()
     themes = ["rock", "jazz", "classical", "pop", "metal"]
+
+    # Get db_managers from app_state to ensure we're using the same instance
+    db_managers = app_state.db
+
+    # First, populate the theme catalog with available themes using direct SQL
+    with clickhouse_engine.connect() as conn:
+        with conn.begin():
+            for theme in themes:
+                music_uuid = uuid4()
+                query = text(
+                    f"INSERT INTO {test_config.theme_catalog_table} "
+                    "(music_uuid, theme) VALUES (:music_uuid, :theme)"
+                )
+                conn.execute(query, {"music_uuid": str(music_uuid), "theme": theme})
+
+    # Invalidate cache to force refresh after inserting themes
+    db_managers._themes_cache.invalidate()
 
     # Insert themes for an existing user (so themes exist in the system)
     # Each with different popularity levels
@@ -124,21 +144,33 @@ def test_predict_new_user_cold_start(test_client, db_managers):
     assert all(f == 0.0 for f in data["features"])
 
 
-def test_predict_existing_user_with_exploration_themes(test_client, db_managers):
+def test_predict_existing_user_with_exploration_themes(test_client, app_state):
     """Test that existing users get all themes for discovering new genres."""
     user_uuid = uuid4()
     other_user_uuid = uuid4()
+
+    # Get db_managers from app_state to ensure we're using the same instance
+    db_managers = app_state.db
+
+    # System has more themes (some user hasn't tried)
+    all_themes = ["rock", "jazz", "pop", "electronic", "classical"]
+
+    # First, populate the theme catalog with all available themes
+    for theme in all_themes:
+        music_uuid = uuid4()
+        MusicThemeBuilder(music_uuid, theme).build(db_managers)
+
+    # Invalidate cache to force refresh after inserting themes
+    db_managers._themes_cache.invalidate()
 
     # User has listened to only 2 themes
     user_themes = ["rock", "jazz"]
     for theme in user_themes:
         ThemeFeatureBuilder(user_uuid, theme).with_high_engagement().build(db_managers)
 
-    # System has more themes (some user hasn't tried)
-    all_themes = ["rock", "jazz", "pop", "electronic", "classical"]
+    # Other users have listened to the remaining themes
     for i, theme in enumerate(all_themes):
         if theme not in user_themes:
-            # Other users have listened to these themes
             builder = ThemeFeatureBuilder(other_user_uuid, theme)
             builder.features[7] = 1000.0 - (i * 100)  # f_theme_decay_impressions
             builder.build(db_managers)

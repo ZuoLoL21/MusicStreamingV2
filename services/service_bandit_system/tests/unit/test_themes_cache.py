@@ -27,7 +27,7 @@ def test_cache_initialization(mock_engine):
     cache = ThemesCache(mock_engine, "test_table", ttl_minutes=15)
 
     assert cache._warehouse_engine == mock_engine
-    assert cache._bandit_data_table == "test_table"
+    assert cache._theme_catalog_table == "test_table"
     assert cache._ttl.total_seconds() == 15 * 60
     assert cache._cache is None
     assert cache._expires_at is None
@@ -179,13 +179,13 @@ def test_sql_query_construction(mock_engine, mock_connection):
     mock_result.fetchall.return_value = [("rock",)]
     mock_connection.execute.return_value = mock_result
 
-    cache = ThemesCache(mock_engine, "my_bandit_table")
+    cache = ThemesCache(mock_engine, "my_theme_catalog")
     cache.get_all_themes()
 
     # Verify the SQL query contains the correct table name
     call_args = mock_connection.execute.call_args
     query = str(call_args[0][0])
 
-    assert "my_bandit_table" in query
+    assert "my_theme_catalog" in query
     assert "SELECT DISTINCT theme" in query
     assert "ORDER BY theme" in query

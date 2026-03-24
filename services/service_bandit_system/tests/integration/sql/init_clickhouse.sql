@@ -1,12 +1,23 @@
 -- ClickHouse initialization for integration tests
--- Simple table (not view) for testing bandit feature inputs
+-- Simple tables (not views) for testing bandit feature inputs
 --
--- IMPORTANT: This schema must match the columns in:
---   ../../../database_data_warehouse/12_bandit_input.sql
+-- IMPORTANT: These schemas must match the production schemas in:
+--   ../../../database_data_warehouse/02_features.sql (music_theme)
+--   ../../../database_data_warehouse/12_bandit_input.sql (bandit_input_per_theme)
 --
--- If you modify the production view, update these columns accordingly.
--- The production view defines the contract; this table implements it for testing.
+-- If you modify the production schemas, update these accordingly.
 
+-- Music theme catalog (from 02_features.sql)
+CREATE TABLE IF NOT EXISTS music_theme (
+    music_uuid UUID,
+    theme LowCardinality(String),
+    views UInt64 DEFAULT 0,
+    successes UInt64 DEFAULT 0,
+    last_update DateTime64(3, 'UTC') DEFAULT now64(3)
+) ENGINE = ReplacingMergeTree(last_update)
+ORDER BY (music_uuid, theme);
+
+-- Bandit feature inputs (from 12_bandit_input.sql)
 CREATE TABLE IF NOT EXISTS bandit_input_per_theme (
     user_uuid UUID,
     theme String,

@@ -114,6 +114,7 @@ def clean_databases(test_config):
     with clickhouse_engine.connect() as conn:
         with conn.begin():
             conn.execute(text(f"ALTER TABLE {test_config.bandit_data_table} DELETE WHERE 1=1"))
+            conn.execute(text(f"ALTER TABLE {test_config.theme_catalog_table} DELETE WHERE 1=1"))
     clickhouse_engine.dispose()
 
     yield
