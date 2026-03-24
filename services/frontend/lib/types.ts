@@ -113,6 +113,7 @@ export interface SongPopularity {
 export interface ArtistPopularity {
   artist_uuid: string;
   artist_name: string;
+  profile_image_path?: string;
   decay_plays?: number;
   plays?: number;
   decay_listen_seconds?: number;

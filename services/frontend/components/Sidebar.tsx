@@ -18,6 +18,7 @@ import {
   Settings,
   LogIn,
   LogOut,
+  Users,
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -134,6 +135,15 @@ export function Sidebar() {
                 >
                   <PlusSquare className="w-6 h-6" />
                   <span>Create Playlist</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/artists/create"
+                  className="flex items-center space-x-3 text-gray-400 hover:text-white transition-colors"
+                >
+                  <Users className="w-6 h-6" />
+                  <span>Create Artist</span>
                 </Link>
               </li>
               <li>

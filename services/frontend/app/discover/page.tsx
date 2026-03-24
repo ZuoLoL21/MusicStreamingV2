@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { api, getFileUrl } from '@/lib/api';
 import { ThemeRecommendation, SongPopularity, ArtistPopularity } from '@/lib/types';
 import { usePlayerStore } from '@/lib/store';
 import Link from 'next/link';
@@ -125,7 +125,19 @@ export default function DiscoverPage() {
               href={`/artists/${artist.artist_uuid}`}
               className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition text-center"
             >
-              <div className="w-24 h-24 bg-gray-700 rounded-full mx-auto mb-2" />
+              <div className="w-24 h-24 bg-gray-700 rounded-full mx-auto mb-2 overflow-hidden flex items-center justify-center">
+                {artist.profile_image_path ? (
+                  <img
+                    src={getFileUrl(artist.profile_image_path)}
+                    alt={artist.artist_name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-3xl text-gray-600">
+                    {artist.artist_name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
               <h3 className="font-semibold truncate">{artist.artist_name}</h3>
               <p className="text-xs text-gray-400">
                 {artist.plays?.toLocaleString() || artist.decay_plays?.toFixed(0)} plays

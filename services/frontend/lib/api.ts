@@ -764,6 +764,7 @@ class ApiClient {
         return {
           artist_uuid: item.artist_uuid,
           artist_name: artist.artist_name,
+          profile_image_path: artist.profile_image_path,
           decay_plays: item.decay_plays,
           plays: item.plays,
           decay_listen_seconds: item.decay_listen_seconds,
