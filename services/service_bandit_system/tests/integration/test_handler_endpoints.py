@@ -90,7 +90,7 @@ def test_predict_no_themes_available(test_client, db_managers):
     )
 
     assert response.status_code == 500
-    assert "No themes exist in the system" in response.json()["detail"]
+    assert "No themes exist in DB" in response.json()["detail"]
 
 
 def test_predict_new_user_cold_start(test_client, db_managers):
