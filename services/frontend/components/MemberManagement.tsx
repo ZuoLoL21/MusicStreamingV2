@@ -151,14 +151,14 @@ export default function MemberManagement({
       <div className="space-y-3">
         {members.map((member) => (
           <div
-            key={member.user_uuid}
+            key={member.uuid}
             className="flex items-center justify-between p-4 bg-gray-800 rounded-lg"
           >
             <div className="flex-1">
               <h3 className="font-semibold">{member.username}</h3>
               <p className="text-sm text-gray-400 capitalize">{member.role}</p>
               <p className="text-xs text-gray-500">
-                Added {new Date(member.added_at).toLocaleDateString()}
+                Added {new Date(member.joined_at).toLocaleDateString()}
               </p>
             </div>
 
@@ -167,7 +167,7 @@ export default function MemberManagement({
                 {canChangeRoles && (
                   <button
                     onClick={() =>
-                      handleChangeRole(member.user_uuid, member.username, member.role)
+                      handleChangeRole(member.uuid, member.username, member.role)
                     }
                     className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm font-semibold"
                   >
@@ -175,7 +175,7 @@ export default function MemberManagement({
                   </button>
                 )}
                 <button
-                  onClick={() => handleRemoveMember(member.user_uuid, member.username)}
+                  onClick={() => handleRemoveMember(member.uuid, member.username)}
                   className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm font-semibold"
                 >
                   Remove

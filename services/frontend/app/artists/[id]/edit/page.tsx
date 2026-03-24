@@ -33,7 +33,7 @@ export default function EditArtistPage() {
       try {
         const currentUser = await api.getCurrentUser();
         const members = await api.getArtistMembers(artistId);
-        const userMember = members.find((m) => m.user_uuid === currentUser.uuid);
+        const userMember = members.find((m) => m.uuid === currentUser.uuid);
 
         if (userMember && (userMember.role === 'owner' || userMember.role === 'manager')) {
           setCanEdit(true);

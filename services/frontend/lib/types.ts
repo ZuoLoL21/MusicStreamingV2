@@ -86,10 +86,16 @@ export interface PopularityCursor {
 
 // Artist Member Management
 export interface ArtistMember {
-  user_uuid: string;
+  uuid: string;
   username: string;
+  email: string;
+  bio?: string;
+  profile_image_path?: string;
+  country: string;
+  created_at: string;
+  updated_at: string;
   role: 'owner' | 'manager' | 'member';
-  added_at: string;
+  joined_at: string;
 }
 
 // Recommendations & Discovery

@@ -48,7 +48,7 @@ export default function ArtistPage() {
         const members = await api.getArtistMembers(artistId);
         console.log('Current user UUID:', currentUser.uuid);
         console.log('Artist members:', members);
-        const userMember = members.find((m) => m.user_uuid === currentUser.uuid);
+        const userMember = members.find((m) => m.uuid === currentUser.uuid);
         console.log('User member found:', userMember);
         if (userMember) {
           setUserRole(userMember.role);
