@@ -495,7 +495,7 @@ Get all playlists created by a user.
 
 ### List Artists
 
-Get a list of all artists.
+Get a list of all artists alphabetically.
 
 **Endpoint:** `GET /artists`
 
@@ -504,8 +504,9 @@ Get a list of all artists.
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| limit | int | No | Number of results (default: 20) |
-| offset | int | No | Number of results to skip |
+| limit | int | No | Number of results (default: 20, max: 100) |
+| cursor_name | string | No | Artist name cursor for pagination |
+| cursor_ts | string | No | Timestamp cursor for pagination (ISO 8601 format) |
 
 **Status Codes:**
 - `200 OK`: Returns list of artists
@@ -615,6 +616,36 @@ Get all members of an artist.
 
 **Status Codes:**
 - `200 OK`: Returns list of members
+
+**Response:**
+```json
+[
+  {
+    "uuid": "user-uuid-here",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "bio": "Artist bio",
+    "profile_image_path": "pictures-user/abc123.jpg",
+    "country": "US",
+    "created_at": "2024-01-01T12:00:00Z",
+    "updated_at": "2024-01-15T10:30:00Z",
+    "role": "owner",
+    "joined_at": "2024-01-01T12:00:00Z"
+  }
+]
+```
+
+**Response Fields:**
+- `uuid`: User's unique identifier
+- `username`: User's username
+- `email`: User's email address
+- `bio`: User's biography (optional)
+- `profile_image_path`: Path to user's profile image (optional)
+- `country`: User's country code
+- `created_at`: User account creation timestamp
+- `updated_at`: User account last update timestamp
+- `role`: User's role in the artist (`owner`, `manager`, or `member`)
+- `joined_at`: Timestamp when user joined the artist
 
 ---
 
@@ -1432,61 +1463,6 @@ Reorder all tracks in a playlist by providing the desired order (Owner only).
 
 ---
 
-## Tags Endpoints
-
-### List Tags
-
-Get all available tags.
-
-**Endpoint:** `GET /tags`
-
-**Authentication:** Service JWT required (auto-added by gateway_api)
-
-**Query Parameters:**
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| limit | int | No | Number of results (default: 20) |
-| offset | int | No | Number of results to skip |
-
-**Status Codes:**
-- `200 OK`: Returns list of tags
-
----
-
-### Get Tag
-
-Get a tag by name.
-
-**Endpoint:** `GET /tags/{name}`
-
-**Authentication:** Service JWT required (auto-added by gateway_api)
-
-**Path Parameters:**
-- `name`: Tag name
-
-**Status Codes:**
-- `200 OK`: Returns tag
-
----
-
-### Get Music by Tag
-
-Get all music with a specific tag.
-
-**Endpoint:** `GET /tags/{name}/music`
-
-**Authentication:** Service JWT required (auto-added by gateway_api)
-
-**Path Parameters:**
-- `name`: Tag name
-
-**Status Codes:**
-- `200 OK`: Returns list of music
-
----
-
-## History Endpoints
-
 ### Get Listening History
 
 Get the authenticated user's listening history with complete song and artist details.
@@ -1603,12 +1579,31 @@ Search for users.
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| q | string | Yes | Search query |
-| limit | int | No | Number of results (default: 20) |
-| offset | int | No | Number of results to skip |
+| q | string | Yes | Search query (min 2 characters) |
+| limit | int | No | Number of results (default: 20, max: 100) |
+| cursor_score | float | No | Similarity score cursor for pagination |
+| cursor_ts | string | No | Timestamp cursor for pagination (ISO 8601 format) |
+
+**Response:**
+```json
+{
+  "users": [
+    {
+      "uuid": "user-uuid-here",
+      "username": "johndoe",
+      "email": "john@example.com",
+      "bio": "Music lover",
+      "profile_image_path": "https://...",
+      "similarity_score": 0.95,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
 
 **Status Codes:**
 - `200 OK`: Returns list of users
+- `400 Bad Request`: Search query too short
 - `401 Unauthorized`: Invalid or missing token
 
 ---
@@ -1624,12 +1619,30 @@ Search for artists.
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| q | string | Yes | Search query |
-| limit | int | No | Number of results (default: 20) |
-| offset | int | No | Number of results to skip |
+| q | string | Yes | Search query (min 2 characters) |
+| limit | int | No | Number of results (default: 20, max: 100) |
+| cursor_score | float | No | Similarity score cursor for pagination |
+| cursor_ts | string | No | Timestamp cursor for pagination (ISO 8601 format) |
+
+**Response:**
+```json
+{
+  "artists": [
+    {
+      "uuid": "artist-uuid-here",
+      "artist_name": "The Beatles",
+      "bio": "Legendary band",
+      "profile_image_path": "https://...",
+      "similarity_score": 0.95,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
 
 **Status Codes:**
 - `200 OK`: Returns list of artists
+- `400 Bad Request`: Search query too short
 - `401 Unauthorized`: Invalid or missing token
 
 ---
@@ -1645,12 +1658,31 @@ Search for albums.
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| q | string | Yes | Search query |
-| limit | int | No | Number of results (default: 20) |
-| offset | int | No | Number of results to skip |
+| q | string | Yes | Search query (min 2 characters) |
+| limit | int | No | Number of results (default: 20, max: 100) |
+| cursor_score | float | No | Similarity score cursor for pagination |
+| cursor_ts | string | No | Timestamp cursor for pagination (ISO 8601 format) |
+
+**Response:**
+```json
+{
+  "albums": [
+    {
+      "uuid": "album-uuid-here",
+      "from_artist": "artist-uuid-here",
+      "original_name": "Abbey Road",
+      "description": "Classic album",
+      "image_path": "https://...",
+      "similarity_score": 0.95,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
 
 **Status Codes:**
 - `200 OK`: Returns list of albums
+- `400 Bad Request`: Search query too short
 - `401 Unauthorized`: Invalid or missing token
 
 ---
@@ -1666,12 +1698,35 @@ Search for music tracks.
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| q | string | Yes | Search query |
-| limit | int | No | Number of results (default: 20) |
-| offset | int | No | Number of results to skip |
+| q | string | Yes | Search query (min 2 characters) |
+| limit | int | No | Number of results (default: 20, max: 100) |
+| cursor_score | float | No | Similarity score cursor for pagination |
+| cursor_ts | string | No | Timestamp cursor for pagination (ISO 8601 format) |
+
+**Response:**
+```json
+{
+  "music": [
+    {
+      "uuid": "music-uuid-here",
+      "from_artist": "artist-uuid-here",
+      "uploaded_by": "user-uuid-here",
+      "in_album": "album-uuid-here",
+      "song_name": "Yesterday",
+      "path_in_file_storage": "https://...",
+      "image_path": "https://...",
+      "play_count": 100,
+      "duration_seconds": 125,
+      "similarity_score": 0.95,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
 
 **Status Codes:**
 - `200 OK`: Returns list of music
+- `400 Bad Request`: Search query too short
 - `401 Unauthorized`: Invalid or missing token
 
 ---
@@ -1687,17 +1742,99 @@ Search for playlists.
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| q | string | Yes | Search query |
-| limit | int | No | Number of results (default: 20) |
-| offset | int | No | Number of results to skip |
+| q | string | Yes | Search query (min 2 characters) |
+| limit | int | No | Number of results (default: 20, max: 100) |
+| cursor_score | float | No | Similarity score cursor for pagination |
+| cursor_ts | string | No | Timestamp cursor for pagination (ISO 8601 format) |
+
+**Response:**
+```json
+{
+  "playlists": [
+    {
+      "uuid": "playlist-uuid-here",
+      "from_user": "user-uuid-here",
+      "original_name": "My Favorites",
+      "description": "Collection of favorites",
+      "is_public": true,
+      "image_path": "https://...",
+      "similarity_score": 0.95,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
 
 **Status Codes:**
 - `200 OK`: Returns list of playlists
+- `400 Bad Request`: Search query too short
 - `401 Unauthorized`: Invalid or missing token
 
 ---
 
-## File Endpoints
+## Tag Endpoints
+
+### Get All Tags
+
+Get all tags in the system.
+
+**Endpoint:** `GET /tags`
+
+**Authentication:** Required (JWT)
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| limit | int | No | Number of results (default: 20, max: 100) |
+| cursor_name | string | No | Tag name cursor for pagination |
+
+**Response:**
+```json
+[
+  {
+    "tag_name": "rock",
+    "tag_description": "Rock music",
+    "music_count": 150
+  }
+]
+```
+
+**Status Codes:**
+- `200 OK`: Returns list of tags
+- `401 Unauthorized`: Invalid or missing token
+
+---
+
+### Get Tag
+
+Get a specific tag by name.
+
+**Endpoint:** `GET /tags/{name}`
+
+**Authentication:** Required (JWT)
+
+**Path Parameters:**
+- `name`: Tag name
+
+**Response:**
+```json
+{
+  "tag_name": "rock",
+  "tag_description": "Rock music",
+  "music_count": 150
+}
+```
+
+**Status Codes:**
+- `200 OK`: Returns tag
+- `404 Not Found`: Tag not found
+- `401 Unauthorized`: Invalid or missing token
+
+---
+
+### Get Music by Tag
+
+Get all music with a specific tag.
 
 ### Get File
 

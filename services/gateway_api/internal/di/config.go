@@ -2,10 +2,10 @@ package di
 
 import (
 	"os"
-	"strconv"
 	"time"
 
 	"libs/consts"
+	"libs/helpers"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -34,66 +34,19 @@ func LoadConfig(logger *zap.Logger) *Config {
 		slogger.Warnf("Error loading .env file: %v", err)
 	}
 
-	// Load environment variables
-	port := os.Getenv("GATEWAY_API_PORT")
-	userDatabaseServiceURL := os.Getenv("USER_DATABASE_SERVICE_URL")
-	recommendationServiceURL := os.Getenv("RECOMMENDATION_SERVICE_URL")
-	eventIngestionServiceURL := os.Getenv("EVENT_INGESTION_SERVICE_URL")
-	jwtStorePath := os.Getenv("JWT_STORE_PATH")
-	jwtTimeServiceStr := os.Getenv("JWT_TIME_IN_M_SERVICE")
-	applicationName := os.Getenv("VAULT_APPLICATION_NAME")
-	jwtTimeoutStr := os.Getenv("VAULT_JWT_TIMEOUT_SECONDS")
-	vaultAddr := os.Getenv("VAULT_ADDR")
-	vaultToken := os.Getenv("VAULT_TOKEN")
+	// Load required environment variables (no defaults for URLs/secrets)
+	userDatabaseServiceURL := helpers.GetEnvRequired("USER_DATABASE_SERVICE_URL")
+	recommendationServiceURL := helpers.GetEnvRequired("RECOMMENDATION_SERVICE_URL")
+	eventIngestionServiceURL := helpers.GetEnvRequired("EVENT_INGESTION_SERVICE_URL")
+	vaultAddr := helpers.GetEnvRequired("VAULT_ADDR")
+	vaultToken := helpers.GetEnvRequired("VAULT_TOKEN")
 
-	// Validate required environment variables
-	if port == "" {
-		slogger.Warn("GATEWAY_API_PORT environment variable is not set")
-	}
-	if userDatabaseServiceURL == "" {
-		slogger.Warn("USER_DATABASE_SERVICE_URL environment variable is not set")
-	}
-	if recommendationServiceURL == "" {
-		slogger.Warn("RECOMMENDATION_SERVICE_URL environment variable is not set")
-	}
-	if eventIngestionServiceURL == "" {
-		slogger.Warn("EVENT_INGESTION_SERVICE_URL environment variable is not set")
-	}
-	if jwtStorePath == "" {
-		slogger.Warn("JWT_STORE_PATH environment variable is not set")
-	}
-
-	// Parse JWT expiration time for service JWT
-	jwtExpirationService := consts.JWTExpirationService
-	if jwtTimeServiceStr != "" {
-		serviceTime, err := strconv.Atoi(jwtTimeServiceStr)
-		if err != nil {
-			slogger.Errorf("Error parsing JWT_TIME_IN_M_SERVICE: %v, using default", err)
-		} else {
-			jwtExpirationService = time.Minute * time.Duration(serviceTime)
-		}
-	} else {
-		slogger.Warnf("JWT_TIME_IN_M_SERVICE environment variable is not set, using default: %v", consts.JWTExpirationService)
-	}
-
-	// Parse JWT timeout for Vault operations
-	jwtTimeout := 30 * time.Second
-	if jwtTimeoutStr == "" {
-		slogger.Warn("VAULT_JWT_TIMEOUT_SECONDS environment variable is not set, using default: 30 seconds")
-	} else {
-		timeoutSec, err := strconv.Atoi(jwtTimeoutStr)
-		if err != nil {
-			slogger.Errorf("Error parsing VAULT_JWT_TIMEOUT_SECONDS: %v", err)
-		} else {
-			jwtTimeout = time.Duration(timeoutSec) * time.Second
-		}
-	}
-
-	// Set default application name if not provided
-	if applicationName == "" {
-		applicationName = consts.VaultAppGatewayAPI
-		slogger.Warnf("VAULT_APPLICATION_NAME environment variable is not set, using default: %s", applicationName)
-	}
+	// Load optional environment variables (with sensible defaults)
+	port := helpers.GetEnvOrDefault("GATEWAY_API_PORT", "8080")
+	jwtStorePath := helpers.GetEnvOrDefault("JWT_STORE_PATH", "jwt/gateway-api")
+	applicationName := helpers.GetEnvOrDefault("VAULT_APPLICATION_NAME", consts.VaultAppGatewayAPI)
+	jwtExpirationService := helpers.ParseDurationMinutes(os.Getenv("JWT_TIME_IN_M_SERVICE"), consts.JWTExpirationService, slogger, "JWT_TIME_IN_M_SERVICE")
+	jwtTimeout := helpers.ParseDurationSeconds(os.Getenv("VAULT_JWT_TIMEOUT_SECONDS"), consts.JWTTimeoutVault, slogger, "VAULT_JWT_TIMEOUT_SECONDS")
 
 	return &Config{
 		Port:                     port,

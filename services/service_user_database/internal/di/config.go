@@ -2,10 +2,10 @@ package di
 
 import (
 	"os"
-	"strconv"
 	"time"
 
 	"libs/consts"
+	"libs/helpers"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -38,97 +38,23 @@ func LoadConfig(logger *zap.Logger) *Config {
 		slogger.Warnf("Error loading .env file: %v", err)
 	}
 
-	// Load environment variables
-	databaseURL := os.Getenv("USER_CRUD_CONNECTION_STRING")
-	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
-	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
-	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
-	minioBucketName := os.Getenv("MINIO_BUCKET_NAME")
-	eventIngestionServiceURL := os.Getenv("EVENT_INGESTION_SERVICE_URL")
-	jwtStorePath := os.Getenv("JWT_STORE_PATH")
-	jwtTimeNormalStr := os.Getenv("JWT_TIME_IN_M_NORMAL")
-	jwtTimeRefreshStr := os.Getenv("JWT_TIME_IN_D_REFRESH")
-	jwtTimeServiceStr := os.Getenv("JWT_TIME_IN_M_SERVICE")
-	applicationName := os.Getenv("VAULT_APPLICATION_NAME")
-	jwtTimeoutStr := os.Getenv("VAULT_JWT_TIMEOUT_SECONDS")
-	vaultAddr := os.Getenv("VAULT_ADDR")
-	vaultToken := os.Getenv("VAULT_TOKEN")
+	// Load required environment variables (no defaults for hosts/URLs/secrets)
+	databaseURL := helpers.GetEnvRequired("USER_CRUD_CONNECTION_STRING")
+	minioEndpoint := helpers.GetEnvRequired("MINIO_ENDPOINT")
+	minioAccessKey := helpers.GetEnvRequired("MINIO_ACCESS_KEY")
+	minioSecretKey := helpers.GetEnvRequired("MINIO_SECRET_KEY")
+	eventIngestionServiceURL := helpers.GetEnvRequired("EVENT_INGESTION_SERVICE_URL")
+	vaultAddr := helpers.GetEnvRequired("VAULT_ADDR")
+	vaultToken := helpers.GetEnvRequired("VAULT_TOKEN")
 
-	// Validate required environment variables
-	if databaseURL == "" {
-		slogger.Warn("USER_CRUD_CONNECTION_STRING environment variable is not set")
-	}
-	if minioEndpoint == "" {
-		slogger.Warn("MINIO_ENDPOINT environment variable is not set")
-	}
-	if minioAccessKey == "" {
-		slogger.Warn("MINIO_ACCESS_KEY environment variable is not set")
-	}
-	if minioSecretKey == "" {
-		slogger.Warn("MINIO_SECRET_KEY environment variable is not set")
-	}
-	if minioBucketName == "" {
-		slogger.Warn("MINIO_BUCKET_NAME environment variable is not set")
-	}
-	if jwtStorePath == "" {
-		slogger.Warn("JWT_STORE_PATH environment variable is not set")
-	}
-
-	// Parse JWT expiration times
-	jwtExpirationNormal := consts.JWTExpirationNormal
-	if jwtTimeNormalStr != "" {
-		normalTime, err := strconv.Atoi(jwtTimeNormalStr)
-		if err != nil {
-			slogger.Errorf("Error parsing JWT_TIME_IN_M_NORMAL: %v, using default", err)
-		} else {
-			jwtExpirationNormal = time.Minute * time.Duration(normalTime)
-		}
-	} else {
-		slogger.Warnf("JWT_TIME_IN_M_NORMAL environment variable is not set, using default: %v", consts.JWTExpirationNormal)
-	}
-
-	jwtExpirationRefresh := consts.JWTExpirationRefresh
-	if jwtTimeRefreshStr != "" {
-		refreshTime, err := strconv.Atoi(jwtTimeRefreshStr)
-		if err != nil {
-			slogger.Errorf("Error parsing JWT_TIME_IN_D_REFRESH: %v, using default", err)
-		} else {
-			jwtExpirationRefresh = time.Hour * 24 * time.Duration(refreshTime)
-		}
-	} else {
-		slogger.Warnf("JWT_TIME_IN_D_REFRESH environment variable is not set, using default: %v", consts.JWTExpirationRefresh)
-	}
-
-	jwtExpirationService := consts.JWTExpirationService
-	if jwtTimeServiceStr != "" {
-		serviceTime, err := strconv.Atoi(jwtTimeServiceStr)
-		if err != nil {
-			slogger.Errorf("Error parsing JWT_TIME_IN_M_SERVICE: %v, using default", err)
-		} else {
-			jwtExpirationService = time.Minute * time.Duration(serviceTime)
-		}
-	} else {
-		slogger.Warnf("JWT_TIME_IN_M_SERVICE environment variable is not set, using default: %v", consts.JWTExpirationService)
-	}
-
-	// Parse JWT timeout for Vault operations
-	jwtTimeout := 30 * time.Second
-	if jwtTimeoutStr == "" {
-		slogger.Warn("VAULT_JWT_TIMEOUT_SECONDS environment variable is not set, using default: 30 seconds")
-	} else {
-		timeoutSec, err := strconv.Atoi(jwtTimeoutStr)
-		if err != nil {
-			slogger.Errorf("Error parsing VAULT_JWT_TIMEOUT_SECONDS: %v", err)
-		} else {
-			jwtTimeout = time.Duration(timeoutSec) * time.Second
-		}
-	}
-
-	// Set defaults if not provided
-	if applicationName == "" {
-		applicationName = consts.VaultAppUserDatabase
-		slogger.Warnf("VAULT_APPLICATION_NAME environment variable is not set, using default: %s", applicationName)
-	}
+	// Load optional environment variables (with sensible defaults)
+	minioBucketName := helpers.GetEnvOrDefault("MINIO_BUCKET_NAME", "music-streaming")
+	jwtStorePath := helpers.GetEnvOrDefault("JWT_STORE_PATH", "jwt/backend")
+	applicationName := helpers.GetEnvOrDefault("VAULT_APPLICATION_NAME", consts.VaultAppUserDatabase)
+	jwtExpirationNormal := helpers.ParseDurationMinutes(os.Getenv("JWT_TIME_IN_M_NORMAL"), consts.JWTExpirationNormal, slogger, "JWT_TIME_IN_M_NORMAL")
+	jwtExpirationRefresh := helpers.ParseDurationDays(os.Getenv("JWT_TIME_IN_D_REFRESH"), consts.JWTExpirationRefresh, slogger, "JWT_TIME_IN_D_REFRESH")
+	jwtExpirationService := helpers.ParseDurationMinutes(os.Getenv("JWT_TIME_IN_M_SERVICE"), consts.JWTExpirationService, slogger, "JWT_TIME_IN_M_SERVICE")
+	jwtTimeout := helpers.ParseDurationSeconds(os.Getenv("VAULT_JWT_TIMEOUT_SECONDS"), consts.JWTTimeoutVault, slogger, "VAULT_JWT_TIMEOUT_SECONDS")
 
 	return &Config{
 		DatabaseURL:              databaseURL,

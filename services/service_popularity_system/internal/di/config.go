@@ -2,10 +2,10 @@ package di
 
 import (
 	"os"
-	"strconv"
 	"time"
 
 	"libs/consts"
+	"libs/helpers"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -32,48 +32,17 @@ func LoadConfig(logger *zap.Logger) *Config {
 		slogger.Warnf("Error loading .env file: %v", err)
 	}
 
-	// Load environment variables
-	port := os.Getenv("POPULARITY_PORT")
-	warehouseURL := os.Getenv("WAREHOUSE_URL")
-	tableName := os.Getenv("TABLE_NAME")
-	jwtStorePath := os.Getenv("JWT_STORE_PATH")
-	applicationName := os.Getenv("VAULT_APPLICATION_NAME")
-	jwtTimeoutStr := os.Getenv("VAULT_JWT_TIMEOUT_SECONDS")
-	vaultAddr := os.Getenv("VAULT_ADDR")
-	vaultToken := os.Getenv("VAULT_TOKEN")
+	// Load required environment variables (no defaults for connection strings/secrets)
+	warehouseURL := helpers.GetEnvRequired("WAREHOUSE_URL")
+	vaultAddr := helpers.GetEnvRequired("VAULT_ADDR")
+	vaultToken := helpers.GetEnvRequired("VAULT_TOKEN")
 
-	// Validate required environment variables
-	if port == "" {
-		slogger.Warn("POPULARITY_PORT environment variable is not set")
-	}
-	if warehouseURL == "" {
-		slogger.Warn("WAREHOUSE_URL environment variable is not set")
-	}
-	if tableName == "" {
-		slogger.Warn("TABLE_NAME environment variable is not set")
-	}
-	if jwtStorePath == "" {
-		slogger.Warn("JWT_STORE_PATH environment variable is not set")
-	}
-
-	// Parse JWT timeout for Vault operations
-	jwtTimeout := 30 * time.Second
-	if jwtTimeoutStr == "" {
-		slogger.Warn("VAULT_JWT_TIMEOUT_SECONDS environment variable is not set, using default: 30 seconds")
-	} else {
-		timeoutSec, err := strconv.Atoi(jwtTimeoutStr)
-		if err != nil {
-			slogger.Errorf("Error parsing VAULT_JWT_TIMEOUT_SECONDS: %v", err)
-		} else {
-			jwtTimeout = time.Duration(timeoutSec) * time.Second
-		}
-	}
-
-	// Set default application name if not provided
-	if applicationName == "" {
-		applicationName = consts.VaultAppPopularitySystem
-		slogger.Warnf("VAULT_APPLICATION_NAME environment variable is not set, using default: %s", applicationName)
-	}
+	// Load optional environment variables (with sensible defaults)
+	port := helpers.GetEnvOrDefault("POPULARITY_PORT", "8003")
+	tableName := helpers.GetEnvOrDefault("TABLE_NAME", "popularity_data")
+	jwtStorePath := helpers.GetEnvOrDefault("JWT_STORE_PATH", "jwt/popularity")
+	applicationName := helpers.GetEnvOrDefault("VAULT_APPLICATION_NAME", consts.VaultAppPopularitySystem)
+	jwtTimeout := helpers.ParseDurationSeconds(os.Getenv("VAULT_JWT_TIMEOUT_SECONDS"), consts.JWTTimeoutVault, slogger, "VAULT_JWT_TIMEOUT_SECONDS")
 
 	return &Config{
 		Port:            port,
