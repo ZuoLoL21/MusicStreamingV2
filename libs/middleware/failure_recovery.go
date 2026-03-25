@@ -10,31 +10,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// responseWriter is a wrapper around http.ResponseWriter that tracks
-// the HTTP status code and response body bytes written.
-//
-// Used by failure_recovery to be able to extract informatino that we would otherwise not be able to print
-type responseWriter struct {
-	http.ResponseWriter
-	status int
-	bytes  int
-}
-
-// Write intercepts the Write method to track the number of bytes written.
-// It delegates to the underlying ResponseWriter and counts bytes.
-func (rw *responseWriter) Write(b []byte) (int, error) {
-	n, err := rw.ResponseWriter.Write(b)
-	rw.bytes += n
-	return n, err
-}
-
-// WriteHeader intercepts WriteHeader to capture the status code.
-// It stores the status code and then forwards to the underlying ResponseWriter.
-func (rw *responseWriter) WriteHeader(code int) {
-	rw.status = code
-	rw.ResponseWriter.WriteHeader(code)
-}
-
 // getIP extracts the client IP address from the request.
 // It first checks the X-Forwarded-For header and returns the first IP if present.
 // Otherwise, it returns the RemoteAddr from the request.
@@ -57,10 +32,7 @@ func FailureRecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
-			rw := &responseWriter{
-				ResponseWriter: w,
-				status:         http.StatusOK,
-			}
+			rw := WrapResponseWriter(w)
 
 			defer func() {
 				rec := recover()
@@ -101,8 +73,8 @@ func FailureRecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
 				zap.String("route", template),
-				zap.Int("status", rw.status),
-				zap.Int("bytes", rw.bytes),
+				zap.Int("status", rw.StatusCode),
+				zap.Int64("bytes", rw.BytesWritten),
 				zap.Duration("duration", duration),
 				zap.String("remote_addr", getIP(r)),
 				zap.String("request_id", helpers.GetRequestIDFromContext(ctx)),
@@ -116,9 +88,9 @@ func FailureRecoveryMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 			}
 
 			switch {
-			case rw.status >= 500:
+			case rw.StatusCode >= 500:
 				logger.Error("http request", fields...)
-			case rw.status >= 400:
+			case rw.StatusCode >= 400:
 				logger.Warn("http request", fields...)
 			default:
 				logger.Info("http request", fields...)
