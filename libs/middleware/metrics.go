@@ -16,7 +16,7 @@ import (
 // This middleware tracks:
 //   - http_requests_total - Total requests by method, endpoint, and status
 //   - http_request_duration_seconds - Request latency
-func MetricsMiddleware(logger zap.Logger) func(http.Handler) http.Handler {
+func MetricsMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Init

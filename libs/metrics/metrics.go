@@ -30,63 +30,6 @@ var (
 	)
 )
 
-// Database Metrics
-var (
-	// DBQueriesTotal counts all database queries by operation and status.
-	// Labels: operation (e.g., "GetUser", "CreateAlbum"), status (success/error)
-	DBQueriesTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "db_queries_total",
-			Help: "Total number of database queries",
-		},
-		[]string{"operation", "status"},
-	)
-
-	// DBQueryDuration measures database query latency in seconds (from app perspective).
-	// Labels: operation
-	DBQueryDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "db_query_duration_seconds",
-			Help:    "Database query latency in seconds (from application perspective)",
-			Buckets: []float64{.001, .0025, .005, .01, .025, .05, .1, .25, .5, 1},
-		},
-		[]string{"operation"},
-	)
-
-	// DBConnectionPoolSize tracks the current size of the DB connection pool.
-	DBConnectionPoolSize = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "db_connection_pool_size",
-			Help: "Current number of connections in the database pool",
-		},
-	)
-
-	// DBConnectionPoolInUse tracks how many connections are currently in use.
-	DBConnectionPoolInUse = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "db_connection_pool_in_use",
-			Help: "Number of database connections currently in use",
-		},
-	)
-
-	// DBConnectionPoolWaitCount counts how many times we waited for a connection.
-	DBConnectionPoolWaitCount = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Name: "db_connection_pool_wait_count_total",
-			Help: "Total number of times waited for a database connection",
-		},
-	)
-
-	// DBConnectionPoolWaitDuration measures time spent waiting for a connection.
-	DBConnectionPoolWaitDuration = promauto.NewHistogram(
-		prometheus.HistogramOpts{
-			Name:    "db_connection_pool_wait_duration_seconds",
-			Help:    "Time spent waiting for a database connection",
-			Buckets: []float64{.001, .005, .01, .025, .05, .1, .25, .5, 1},
-		},
-	)
-)
-
 // Downstream Service Metrics
 var (
 	// DownstreamCallsTotal counts all calls to downstream services.
