@@ -1,7 +1,6 @@
 # Todo:
 
 ### General
-- Fix the frontend
 
 ### Features
 - Add Kafka for async updates (update weight in bandit system)
