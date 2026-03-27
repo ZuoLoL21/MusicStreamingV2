@@ -375,6 +375,15 @@ wheels = [
 ]
 
 [[package]]
+name = "prometheus-client"
+version = "0.24.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/58/a794d23feb6b00fc0c72787d7e87d872a6730dd9ed7c7b3e954637d8f280/prometheus_client-0.24.1.tar.gz", hash = "sha256:7e0ced7fbbd40f7b84962d5d2ab6f17ef88a72504dcf7c0b40737b43b2a461f9", size = 85616, upload-time = "2026-01-14T15:26:26.965Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/74/c3/24a2f845e3917201628ecaba4f18bab4d18a337834c1df2a159ee9d22a42/prometheus_client-0.24.1-py3-none-any.whl", hash = "sha256:150db128af71a5c2482b36e588fc8a6b95e498750da4b17065947c16070f4055", size = 64057, upload-time = "2026-01-14T15:26:24.42Z" },
+]
+
+[[package]]
 name = "psycopg2-binary"
 version = "2.9.11"
 source = { registry = "https://pypi.org/simple" }
@@ -598,11 +607,13 @@ dependencies = [
     { name = "httpx" },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "prometheus-client" },
     { name = "psycopg2-binary" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "python-json-logger" },
     { name = "sqlalchemy" },
+    { name = "starlette-prometheus" },
     { name = "structlog" },
     { name = "uvicorn" },
 ]
@@ -623,6 +634,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.4.2" },
     { name = "pandas", specifier = ">=3.0.1" },
+    { name = "prometheus-client", specifier = ">=0.21.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.0" },
@@ -633,6 +645,7 @@ requires-dist = [
     { name = "python-json-logger", specifier = ">=4.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
     { name = "sqlalchemy", specifier = ">=2.0.46" },
+    { name = "starlette-prometheus", specifier = ">=0.10.0" },
     { name = "structlog", specifier = ">=25.5.0" },
     { name = "uvicorn", specifier = ">=0.34.0" },
 ]
@@ -678,6 +691,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c4/68/79977123bb7be889ad680d79a40f339082c1978b5cfcf62c2d8d196873ac/starlette-0.52.1.tar.gz", hash = "sha256:834edd1b0a23167694292e94f597773bc3f89f362be6effee198165a35d62933", size = 2653702, upload-time = "2026-01-18T13:34:11.062Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/81/0d/13d1d239a25cbfb19e740db83143e95c772a1fe10202dda4b76792b114dd/starlette-0.52.1-py3-none-any.whl", hash = "sha256:0029d43eb3d273bc4f83a08720b4912ea4b071087a3b48db01b7c839f7954d74", size = 74272, upload-time = "2026-01-18T13:34:09.188Z" },
+]
+
+[[package]]
+name = "starlette-prometheus"
+version = "0.10.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "prometheus-client" },
+    { name = "starlette" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/89/f2/03fc6b3c10fb436c81ee567ac46c49418819d6901101ece7bd45be465162/starlette_prometheus-0.10.0.tar.gz", hash = "sha256:77d1e9cfad572206e8de242975bd00a62e33685eb330389f2add04e4d719d47d", size = 15712, upload-time = "2024-09-03T09:48:17.425Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/40/244a5eba1a1d0393b9eea768afee74ab8e0d7d0e99299edbcafe22ef65f7/starlette_prometheus-0.10.0-py3-none-any.whl", hash = "sha256:8b2f997495f809f01387378dad5476b2a1cf2fb2d9b96164394effdecb2d8380", size = 16333, upload-time = "2024-09-03T09:48:15.876Z" },
 ]
 
 [[package]]

@@ -4,9 +4,12 @@ from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from src.app import AppState, router
-from src.middleware import RequestIDMiddleware, LoggingMiddleware
+from src.middleware import RequestIDMiddleware, LoggingMiddleware, MetricsMiddleware
+from src import metrics
 
 # Configure logging
 logging.basicConfig(
@@ -41,6 +44,11 @@ async def lifespan(app: FastAPI):
     app_state = AppState.create(logger)
     app.state.app_state = app_state
 
+    metrics.update_model_parameters(
+        app_state.config.alpha,
+        app_state.config.ridge_lambda
+    )
+
     logger.info(
         "Bandit system ready",
         config={
@@ -61,7 +69,8 @@ _app = FastAPI(
     lifespan=lifespan,
 )
 
-# Middleware
+# Middleware (order matters - first added is outermost)
+_app.add_middleware(MetricsMiddleware)
 _app.add_middleware(LoggingMiddleware, logger=logger)
 _app.add_middleware(RequestIDMiddleware)
 
@@ -76,6 +85,12 @@ async def root():
         "version": "0.1.0",
         "docs": "/docs",
     }
+
+
+@_app.get("/metrics", response_class=PlainTextResponse)
+async def get_metrics():
+    """Expose Prometheus metrics."""
+    return generate_latest().decode("utf-8")
 
 
 # Export for compatibility (tests, uvicorn, etc.)
