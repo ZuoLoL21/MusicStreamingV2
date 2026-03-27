@@ -3,6 +3,7 @@ package clients
 import (
 	"context"
 	"fmt"
+	"libs/metrics"
 	"net/http"
 	"time"
 
@@ -42,7 +43,12 @@ func (c *BanditClient) Predict(ctx context.Context, userUUID string, requestID s
 	var resp PredictResponse
 
 	url := fmt.Sprintf("%s/api/v1/predict", c.baseURL)
-	if err := c.DoJSON(ctx, "POST", url, req, &resp, requestID); err != nil {
+
+	start := time.Now()
+	err := c.DoJSON(ctx, "POST", url, req, &resp, requestID)
+	metrics.TrackDownstreamCall("bandit", "/predict", time.Since(start), err)
+
+	if err != nil {
 		logger.Error("Bandit prediction failed", zap.Error(err))
 		return nil, fmt.Errorf("bandit prediction: %w", err)
 	}

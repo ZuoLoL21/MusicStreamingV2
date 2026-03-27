@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"libs/metrics"
 	"net/http"
+	"time"
 
 	libsclients "libs/clients"
 	libsmiddleware "libs/middleware"
@@ -38,6 +40,7 @@ func (c *PopularityClient) GetThemePopularity(ctx context.Context, requestID str
 	headers := make(http.Header)
 	headers.Set("Content-Type", "application/json")
 
+	start := time.Now()
 	respBody, statusCode, _, err := c.ForwardWithServiceJWT(
 		ctx,
 		"GET",
@@ -48,6 +51,8 @@ func (c *PopularityClient) GetThemePopularity(ctx context.Context, requestID str
 		serviceJWT,
 		requestID,
 	)
+	metrics.TrackDownstreamCall("popularity", "/popular/themes/all-time", time.Since(start), err)
+
 	if err != nil {
 		logger.Error("Theme popularity fetch failed", zap.Error(err))
 		return nil, fmt.Errorf("fetch theme popularity: %w", err)
