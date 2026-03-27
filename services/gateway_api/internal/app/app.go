@@ -5,6 +5,7 @@ import (
 	"gateway_api/internal/di"
 	"gateway_api/internal/handlers"
 	"libs/consts"
+	"libs/metrics"
 
 	libsdi "libs/di"
 	libshandlers "libs/handlers"
@@ -15,74 +16,74 @@ import (
 )
 
 type App struct {
-	Config               *di.Config
-	Logger               *zap.Logger
-	JWTHandler           *libsdi.JWTHandler
-	Returns              *libsdi.ReturnManager
-	UserDBClient         *clients.UserDatabaseClient
-	RecommendClient      *clients.RecommendationClient
-	EventIngestionClient *clients.EventIngestionClient
+	config               *di.Config
+	logger               *zap.Logger
+	jwtHandler           *libsdi.JWTHandler
+	returns              *libsdi.ReturnManager
+	userDBClient         *clients.UserDatabaseClient
+	recommendClient      *clients.RecommendationClient
+	eventIngestionClient *clients.EventIngestionClient
 }
 
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
-	r.MethodNotAllowedHandler = libshandlers.MethodNotAllowedHandler()
 
 	r.Use(libsmiddleware.CORSMiddleware)
 
 	// Create handlers
 	proxyHandler := handlers.NewProxyHandler(
-		a.UserDBClient,
-		a.RecommendClient,
-		a.EventIngestionClient,
+		a.userDBClient,
+		a.recommendClient,
+		a.eventIngestionClient,
 	)
 	normalAuthHandler := libsmiddleware.NewAuthHandler(
-		a.Logger,
-		a.JWTHandler,
-		a.Returns,
+		a.logger,
+		a.jwtHandler,
+		a.returns,
 		consts.JWTSubjectNormal,
 	)
 	refreshAuthHandler := libsmiddleware.NewAuthHandler(
-		a.Logger,
-		a.JWTHandler,
-		a.Returns,
+		a.logger,
+		a.jwtHandler,
+		a.returns,
 		consts.JWTSubjectRefresh,
 	)
 	serviceJWTHandler := libsmiddleware.NewServiceJWTHandler(
-		a.Logger,
-		a.JWTHandler,
-		a.Returns,
-		a.Config.JWTExpirationService,
+		a.logger,
+		a.jwtHandler,
+		a.returns,
+		a.config.JWTExpirationService,
 	)
 
 	publicRouter := r.PathPrefix("").Subrouter()
 	refreshRouter := r.PathPrefix("").Subrouter()
 	protectedRouter := r.PathPrefix("").Subrouter()
-	publicRouter.MethodNotAllowedHandler = libshandlers.MethodNotAllowedHandler()
-	refreshRouter.MethodNotAllowedHandler = libshandlers.MethodNotAllowedHandler()
-	protectedRouter.MethodNotAllowedHandler = libshandlers.MethodNotAllowedHandler()
 
 	publicRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.FailureRecoveryMiddleware(a.Logger),
-		libsmiddleware.Logger(a.Logger),
+		libsmiddleware.MetricsMiddleware(a.logger),
+		libsmiddleware.FailureRecoveryMiddleware(a.logger),
+		libsmiddleware.Logger(a.logger),
 	)
 	refreshRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.FailureRecoveryMiddleware(a.Logger),
+		libsmiddleware.MetricsMiddleware(a.logger),
+		libsmiddleware.FailureRecoveryMiddleware(a.logger),
 		refreshAuthHandler.GetAuthMiddleware(),
-		libsmiddleware.Logger(a.Logger),
+		libsmiddleware.Logger(a.logger),
 		serviceJWTHandler.GetServiceJWTMiddleware(),
 	)
 	protectedRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.FailureRecoveryMiddleware(a.Logger),
+		libsmiddleware.MetricsMiddleware(a.logger),
+		libsmiddleware.FailureRecoveryMiddleware(a.logger),
 		normalAuthHandler.GetAuthMiddleware(),
-		libsmiddleware.Logger(a.Logger),
+		libsmiddleware.Logger(a.logger),
 		serviceJWTHandler.GetServiceJWTMiddleware(),
 	)
 
-	// Public
+	// Public routes
+	r.Handle("/metrics", metrics.Handler()).Methods("GET")
 	publicRouter.HandleFunc("/health", libshandlers.NewHealthCheckHandler("gateway-api")).Methods("GET")
 	publicRouter.HandleFunc("/login", proxyHandler.ProxyLogin).Methods("POST", "PUT", "OPTIONS")
 	publicRouter.PathPrefix("/files/public/").HandlerFunc(proxyHandler.ProxyPublicFiles).Methods("GET")
@@ -113,7 +114,7 @@ func (a *App) Router() *mux.Router {
 	return r
 }
 
-func NewApp(
+func New(
 	config *di.Config,
 	logger *zap.Logger,
 	jwtHandler *libsdi.JWTHandler,
@@ -124,12 +125,12 @@ func NewApp(
 	eventIngestionClient := clients.NewEventIngestionClient(config.EventIngestionServiceURL)
 
 	return &App{
-		Config:               config,
-		Logger:               logger,
-		JWTHandler:           jwtHandler,
-		Returns:              returns,
-		UserDBClient:         userDBClient,
-		RecommendClient:      recommendClient,
-		EventIngestionClient: eventIngestionClient,
+		config:               config,
+		logger:               logger,
+		jwtHandler:           jwtHandler,
+		returns:              returns,
+		userDBClient:         userDBClient,
+		recommendClient:      recommendClient,
+		eventIngestionClient: eventIngestionClient,
 	}
 }

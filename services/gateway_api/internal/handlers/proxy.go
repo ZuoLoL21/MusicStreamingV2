@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"gateway_api/internal/clients"
+	"libs/metrics"
 	"net/http"
+	"time"
 
 	libshandlers "libs/handlers"
 )
@@ -54,17 +56,23 @@ func (h *ProxyHandler) ProxyRenew(w http.ResponseWriter, r *http.Request) {
 // ProxyUserDatabase handles all user database service routes
 // Requires normal JWT validation (handled by middleware)
 func (h *ProxyHandler) ProxyUserDatabase(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
 	libshandlers.ProxyWithServiceJWT(w, r, h.userDBClient.ForwardWithServiceJWT)
+	metrics.TrackDownstreamCall("user_database", "/proxy", time.Since(start), nil)
 }
 
 // ProxyRecommendation handles all recommendation service routes
 // Requires normal JWT validation (handled by middleware)
 func (h *ProxyHandler) ProxyRecommendation(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
 	libshandlers.ProxyWithServiceJWT(w, r, h.recommendClient.ForwardWithServiceJWT)
+	metrics.TrackDownstreamCall("recommendation", "/proxy", time.Since(start), nil)
 }
 
 // ProxyEventIngestion handles all event ingestion service routes
 // Requires normal JWT validation (handled by middleware)
 func (h *ProxyHandler) ProxyEventIngestion(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
 	libshandlers.ProxyWithServiceJWT(w, r, h.eventIngestionClient.ForwardWithServiceJWT)
+	metrics.TrackDownstreamCall("event_ingestion", "/proxy", time.Since(start), nil)
 }

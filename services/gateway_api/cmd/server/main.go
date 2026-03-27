@@ -47,7 +47,7 @@ func main() {
 	returnManager := libsdi.NewReturnManager(logger)
 
 	// Router
-	application := app.NewApp(config, logger, jwtHandler, returnManager)
+	application := app.New(config, logger, jwtHandler, returnManager)
 	srv := &http.Server{
 		Handler:      application.Router(),
 		Addr:         ":" + config.Port,
