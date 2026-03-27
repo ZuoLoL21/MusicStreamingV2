@@ -8,3 +8,5 @@
 seed_music
 
 .venv
+
+*.egg-info

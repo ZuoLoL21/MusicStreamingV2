@@ -511,12 +511,52 @@ services:
     networks:
       - efk-net
 
+  # Monitoring Stack
+  monitoring-prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: prometheus
+    volumes:
+      - ./services/config_prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - gateway-api
+      - service-user-database
+      - gateway-recommendation
+      - service-popularity
+      - service-bandit
+      - service-event-ingestion
+    networks:
+      - general
+      - monitoring-net
+    restart: unless-stopped
+
+  monitoring-grafana:
+    image: grafana/grafana:11.4.0
+    container_name: grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3001:3000"
+    depends_on:
+      - monitoring-prometheus
+    networks:
+      - monitoring-net
+    restart: unless-stopped
+
 volumes:
   user_data:
   bandit_data:
   clickhouse_data:
   clickhouse_logs:
   file_storage_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   user-db-net:
@@ -526,3 +566,4 @@ networks:
   vault-net:
   general:
   efk-net:
+  monitoring-net:
