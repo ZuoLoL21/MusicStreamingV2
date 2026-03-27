@@ -3,6 +3,8 @@ package app
 import (
 	"libs/consts"
 	libsdi "libs/di"
+	libshandlers "libs/handlers"
+	"libs/metrics"
 	libsmiddleware "libs/middleware"
 	"popularity/internal/di"
 	"popularity/internal/handlers"
@@ -12,23 +14,23 @@ import (
 )
 
 type App struct {
-	Logger     *zap.Logger
-	Config     *di.Config
-	JWTHandler *libsdi.JWTHandler
-	Returns    *libsdi.ReturnManager
+	logger     *zap.Logger
+	config     *di.Config
+	jwtHandler *libsdi.JWTHandler
+	returns    *libsdi.ReturnManager
 }
 
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
 
-	popularityHandler, err := handlers.NewPopularityHandler(a.Config, a.Returns)
+	popularityHandler, err := handlers.NewPopularityHandler(a.config, a.returns)
 	if err != nil {
-		a.Logger.Fatal("failed to initialize popularity handler", zap.Error(err))
+		a.logger.Fatal("failed to initialize popularity handler", zap.Error(err))
 	}
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
-		a.Logger,
-		a.JWTHandler,
-		a.Returns,
+		a.logger,
+		a.jwtHandler,
+		a.returns,
 		consts.JWTSubjectService,
 	)
 
@@ -37,15 +39,21 @@ func (a *App) Router() *mux.Router {
 
 	publicRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.FailureRecoveryMiddleware(a.Logger),
-		libsmiddleware.Logger(a.Logger),
+		libsmiddleware.MetricsMiddleware(a.logger),
+		libsmiddleware.FailureRecoveryMiddleware(a.logger),
+		libsmiddleware.Logger(a.logger),
 	)
 	protectedRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.FailureRecoveryMiddleware(a.Logger),
+		libsmiddleware.MetricsMiddleware(a.logger),
+		libsmiddleware.FailureRecoveryMiddleware(a.logger),
 		serviceAuthHandler.GetAuthMiddleware(),
-		libsmiddleware.Logger(a.Logger),
+		libsmiddleware.Logger(a.logger),
 	)
+
+	// Public routes
+	r.Handle("/metrics", metrics.Handler()).Methods("GET")
+	publicRouter.HandleFunc("/health", libshandlers.NewHealthCheckHandler("service-popularity-system")).Methods("GET")
 
 	// All-time popularity endpoints
 	protectedRouter.HandleFunc("/popular/songs/all-time", popularityHandler.PopularSongsAllTime).Methods("GET")
@@ -64,9 +72,9 @@ func (a *App) Router() *mux.Router {
 
 func New(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager) *App {
 	return &App{
-		Logger:     logger,
-		Config:     config,
-		JWTHandler: jwtHandler,
-		Returns:    returns,
+		logger:     logger,
+		config:     config,
+		jwtHandler: jwtHandler,
+		returns:    returns,
 	}
 }

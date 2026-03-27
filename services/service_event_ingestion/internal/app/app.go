@@ -4,6 +4,7 @@ import (
 	"event_ingestion/internal/di"
 	"event_ingestion/internal/handlers"
 	"libs/consts"
+	"libs/metrics"
 
 	libsdi "libs/di"
 	libshandlers "libs/handlers"
@@ -45,7 +46,9 @@ func (a *App) Router() *mux.Router {
 	// Setup middleware
 	publicRouter, protectedRouter := a.setupMiddleware(r)
 
-	// Register routes
+	// Public routes
+	r.Handle("/metrics", metrics.Handler()).Methods("GET")
+
 	a.registerHealthRoutes(publicRouter)
 	a.registerEventRoutes(protectedRouter)
 
@@ -71,11 +74,13 @@ func (a *App) setupMiddleware(r *mux.Router) (*mux.Router, *mux.Router) {
 
 	publicRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.MetricsMiddleware(a.logger),
 		libsmiddleware.FailureRecoveryMiddleware(a.logger),
 		libsmiddleware.Logger(a.logger),
 	)
 	protectedRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.MetricsMiddleware(a.logger),
 		libsmiddleware.FailureRecoveryMiddleware(a.logger),
 		serviceAuthHandler.GetAuthMiddleware(),
 		libsmiddleware.Logger(a.logger),

@@ -6,6 +6,7 @@ import (
 	"backend/internal/handlers"
 	"backend/internal/storage"
 	"libs/consts"
+	"libs/metrics"
 
 	sqlhandler "backend/sql/sqlc"
 	libsdi "libs/di"
@@ -72,6 +73,9 @@ func (a *App) Router() *mux.Router {
 	// Setup middleware
 	publicRouter, protectedRouter := a.setupMiddleware(r)
 
+	// Public routes
+	r.Handle("/metrics", metrics.Handler()).Methods("GET")
+
 	// Register all routes
 	a.registerHealthRoutes(publicRouter)
 	a.registerAuthRoutes(publicRouter, protectedRouter)
@@ -120,11 +124,13 @@ func (a *App) setupMiddleware(r *mux.Router) (*mux.Router, *mux.Router) {
 
 	publicRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.MetricsMiddleware(a.logger),
 		libsmiddleware.FailureRecoveryMiddleware(a.logger),
 		libsmiddleware.Logger(a.logger),
 	)
 	protectedRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
+		libsmiddleware.MetricsMiddleware(a.logger),
 		libsmiddleware.FailureRecoveryMiddleware(a.logger),
 		serviceAuthHandler.GetAuthMiddleware(),
 		libsmiddleware.Logger(a.logger),
