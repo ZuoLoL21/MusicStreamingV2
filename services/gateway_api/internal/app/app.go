@@ -1,12 +1,12 @@
 package app
 
 import (
-	"gateway_api/internal/clients"
 	"gateway_api/internal/di"
 	"gateway_api/internal/handlers"
 	"libs/consts"
 	"libs/metrics"
 
+	libsclients "libs/clients"
 	libsdi "libs/di"
 	libshandlers "libs/handlers"
 	libsmiddleware "libs/middleware"
@@ -20,9 +20,9 @@ type App struct {
 	logger               *zap.Logger
 	jwtHandler           *libsdi.JWTHandler
 	returns              *libsdi.ReturnManager
-	userDBClient         *clients.UserDatabaseClient
-	recommendClient      *clients.RecommendationClient
-	eventIngestionClient *clients.EventIngestionClient
+	userDBClient         *libsclients.ProxyClient
+	recommendClient      *libsclients.ProxyClient
+	eventIngestionClient *libsclients.ProxyClient
 }
 
 func (a *App) Router() *mux.Router {
@@ -120,9 +120,9 @@ func New(
 	jwtHandler *libsdi.JWTHandler,
 	returns *libsdi.ReturnManager,
 ) *App {
-	userDBClient := clients.NewUserDatabaseClient(config.UserDatabaseServiceURL)
-	recommendClient := clients.NewRecommendationClient(config.RecommendationServiceURL)
-	eventIngestionClient := clients.NewEventIngestionClient(config.EventIngestionServiceURL)
+	userDBClient := libsclients.NewProxyClient(config.UserDatabaseServiceURL)
+	recommendClient := libsclients.NewProxyClient(config.RecommendationServiceURL)
+	eventIngestionClient := libsclients.NewProxyClient(config.EventIngestionServiceURL)
 
 	return &App{
 		config:               config,

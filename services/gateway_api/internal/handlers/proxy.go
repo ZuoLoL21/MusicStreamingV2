@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"gateway_api/internal/clients"
+	libsclients "libs/clients"
 	"libs/metrics"
 	"net/http"
 	"time"
@@ -11,16 +11,16 @@ import (
 
 // ProxyHandler handles proxying requests to backend services
 type ProxyHandler struct {
-	userDBClient         *clients.UserDatabaseClient
-	recommendClient      *clients.RecommendationClient
-	eventIngestionClient *clients.EventIngestionClient
+	userDBClient         *libsclients.ProxyClient
+	recommendClient      *libsclients.ProxyClient
+	eventIngestionClient *libsclients.ProxyClient
 }
 
 // NewProxyHandler creates a new proxy handler
 func NewProxyHandler(
-	userDBClient *clients.UserDatabaseClient,
-	recommendClient *clients.RecommendationClient,
-	eventIngestionClient *clients.EventIngestionClient,
+	userDBClient *libsclients.ProxyClient,
+	recommendClient *libsclients.ProxyClient,
+	eventIngestionClient *libsclients.ProxyClient,
 ) *ProxyHandler {
 	return &ProxyHandler{
 		userDBClient:         userDBClient,
