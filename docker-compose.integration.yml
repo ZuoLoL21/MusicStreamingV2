@@ -262,9 +262,8 @@ services:
       dockerfile: services/gateway_recommendation/Dockerfile
     container_name: gateway-recommendation-test
     environment:
-      GATEWAY_RECOMMENDATION_PORT: "8002"
       POPULARITY_SERVICE_URL: http://service-popularity-test:8080
-      BANDIT_SERVICE_URL: http://service-bandit-test:8001
+      BANDIT_SERVICE_URL: http://service-bandit-test:8080
       JWT_STORE_PATH: jwt/gateway-recommendation
       VAULT_ADDR: http://vault-test:8200
       VAULT_TOKEN: test-root-token
@@ -287,9 +286,8 @@ services:
     ports:
       - "18080:8080"
     environment:
-      GATEWAY_API_PORT: "8080"
       USER_DATABASE_SERVICE_URL: http://service-user-database-test:8080
-      RECOMMENDATION_SERVICE_URL: http://gateway-recommendation-test:8002
+      RECOMMENDATION_SERVICE_URL: http://gateway-recommendation-test:8080
       EVENT_INGESTION_SERVICE_URL: http://service-event-ingestion-test:8080
       JWT_STORE_PATH: jwt/gateway-api
       VAULT_ADDR: http://vault-test:8200
@@ -319,7 +317,7 @@ services:
       # For direct service testing (if needed)
       EVENT_INGESTION_URL: http://service-event-ingestion-test:8080
       POPULARITY_URL: http://service-popularity-test:8080
-      RECOMMENDATION_URL: http://gateway-recommendation-test:8002
+      RECOMMENDATION_URL: http://gateway-recommendation-test:8080
       # Vault config
       VAULT_ADDR: http://vault-test:8200
       VAULT_TOKEN: test-root-token

@@ -10,3 +10,5 @@ seed_music
 .venv
 
 *.egg-info
+
+__pycache__

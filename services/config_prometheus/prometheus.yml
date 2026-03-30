@@ -21,7 +21,7 @@ scrape_configs:
 
   - job_name: 'gateway-recommendation'
     static_configs:
-      - targets: ['gateway-recommendation:8002']
+      - targets: ['gateway-recommendation:8080']
         labels:
           service: 'gateway-recommendation'
           environment: 'development'
@@ -35,7 +35,7 @@ scrape_configs:
 
   - job_name: 'service-bandit'
     static_configs:
-      - targets: ['service-bandit:8001']
+      - targets: ['service-bandit:8080']
         labels:
           service: 'service-bandit'
           environment: 'development'

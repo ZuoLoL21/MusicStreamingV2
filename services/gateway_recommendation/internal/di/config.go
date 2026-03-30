@@ -44,7 +44,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 	vaultToken := helpers.GetEnvRequired("VAULT_TOKEN")
 
 	// Optional environment variables
-	port := helpers.GetEnvOrDefault("GATEWAY_RECOMMENDATION_PORT", "8002")
+	port := helpers.GetEnvOrDefault("GATEWAY_RECOMMENDATION_PORT", "8080")
 	jwtExpirationService := helpers.ParseDurationMinutes(os.Getenv("JWT_TIME_IN_M_SERVICE"), consts.JWTExpirationService, slogger, "JWT_TIME_IN_M_SERVICE")
 	jwtTimeout := helpers.ParseDurationSeconds(os.Getenv("VAULT_JWT_TIMEOUT_SECONDS"), consts.JWTTimeoutVault, slogger, "VAULT_JWT_TIMEOUT_SECONDS")
 

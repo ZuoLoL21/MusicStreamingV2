@@ -1,6 +1,6 @@
 # MusicStreamingV2 - Architecture Documentation
 
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-03-30
 
 This document describes the architecture, design decisions, and system flows for the MusicStreamingV2 platform. For detailed API endpoint documentation, see [API.md](API.md).
 
@@ -46,7 +46,7 @@ MusicStreamingV2 follows a **microservices architecture** with layered gateways 
 │   └──────────────────────────────────────────────────────────┘  │
 │                              ↓ Service JWT                      │
 │   ┌──────────────────────────────────────────────────────────┐  │
-│   │  gateway_recommendation (Port 8002)                      │  │
+│   │  gateway_recommendation (Port 8080)                      │  │
 │   │  - Routes recommendation requests                        │  │
 │   │  - Validates Service JWT                                 │  │
 │   │  - Orchestrates bandit + popularity systems              │  │
@@ -54,10 +54,10 @@ MusicStreamingV2 follows a **microservices architecture** with layered gateways 
 └─────────────────────────────────────────────────────────────────┘
                               ↓ Service JWT
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Service Layer                            │
+│                    Service Layer (internal)                     │
 │  ┌────────────────────────┐  ┌───────────────────────────────┐  │
 │  │  service_user_database │  │  service_popularity_system    │  │
-│  │  Port 8001             │  │  Port 8003                    │  │
+│  │  Port 8001             │  │  Port 8080                    │  │
 │  │  - User data           │  │  - Trending metrics           │  │
 │  │  - Music catalog       │  │  - Popularity rankings        │  │
 │  │  - Playlists/Tags      │  │  - ClickHouse queries         │  │
@@ -65,7 +65,7 @@ MusicStreamingV2 follows a **microservices architecture** with layered gateways 
 │  └────────────────────────┘  └───────────────────────────────┘  │
 │  ┌────────────────────────┐  ┌───────────────────────────────┐  │
 │  │  service_bandit_system │  │  service_event_ingestion      │  │
-│  │  Port 8004             │  │  Port 8080 (internal)         │  │
+│  │  Port 8080             │  │  Port 8080                    │  │
 │  │  - Theme ML recs       │  │  - Event tracking             │  │
 │  │  - LinUCB algorithm    │  │  - ClickHouse ingestion       │  │
 │  │  - Python/FastAPI      │  │                               │  │
@@ -180,7 +180,7 @@ Core data backend managing all user data, music content, artists, albums, playli
 
 ### 3. gateway_recommendation
 
-**Port:** 8002 (internal)
+**Port:** 8080 (internal)
 **Language:** Go
 **Public Access:** No
 **Repository:** `services/gateway_recommendation/`
@@ -213,7 +213,7 @@ Recommendation orchestration gateway that routes recommendation requests to appr
 
 ### 4. service_popularity_system
 
-**Port:** 8003 (internal)
+**Port:** 8080 (internal)
 **Language:** Go
 **Public Access:** No
 **Repository:** `services/service_popularity_system/`
@@ -276,7 +276,7 @@ Provides popularity rankings and trending metrics for songs, artists, and themes
 
 ### 5. service_bandit_system
 
-**Port:** 8004 (internal)
+**Port:** 8080 (internal)
 **Language:** Python (FastAPI)
 **Public Access:** No
 **Repository:** `services/service_bandit_system/`
@@ -677,10 +677,10 @@ Client → gateway_api → gateway_recommendation → service_bandit_system → 
 1. Client sends Normal JWT to `gateway_api:8080/recommend/theme`
 2. gateway_api validates Normal JWT
 3. gateway_api generates Service JWT with `user_uuid`
-4. gateway_api forwards to `gateway_recommendation:8002/recommend/theme` with Service JWT
+4. gateway_api forwards to `gateway_recommendation:8080/recommend/theme` with Service JWT
 5. gateway_recommendation validates Service JWT
 6. gateway_recommendation extracts `user_uuid` from Service JWT
-7. gateway_recommendation forwards to `service_bandit_system:8004/api/v1/predict`
+7. gateway_recommendation forwards to `service_bandit_system:8080/api/v1/predict`
 8. service_bandit_system runs LinUCB prediction for user
 9. service_bandit_system returns `{theme, features, confidence}`
 10. Response flows back: bandit → gateway_recommendation → gateway_api → client
@@ -710,9 +710,9 @@ Client → gateway_api → gateway_recommendation → service_popularity_system 
 1. Client sends Normal JWT to `gateway_api:8080/popular/songs/timeframe?timeframe=week&limit=50`
 2. gateway_api validates Normal JWT
 3. gateway_api generates Service JWT
-4. gateway_api forwards to `gateway_recommendation:8002/popular/songs/timeframe`
+4. gateway_api forwards to `gateway_recommendation:8080/popular/songs/timeframe`
 5. gateway_recommendation validates Service JWT
-6. gateway_recommendation forwards to `service_popularity_system:8003/popular/songs/timeframe`
+6. gateway_recommendation forwards to `service_popularity_system:8080/popular/songs/timeframe`
 7. service_popularity_system queries ClickHouse for trending songs
 8. service_popularity_system calculates popularity scores and velocity
 9. service_popularity_system returns ranked songs with trend direction
@@ -960,9 +960,9 @@ PostgreSQL only - rejected due to poor analytical query performance at scale.
 |---------------------------|------|----------|--------------------------|------------------------|
 | **gateway_api**           | 8080 | HTTP     | **Yes** (mapped to host) | musicstreaming_network |
 | service_user_database     | 8001 | HTTP     | Internal only            | musicstreaming_network |
-| gateway_recommendation    | 8002 | HTTP     | Internal only            | musicstreaming_network |
-| service_popularity_system | 8003 | HTTP     | Internal only            | musicstreaming_network |
-| service_bandit_system     | 8004 | HTTP     | Internal only            | musicstreaming_network |
+| gateway_recommendation    | 8080 | HTTP     | Internal only            | musicstreaming_network |
+| service_popularity_system | 8080 | HTTP     | Internal only            | musicstreaming_network |
+| service_bandit_system     | 8080 | HTTP     | Internal only            | musicstreaming_network |
 | service_event_ingestion   | 8080 | HTTP     | Internal only            | musicstreaming_network |
 | **frontend**              | 3000 | HTTP     | **Yes** (mapped to host) | musicstreaming_network |
 | PostgreSQL                | 5432 | TCP      | Internal only            | musicstreaming_network |

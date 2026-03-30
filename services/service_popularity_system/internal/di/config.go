@@ -40,7 +40,7 @@ func LoadConfig(logger *zap.Logger) *Config {
 	vaultToken := helpers.GetEnvRequired("VAULT_TOKEN")
 
 	// Optional environment variables
-	port := helpers.GetEnvOrDefault("POPULARITY_PORT", "8003")
+	port := helpers.GetEnvOrDefault("POPULARITY_PORT", "8080")
 	tableName := helpers.GetEnvOrDefault("TABLE_NAME", "popularity_data")
 	jwtTimeout := helpers.ParseDurationSeconds(os.Getenv("VAULT_JWT_TIMEOUT_SECONDS"), consts.JWTTimeoutVault, slogger, "VAULT_JWT_TIMEOUT_SECONDS")
 
