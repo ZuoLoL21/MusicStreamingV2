@@ -17,26 +17,9 @@ import (
 	"go.uber.org/zap"
 )
 
-func initLogger(serviceName string) *zap.Logger {
-	logger, _ := zap.NewProduction()
-	logger = logger.WithOptions(zap.AddCaller())
-
-	environment := os.Getenv("ENVIRONMENT")
-	if environment == "" {
-		environment = "development"
-	}
-
-	logger = logger.With(
-		zap.String("service_name", serviceName),
-		zap.String("environment", environment),
-	)
-
-	return logger
-}
-
 func main() {
 	// Logger
-	logger := initLogger("gateway_recommendation")
+	logger := libsdi.InitLogger("gateway_recommendation")
 	defer func() {
 		_ = logger.Sync()
 	}()
