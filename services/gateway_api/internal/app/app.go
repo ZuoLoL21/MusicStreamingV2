@@ -83,7 +83,7 @@ func (a *App) setupMiddleware(normalRouter *mux.Router) (*mux.Router, *mux.Route
 	protectedRouter := normalRouter.PathPrefix("").Subrouter()
 
 	normalRouter.Use(
-		libsmiddleware.CORSMiddleware,
+		libsmiddleware.CORSMiddleware(),
 		libsmiddleware.RequestIDMiddleware(),
 		libsmiddleware.MetricsMiddleware(a.logger),
 		libsmiddleware.FailureRecoveryMiddleware(a.logger),
