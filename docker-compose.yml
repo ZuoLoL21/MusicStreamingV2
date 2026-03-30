@@ -1,3 +1,19 @@
+x-logging-options: &logging-options
+  fluentd-address: localhost:24224
+  fluentd-async: "true"
+  fluentd-max-retries: "10"
+
+x-healthcheck-postgres: &healthcheck-postgres
+  test: ["CMD-SHELL", "pg_isready -U postgres"]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+
+x-vault-env: &vault-env
+  VAULT_ADDR: http://vault:8200
+  VAULT_TOKEN: ${VAULT_TOKEN}
+  ENVIRONMENT: ${ENVIRONMENT:-development}
+
 services:
   # Databases
   database-postgres-user:
@@ -10,24 +26,9 @@ services:
     volumes:
       - user_data:/var/lib/postgresql/data
       - ./services/service_user_database/sql/schema:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    depends_on:
-      logging-fluentd:
-        condition: service_started
+    healthcheck: *healthcheck-postgres
     networks:
       - user-db-net
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        tag: database.postgres.user
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
-
 
   database-postgres-bandit:
     image: postgres:16
@@ -39,24 +40,9 @@ services:
     volumes:
       - bandit_data:/var/lib/postgresql/data
       - ./services/service_bandit_system/src/sql:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    depends_on:
-      logging-fluentd:
-        condition: service_started
+    healthcheck: *healthcheck-postgres
     networks:
       - bandit-db-net
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        tag: database.postgres.bandit
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
-
 
   database-clickhouse:
     image: clickhouse/clickhouse-server:24.8
@@ -74,19 +60,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    depends_on:
-      logging-fluentd:
-        condition: service_started
     networks:
       - clickhouse-net
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        tag: database.clickhouse
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
-
 
   database-minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
@@ -102,18 +77,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    depends_on:
-      logging-fluentd:
-        condition: service_started
     networks:
       - file-storage-net
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        tag: database.minio
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
 
   # Vault
   vault:
@@ -130,18 +95,8 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
-    depends_on:
-      logging-fluentd:
-        condition: service_started
     networks:
       - vault-net
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        tag: infrastructure.vault
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
 
   init-minio:
     image: minio/mc:RELEASE.2025-08-13T08-35-41Z
@@ -156,41 +111,23 @@ services:
     depends_on:
       database-minio:
         condition: service_healthy
-      logging-fluentd:
-        condition: service_started
     networks:
       - file-storage-net
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        tag: infrastructure.init_minio
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
 
   init-vault:
     image: hashicorp/vault:1.18.1
     container_name: init-vault
     environment:
+      <<: *vault-env
       VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: ${VAULT_TOKEN}
     volumes:
       - ./services/init_hashicorp_vault/init.sh:/scripts/init.sh:ro
     entrypoint: ["/bin/sh", "/scripts/init.sh"]
     depends_on:
       vault:
         condition: service_healthy
-      logging-fluentd:
-        condition: service_started
     networks:
       - vault-net
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        tag: infrastructure.init_vault
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
 
   init-music-data:
     build:
@@ -216,19 +153,10 @@ services:
         condition: service_healthy
       init-minio:
         condition: service_completed_successfully
-      logging-fluentd:
-        condition: service_started
     networks:
       - user-db-net
       - file-storage-net
     restart: "no"
-    logging:
-      driver: fluentd
-      options:
-        fluentd-address: localhost:24224
-        tag: infrastructure.init_music_data
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
 
   # Services
   service-user-database:
@@ -237,16 +165,14 @@ services:
       dockerfile: services/service_user_database/Dockerfile
     container_name: service-user-database
     environment:
+      <<: *vault-env
       USER_CRUD_CONNECTION_STRING: "postgresql://postgres:${USER_CRUD_PASSWORD}@database-postgres-user:5432/music_streaming"
       JWT_STORE_PATH: jwt/backend
-      VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: ${VAULT_TOKEN}
       MINIO_ENDPOINT: database-minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET_NAME: music-streaming
       EVENT_INGESTION_SERVICE_URL: http://service-event-ingestion:8080
-      ENVIRONMENT: ${ENVIRONMENT:-development}
     depends_on:
       database-postgres-user:
         condition: service_healthy
@@ -256,8 +182,6 @@ services:
         condition: service_healthy
       service-event-ingestion:
         condition: service_started
-      logging-fluentd:
-        condition: service_started
     networks:
       - user-db-net
       - general
@@ -266,11 +190,8 @@ services:
     logging:
       driver: fluentd
       options:
-        fluentd-address: localhost:24224
+        <<: *logging-options
         tag: service.user_database
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
-
 
   service-bandit:
     build:
@@ -278,19 +199,17 @@ services:
       dockerfile: Dockerfile
     container_name: service-bandit
     environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
       DB_CONNECTION_STRING_WAREHOUSE: "clickhouse://clickhouse:${CLICKHOUSE_PASSWORD}@database-clickhouse:8123/default"
       DB_CONNECTION_STRING_PARAMS: "postgresql://postgres:${BANDIT_PASSWORD}@database-postgres-bandit:5432/bandit"
       BANDIT_ALPHA: "0.5"
       BANDIT_RIDGE_LAMBDA: "1.0"
       SHERMAN_MORRISON_RECOMPUTE_INTERVAL: "100"
       SHERMAN_MORRISON_DIVERGENCE_THRESHOLD: "1e-6"
-      ENVIRONMENT: ${ENVIRONMENT:-development}
     depends_on:
       database-postgres-bandit:
         condition: service_healthy
       database-clickhouse:
-        condition: service_started
-      logging-fluentd:
         condition: service_started
     networks:
       - bandit-db-net
@@ -299,11 +218,8 @@ services:
     logging:
       driver: fluentd
       options:
-        fluentd-address: localhost:24224
+        <<: *logging-options
         tag: service.bandit
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
-
 
   service-popularity:
     build:
@@ -311,19 +227,15 @@ services:
       dockerfile: services/service_popularity_system/Dockerfile
     container_name: service-popularity
     environment:
+      <<: *vault-env
       WAREHOUSE_URL: "clickhouse://clickhouse:${CLICKHOUSE_PASSWORD}@database-clickhouse:9000/default"
       TABLE_NAME: popularity_data
       JWT_STORE_PATH: jwt/popularity
-      VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: ${VAULT_TOKEN}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
     depends_on:
       database-clickhouse:
         condition: service_started
       init-vault:
         condition: service_completed_successfully
-      logging-fluentd:
-        condition: service_started
     networks:
       - clickhouse-net
       - general
@@ -331,10 +243,8 @@ services:
     logging:
       driver: fluentd
       options:
-        fluentd-address: localhost:24224
+        <<: *logging-options
         tag: service.popularity
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
 
   service-event-ingestion:
     build:
@@ -342,18 +252,14 @@ services:
       dockerfile: services/service_event_ingestion/Dockerfile
     container_name: service-event-ingestion
     environment:
+      <<: *vault-env
       CLICKHOUSE_CONNECTION_STRING: "clickhouse://clickhouse:${CLICKHOUSE_PASSWORD}@database-clickhouse:9000/default"
       JWT_STORE_PATH: jwt/event-ingestion
-      VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: ${VAULT_TOKEN}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
     depends_on:
       database-clickhouse:
         condition: service_started
       init-vault:
         condition: service_completed_successfully
-      logging-fluentd:
-        condition: service_started
     networks:
       - clickhouse-net
       - general
@@ -361,10 +267,8 @@ services:
     logging:
       driver: fluentd
       options:
-        fluentd-address: localhost:24224
+        <<: *logging-options
         tag: service.event_ingestion
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
 
   # Gateways
   gateway-recommendation:
@@ -373,12 +277,10 @@ services:
       dockerfile: services/gateway_recommendation/Dockerfile
     container_name: gateway-recommendation
     environment:
+      <<: *vault-env
       POPULARITY_SERVICE_URL: http://service-popularity:8080
       BANDIT_SERVICE_URL: http://service-bandit:8080
       JWT_STORE_PATH: jwt/gateway-recommendation
-      VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: ${VAULT_TOKEN}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
     depends_on:
       service-popularity:
         condition: service_started
@@ -386,19 +288,14 @@ services:
         condition: service_started
       init-vault:
         condition: service_completed_successfully
-      logging-fluentd:
-        condition: service_started
     networks:
       - general
       - vault-net
     logging:
       driver: fluentd
       options:
-        fluentd-address: localhost:24224
+        <<: *logging-options
         tag: gateway.recommendation
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
-
 
   gateway-api:
     build:
@@ -408,13 +305,11 @@ services:
     ports:
       - "${GATEWAY_API_PORT:-8080}:8080"
     environment:
+      <<: *vault-env
       USER_DATABASE_SERVICE_URL: http://service-user-database:8080
       RECOMMENDATION_SERVICE_URL: http://gateway-recommendation:8080
       EVENT_INGESTION_SERVICE_URL: http://service-event-ingestion:8080
       JWT_STORE_PATH: jwt/gateway-api
-      VAULT_ADDR: http://vault:8200
-      VAULT_TOKEN: ${VAULT_TOKEN}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
     depends_on:
       service-user-database:
         condition: service_started
@@ -424,18 +319,14 @@ services:
         condition: service_started
       init-vault:
         condition: service_completed_successfully
-      logging-fluentd:
-        condition: service_started
     networks:
       - general
       - vault-net
     logging:
       driver: fluentd
       options:
-        fluentd-address: localhost:24224
+        <<: *logging-options
         tag: gateway.api
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
 
   # Display
   frontend:
@@ -452,17 +343,13 @@ services:
     depends_on:
       gateway-api:
         condition: service_started
-      logging-fluentd:
-        condition: service_started
     networks:
       - general
     logging:
       driver: fluentd
       options:
-        fluentd-address: localhost:24224
+        <<: *logging-options
         tag: frontend.website
-        fluentd-async: "true"
-        fluentd-max-retries: "10"
 
 
   # EFK Stack
