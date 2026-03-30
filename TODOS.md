@@ -4,7 +4,6 @@
 
 ### Features
 - Add Kafka for async updates (update weight in bandit system)
-- Add metrics and monitoring (Prometheus and Grafana)
 - Security
   - Self-signed TLS as a proof of concept
 - Gateway features
@@ -24,3 +23,4 @@
 ### More features
 - Email validation (send an email when registering)
 - Add database migration (allow a way to non-destructively update database tables without downing the container)
+- Add Oauth as a proof of concept
