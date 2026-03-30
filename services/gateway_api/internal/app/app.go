@@ -23,19 +23,41 @@ type App struct {
 	userDBClient         *libsclients.ProxyClient
 	recommendClient      *libsclients.ProxyClient
 	eventIngestionClient *libsclients.ProxyClient
+	handlers             *HandlerRegistry
+}
+
+type HandlerRegistry struct {
+	Proxy *handlers.ProxyHandler
 }
 
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
+	a.initHandlers()
 
-	r.Use(libsmiddleware.CORSMiddleware)
+	normalRouter := r.PathPrefix("").Subrouter()
+	publicRouter, refreshRouter, protectedRouter := a.setupMiddleware(normalRouter)
 
-	// Create handlers
-	proxyHandler := handlers.NewProxyHandler(
-		a.userDBClient,
-		a.recommendClient,
-		a.eventIngestionClient,
-	)
+	// Register routes
+	a.registerMonitoringRoutes(r)
+	a.registerPublicRoutes(publicRouter)
+	a.registerRefreshRoutes(refreshRouter)
+	a.registerProtectedRoutes(protectedRouter)
+
+	return r
+}
+
+func (a *App) initHandlers() {
+	a.handlers = &HandlerRegistry{
+		Proxy: handlers.NewProxyHandler(
+			a.userDBClient,
+			a.recommendClient,
+			a.eventIngestionClient,
+		),
+	}
+}
+
+func (a *App) setupMiddleware(normalRouter *mux.Router) (*mux.Router, *mux.Router, *mux.Router) {
+	// Auth middleware setup
 	normalAuthHandler := libsmiddleware.NewAuthHandler(
 		a.logger,
 		a.jwtHandler,
@@ -55,63 +77,68 @@ func (a *App) Router() *mux.Router {
 		a.config.JWTExpirationService,
 	)
 
-	publicRouter := r.PathPrefix("").Subrouter()
-	refreshRouter := r.PathPrefix("").Subrouter()
-	protectedRouter := r.PathPrefix("").Subrouter()
+	// Setting up route middleware
+	publicRouter := normalRouter.PathPrefix("").Subrouter()
+	refreshRouter := normalRouter.PathPrefix("").Subrouter()
+	protectedRouter := normalRouter.PathPrefix("").Subrouter()
 
-	publicRouter.Use(
+	normalRouter.Use(
+		libsmiddleware.CORSMiddleware,
 		libsmiddleware.RequestIDMiddleware(),
 		libsmiddleware.MetricsMiddleware(a.logger),
 		libsmiddleware.FailureRecoveryMiddleware(a.logger),
+	)
+	publicRouter.Use(
 		libsmiddleware.Logger(a.logger),
 	)
 	refreshRouter.Use(
-		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.MetricsMiddleware(a.logger),
-		libsmiddleware.FailureRecoveryMiddleware(a.logger),
 		refreshAuthHandler.GetAuthMiddleware(),
 		libsmiddleware.Logger(a.logger),
 		serviceJWTHandler.GetServiceJWTMiddleware(),
 	)
 	protectedRouter.Use(
-		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.MetricsMiddleware(a.logger),
-		libsmiddleware.FailureRecoveryMiddleware(a.logger),
 		normalAuthHandler.GetAuthMiddleware(),
 		libsmiddleware.Logger(a.logger),
 		serviceJWTHandler.GetServiceJWTMiddleware(),
 	)
 
-	// Public routes
+	return publicRouter, refreshRouter, protectedRouter
+}
+
+func (a *App) registerMonitoringRoutes(r *mux.Router) {
 	r.Handle("/metrics", metrics.Handler()).Methods("GET")
-	publicRouter.HandleFunc("/health", libshandlers.NewHealthCheckHandler("gateway-api")).Methods("GET")
-	publicRouter.HandleFunc("/login", proxyHandler.ProxyLogin).Methods("POST", "PUT", "OPTIONS")
-	publicRouter.PathPrefix("/files/public/").HandlerFunc(proxyHandler.ProxyPublicFiles).Methods("GET")
+	r.HandleFunc("/health", libshandlers.NewHealthCheckHandler("gateway-api")).Methods("GET")
+}
 
-	// Renewal
-	refreshRouter.HandleFunc("/renew", proxyHandler.ProxyRenew).Methods("POST")
+func (a *App) registerPublicRoutes(r *mux.Router) {
+	r.HandleFunc("/login", a.handlers.Proxy.ProxyLogin).Methods("POST", "PUT", "OPTIONS")
+	r.PathPrefix("/files/public/").HandlerFunc(a.handlers.Proxy.ProxyPublicFiles).Methods("GET")
+}
 
-	// Protected
-	protectedRouter.PathPrefix("/files/private/").HandlerFunc(proxyHandler.ProxyPrivateFiles).Methods("GET")
+func (a *App) registerRefreshRoutes(r *mux.Router) {
+	r.HandleFunc("/renew", a.handlers.Proxy.ProxyRenew).Methods("POST")
+}
+
+func (a *App) registerProtectedRoutes(r *mux.Router) {
+	// File routes
+	r.PathPrefix("/files/private/").HandlerFunc(a.handlers.Proxy.ProxyPrivateFiles).Methods("GET")
 
 	// User Database Service routes
-	protectedRouter.PathPrefix("/users").HandlerFunc(proxyHandler.ProxyUserDatabase)
-	protectedRouter.PathPrefix("/artists").HandlerFunc(proxyHandler.ProxyUserDatabase)
-	protectedRouter.PathPrefix("/albums").HandlerFunc(proxyHandler.ProxyUserDatabase)
-	protectedRouter.PathPrefix("/music").HandlerFunc(proxyHandler.ProxyUserDatabase)
-	protectedRouter.PathPrefix("/tags").HandlerFunc(proxyHandler.ProxyUserDatabase)
-	protectedRouter.PathPrefix("/playlists").HandlerFunc(proxyHandler.ProxyUserDatabase)
-	protectedRouter.PathPrefix("/history").HandlerFunc(proxyHandler.ProxyUserDatabase)
-	protectedRouter.PathPrefix("/search").HandlerFunc(proxyHandler.ProxyUserDatabase)
+	r.PathPrefix("/users").HandlerFunc(a.handlers.Proxy.ProxyUserDatabase)
+	r.PathPrefix("/artists").HandlerFunc(a.handlers.Proxy.ProxyUserDatabase)
+	r.PathPrefix("/albums").HandlerFunc(a.handlers.Proxy.ProxyUserDatabase)
+	r.PathPrefix("/music").HandlerFunc(a.handlers.Proxy.ProxyUserDatabase)
+	r.PathPrefix("/tags").HandlerFunc(a.handlers.Proxy.ProxyUserDatabase)
+	r.PathPrefix("/playlists").HandlerFunc(a.handlers.Proxy.ProxyUserDatabase)
+	r.PathPrefix("/history").HandlerFunc(a.handlers.Proxy.ProxyUserDatabase)
+	r.PathPrefix("/search").HandlerFunc(a.handlers.Proxy.ProxyUserDatabase)
 
 	// Recommendation Service routes
-	protectedRouter.PathPrefix("/recommend").HandlerFunc(proxyHandler.ProxyRecommendation)
-	protectedRouter.PathPrefix("/popular").HandlerFunc(proxyHandler.ProxyRecommendation)
+	r.PathPrefix("/recommend").HandlerFunc(a.handlers.Proxy.ProxyRecommendation)
+	r.PathPrefix("/popular").HandlerFunc(a.handlers.Proxy.ProxyRecommendation)
 
 	// Event Ingestion Service routes
-	protectedRouter.PathPrefix("/events").HandlerFunc(proxyHandler.ProxyEventIngestion)
-
-	return r
+	r.PathPrefix("/events").HandlerFunc(a.handlers.Proxy.ProxyEventIngestion)
 }
 
 func New(

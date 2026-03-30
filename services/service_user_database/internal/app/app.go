@@ -66,18 +66,13 @@ func New(
 
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
-
-	// Initialize all handlers
 	a.initHandlers()
 
-	// Setup middleware
-	publicRouter, protectedRouter := a.setupMiddleware(r)
+	normalRouter := r.PathPrefix("").Subrouter()
+	publicRouter, protectedRouter := a.setupMiddleware(normalRouter)
 
-	// Public routes
-	r.Handle("/metrics", metrics.Handler()).Methods("GET")
-
-	// Register all routes
-	a.registerHealthRoutes(publicRouter)
+	// Register routes
+	a.registerMonitoringRoutes(r)
 	a.registerAuthRoutes(publicRouter, protectedRouter)
 	a.registerFileRoutes(publicRouter)
 	a.registerUserRoutes(protectedRouter)
@@ -93,7 +88,6 @@ func (a *App) Router() *mux.Router {
 }
 
 func (a *App) initHandlers() {
-
 	a.handlers = &HandlerRegistry{
 		Auth:     handlers.NewAuthHandler(a.config, a.jwtHandler, a.returns, a.db, a.fileStorage, a.clickhouseSync),
 		Device:   handlers.NewDeviceHandler(a.config, a.returns, a.db),
@@ -111,7 +105,8 @@ func (a *App) initHandlers() {
 	}
 }
 
-func (a *App) setupMiddleware(r *mux.Router) (*mux.Router, *mux.Router) {
+func (a *App) setupMiddleware(normalRouter *mux.Router) (*mux.Router, *mux.Router) {
+	// Auth middleware setup
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.logger,
 		a.jwtHandler,
@@ -119,19 +114,19 @@ func (a *App) setupMiddleware(r *mux.Router) (*mux.Router, *mux.Router) {
 		consts.JWTSubjectService,
 	)
 
-	publicRouter := r.PathPrefix("").Subrouter()
-	protectedRouter := r.PathPrefix("").Subrouter()
+	// Setting up route middleware
+	publicRouter := normalRouter.PathPrefix("").Subrouter()
+	protectedRouter := normalRouter.PathPrefix("").Subrouter()
 
-	publicRouter.Use(
+	normalRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
 		libsmiddleware.MetricsMiddleware(a.logger),
 		libsmiddleware.FailureRecoveryMiddleware(a.logger),
+	)
+	publicRouter.Use(
 		libsmiddleware.Logger(a.logger),
 	)
 	protectedRouter.Use(
-		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.MetricsMiddleware(a.logger),
-		libsmiddleware.FailureRecoveryMiddleware(a.logger),
 		serviceAuthHandler.GetAuthMiddleware(),
 		libsmiddleware.Logger(a.logger),
 	)
@@ -139,7 +134,8 @@ func (a *App) setupMiddleware(r *mux.Router) (*mux.Router, *mux.Router) {
 	return publicRouter, protectedRouter
 }
 
-func (a *App) registerHealthRoutes(r *mux.Router) {
+func (a *App) registerMonitoringRoutes(r *mux.Router) {
+	r.Handle("/metrics", metrics.Handler()).Methods("GET")
 	r.HandleFunc("/health", libshandlers.NewHealthCheckHandler("service-user-database")).Methods("GET")
 }
 

@@ -18,15 +18,40 @@ type App struct {
 	config     *di.Config
 	jwtHandler *libsdi.JWTHandler
 	returns    *libsdi.ReturnManager
+	handlers   *HandlerRegistry
+}
+
+type HandlerRegistry struct {
+	Popularity *handlers.PopularityHandler
 }
 
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
+	a.initHandlers()
 
+	normalRouter := r.PathPrefix("").Subrouter()
+	protectedRouter := a.setupMiddleware(normalRouter)
+
+	// Register routes
+	a.registerMonitoringRoutes(r)
+	a.registerPopularityRoutes(protectedRouter)
+
+	return r
+}
+
+func (a *App) initHandlers() {
 	popularityHandler, err := handlers.NewPopularityHandler(a.config, a.returns)
 	if err != nil {
 		a.logger.Fatal("failed to initialize popularity handler", zap.Error(err))
 	}
+
+	a.handlers = &HandlerRegistry{
+		Popularity: popularityHandler,
+	}
+}
+
+func (a *App) setupMiddleware(normalRouter *mux.Router) *mux.Router {
+	// Auth middleware setup
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.logger,
 		a.jwtHandler,
@@ -34,40 +59,39 @@ func (a *App) Router() *mux.Router {
 		consts.JWTSubjectService,
 	)
 
-	publicRouter := r.PathPrefix("").Subrouter()
-	protectedRouter := r.PathPrefix("").Subrouter()
+	// Setting up route middleware
+	protectedRouter := normalRouter.PathPrefix("").Subrouter()
 
-	publicRouter.Use(
+	normalRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
 		libsmiddleware.MetricsMiddleware(a.logger),
 		libsmiddleware.FailureRecoveryMiddleware(a.logger),
-		libsmiddleware.Logger(a.logger),
 	)
 	protectedRouter.Use(
-		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.MetricsMiddleware(a.logger),
-		libsmiddleware.FailureRecoveryMiddleware(a.logger),
 		serviceAuthHandler.GetAuthMiddleware(),
 		libsmiddleware.Logger(a.logger),
 	)
 
-	// Public routes
-	r.Handle("/metrics", metrics.Handler()).Methods("GET")
-	publicRouter.HandleFunc("/health", libshandlers.NewHealthCheckHandler("service-popularity-system")).Methods("GET")
+	return protectedRouter
+}
 
+func (a *App) registerMonitoringRoutes(r *mux.Router) {
+	r.Handle("/metrics", metrics.Handler()).Methods("GET")
+	r.HandleFunc("/health", libshandlers.NewHealthCheckHandler("service-popularity-system")).Methods("GET")
+}
+
+func (a *App) registerPopularityRoutes(r *mux.Router) {
 	// All-time popularity endpoints
-	protectedRouter.HandleFunc("/popular/songs/all-time", popularityHandler.PopularSongsAllTime).Methods("GET")
-	protectedRouter.HandleFunc("/popular/artists/all-time", popularityHandler.PopularArtistAllTime).Methods("GET")
-	protectedRouter.HandleFunc("/popular/themes/all-time", popularityHandler.PopularThemeAllTime).Methods("GET")
-	protectedRouter.HandleFunc("/popular/songs/theme/{theme}", popularityHandler.PopularSongsAllTimeByTheme).Methods("GET")
+	r.HandleFunc("/popular/songs/all-time", a.handlers.Popularity.PopularSongsAllTime).Methods("GET")
+	r.HandleFunc("/popular/artists/all-time", a.handlers.Popularity.PopularArtistAllTime).Methods("GET")
+	r.HandleFunc("/popular/themes/all-time", a.handlers.Popularity.PopularThemeAllTime).Methods("GET")
+	r.HandleFunc("/popular/songs/theme/{theme}", a.handlers.Popularity.PopularSongsAllTimeByTheme).Methods("GET")
 
 	// Timeframe popularity endpoints
-	protectedRouter.HandleFunc("/popular/songs/timeframe", popularityHandler.PopularSongsTimeframe).Methods("GET")
-	protectedRouter.HandleFunc("/popular/artists/timeframe", popularityHandler.PopularArtistTimeframe).Methods("GET")
-	protectedRouter.HandleFunc("/popular/themes/timeframe", popularityHandler.PopularThemeTimeframe).Methods("GET")
-	protectedRouter.HandleFunc("/popular/songs/theme/{theme}/timeframe", popularityHandler.PopularSongsTimeframeByTheme).Methods("GET")
-
-	return r
+	r.HandleFunc("/popular/songs/timeframe", a.handlers.Popularity.PopularSongsTimeframe).Methods("GET")
+	r.HandleFunc("/popular/artists/timeframe", a.handlers.Popularity.PopularArtistTimeframe).Methods("GET")
+	r.HandleFunc("/popular/themes/timeframe", a.handlers.Popularity.PopularThemeTimeframe).Methods("GET")
+	r.HandleFunc("/popular/songs/theme/{theme}/timeframe", a.handlers.Popularity.PopularSongsTimeframeByTheme).Methods("GET")
 }
 
 func New(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager) *App {

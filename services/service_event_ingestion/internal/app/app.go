@@ -27,29 +27,15 @@ type HandlerRegistry struct {
 	Event *handlers.EventHandler
 }
 
-func New(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, clickhouse *di.ClickHouseClient) *App {
-	return &App{
-		logger:     logger,
-		config:     config,
-		jwtHandler: jwtHandler,
-		returns:    returns,
-		clickhouse: clickhouse,
-	}
-}
-
 func (a *App) Router() *mux.Router {
 	r := mux.NewRouter()
-
-	// Initialize all handlers
 	a.initHandlers()
 
-	// Setup middleware
-	publicRouter, protectedRouter := a.setupMiddleware(r)
+	normalRouter := r.PathPrefix("").Subrouter()
+	protectedRouter := a.setupMiddleware(normalRouter)
 
-	// Public routes
-	r.Handle("/metrics", metrics.Handler()).Methods("GET")
-
-	a.registerHealthRoutes(publicRouter)
+	// Register routes
+	a.registerMonitoringRoutes(r)
 	a.registerEventRoutes(protectedRouter)
 
 	return r
@@ -61,7 +47,8 @@ func (a *App) initHandlers() {
 	}
 }
 
-func (a *App) setupMiddleware(r *mux.Router) (*mux.Router, *mux.Router) {
+func (a *App) setupMiddleware(normalRouter *mux.Router) *mux.Router {
+	// Auth middleware setup
 	serviceAuthHandler := libsmiddleware.NewAuthHandler(
 		a.logger,
 		a.jwtHandler,
@@ -69,27 +56,24 @@ func (a *App) setupMiddleware(r *mux.Router) (*mux.Router, *mux.Router) {
 		consts.JWTSubjectService,
 	)
 
-	publicRouter := r.PathPrefix("").Subrouter()
-	protectedRouter := r.PathPrefix("").Subrouter()
+	// Setting up route middleware
+	protectedRouter := normalRouter.PathPrefix("").Subrouter()
 
-	publicRouter.Use(
+	normalRouter.Use(
 		libsmiddleware.RequestIDMiddleware(),
 		libsmiddleware.MetricsMiddleware(a.logger),
 		libsmiddleware.FailureRecoveryMiddleware(a.logger),
-		libsmiddleware.Logger(a.logger),
 	)
 	protectedRouter.Use(
-		libsmiddleware.RequestIDMiddleware(),
-		libsmiddleware.MetricsMiddleware(a.logger),
-		libsmiddleware.FailureRecoveryMiddleware(a.logger),
 		serviceAuthHandler.GetAuthMiddleware(),
 		libsmiddleware.Logger(a.logger),
 	)
 
-	return publicRouter, protectedRouter
+	return protectedRouter
 }
 
-func (a *App) registerHealthRoutes(r *mux.Router) {
+func (a *App) registerMonitoringRoutes(r *mux.Router) {
+	r.Handle("/metrics", metrics.Handler()).Methods("GET")
 	r.HandleFunc("/health", libshandlers.NewHealthCheckHandler("service-event-ingestion")).Methods("GET")
 }
 
@@ -98,4 +82,14 @@ func (a *App) registerEventRoutes(r *mux.Router) {
 	r.HandleFunc("/events/like", a.handlers.Event.IngestLikeEvent).Methods("POST")
 	r.HandleFunc("/events/theme", a.handlers.Event.IngestThemeEvent).Methods("POST")
 	r.HandleFunc("/events/user", a.handlers.Event.IngestUserDimEvent).Methods("POST")
+}
+
+func New(logger *zap.Logger, config *di.Config, jwtHandler *libsdi.JWTHandler, returns *libsdi.ReturnManager, clickhouse *di.ClickHouseClient) *App {
+	return &App{
+		logger:     logger,
+		config:     config,
+		jwtHandler: jwtHandler,
+		returns:    returns,
+		clickhouse: clickhouse,
+	}
 }
