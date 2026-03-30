@@ -12,12 +12,15 @@ import (
 )
 
 type Config struct {
+	// Service-specific configuration
+	Port                       string
 	ClickHouseConnectionString string
-	JWTStorePath               string
-	JWTTimeout                 time.Duration
-	ApplicationName            string
-	VaultAddr                  string
-	VaultToken                 string
+
+	// Vault configuration
+	ApplicationName string
+	JWTTimeout      time.Duration
+	VaultAddr       string
+	VaultToken      string
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -30,21 +33,20 @@ func LoadConfig(logger *zap.Logger) *Config {
 		slogger.Warnf("Error loading .env file: %v", err)
 	}
 
-	// Load required environment variables (no defaults for connection strings/secrets)
+	// Required environment variables
 	clickHouseConnectionString := helpers.GetEnvRequired("CLICKHOUSE_CONNECTION_STRING")
 	vaultAddr := helpers.GetEnvRequired("VAULT_ADDR")
 	vaultToken := helpers.GetEnvRequired("VAULT_TOKEN")
 
-	// Load optional environment variables (with sensible defaults)
-	jwtStorePath := helpers.GetEnvOrDefault("JWT_STORE_PATH", "jwt/event-ingestion")
-	applicationName := helpers.GetEnvOrDefault("VAULT_APPLICATION_NAME", consts.VaultAppEventIngestion)
+	// Optional environment variables
+	port := helpers.GetEnvOrDefault("EVENT_INGESTION_PORT", "8080")
 	jwtTimeout := helpers.ParseDurationSeconds(os.Getenv("VAULT_JWT_TIMEOUT_SECONDS"), consts.JWTTimeoutVault, slogger, "VAULT_JWT_TIMEOUT_SECONDS")
 
 	return &Config{
+		Port:                       port,
 		ClickHouseConnectionString: clickHouseConnectionString,
-		JWTStorePath:               jwtStorePath,
+		ApplicationName:            consts.VaultAppEventIngestion,
 		JWTTimeout:                 jwtTimeout,
-		ApplicationName:            applicationName,
 		VaultAddr:                  vaultAddr,
 		VaultToken:                 vaultToken,
 	}

@@ -47,7 +47,7 @@ func main() {
 	application := app.New(logger, config, jwtHandler, returns, db, fileStorage, clickhouseSync)
 	libsserver.RunHTTPServer(
 		logger,
-		":8080",
+		":"+config.Port,
 		application.Router(),
 		libsserver.DefaultTimeouts(),
 	)

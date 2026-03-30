@@ -12,16 +12,20 @@ import (
 )
 
 type Config struct {
+	// Service-specific configuration
 	Port                     string
 	UserDatabaseServiceURL   string
 	RecommendationServiceURL string
 	EventIngestionServiceURL string
-	JWTStorePath             string
-	JWTExpirationService     time.Duration
-	ApplicationName          string
-	JWTTimeout               time.Duration
-	VaultAddr                string
-	VaultToken               string
+
+	// JWT configuration
+	JWTExpirationService time.Duration
+
+	// Vault configuration
+	ApplicationName string
+	JWTTimeout      time.Duration
+	VaultAddr       string
+	VaultToken      string
 }
 
 func LoadConfig(logger *zap.Logger) *Config {
@@ -34,17 +38,15 @@ func LoadConfig(logger *zap.Logger) *Config {
 		slogger.Warnf("Error loading .env file: %v", err)
 	}
 
-	// Load required environment variables (no defaults for URLs/secrets)
+	// Required environment variables
 	userDatabaseServiceURL := helpers.GetEnvRequired("USER_DATABASE_SERVICE_URL")
 	recommendationServiceURL := helpers.GetEnvRequired("RECOMMENDATION_SERVICE_URL")
 	eventIngestionServiceURL := helpers.GetEnvRequired("EVENT_INGESTION_SERVICE_URL")
 	vaultAddr := helpers.GetEnvRequired("VAULT_ADDR")
 	vaultToken := helpers.GetEnvRequired("VAULT_TOKEN")
 
-	// Load optional environment variables (with sensible defaults)
+	// Optional environment variables
 	port := helpers.GetEnvOrDefault("GATEWAY_API_PORT", "8080")
-	jwtStorePath := helpers.GetEnvOrDefault("JWT_STORE_PATH", "jwt/gateway-api")
-	applicationName := helpers.GetEnvOrDefault("VAULT_APPLICATION_NAME", consts.VaultAppGatewayAPI)
 	jwtExpirationService := helpers.ParseDurationMinutes(os.Getenv("JWT_TIME_IN_M_SERVICE"), consts.JWTExpirationService, slogger, "JWT_TIME_IN_M_SERVICE")
 	jwtTimeout := helpers.ParseDurationSeconds(os.Getenv("VAULT_JWT_TIMEOUT_SECONDS"), consts.JWTTimeoutVault, slogger, "VAULT_JWT_TIMEOUT_SECONDS")
 
@@ -53,9 +55,8 @@ func LoadConfig(logger *zap.Logger) *Config {
 		UserDatabaseServiceURL:   userDatabaseServiceURL,
 		RecommendationServiceURL: recommendationServiceURL,
 		EventIngestionServiceURL: eventIngestionServiceURL,
-		JWTStorePath:             jwtStorePath,
 		JWTExpirationService:     jwtExpirationService,
-		ApplicationName:          applicationName,
+		ApplicationName:          consts.VaultAppGatewayAPI,
 		JWTTimeout:               jwtTimeout,
 		VaultAddr:                vaultAddr,
 		VaultToken:               vaultToken,

@@ -14,7 +14,6 @@ const (
 )
 
 // Vault Parsing
-
 const (
 	VaultSignaturePrefix = "vault"
 	VaultSignatureFormat = "vault:v%d:%s"
